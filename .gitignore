@@ -25,3 +25,18 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Linux environment and cache artifacts
+/.cache
+/.config
+/.local
+/.npm
+/.profile
+/.bashrc
+/.bash_logout
+/.gitconfig
+/.lesshst
+/.mysql_history
+/.npmrc
+*.save
+
