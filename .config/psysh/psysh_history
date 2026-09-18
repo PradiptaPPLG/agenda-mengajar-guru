@@ -1,0 +1,7 @@
+_HiStOrY_V2_
+echo\040"test"
+Log::info('test');
+#\040Exit\040tinker\040dulu\040(ketik\040exit\040atau\040Ctrl+D)
+exit
+echo\040"test"
+exit

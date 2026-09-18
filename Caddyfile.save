@@ -1,0 +1,19 @@
+ls -la /run/php/php8.3-fpm-agendaguru.sockecho '{
+    admin off
+}
+
+:8007 {
+    root * /home/apps/agendaguru/public
+    encode gzip
+    file_server
+    php_fastcgi unix//run/php/php8.3-fpm-agendaguru.sock
+}' > Caddyfileecho '{
+    admin off
+}
+
+:8007 {
+    root * /home/apps/agendaguru/public
+    encode gzip
+    file_server
+    php_fastcgi unix//run/php/php8.3-fpm-agendaguru.sock
+}' > Caddyfilegggggg
