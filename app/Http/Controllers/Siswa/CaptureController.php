@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Siswa;
 
 use App\Http\Controllers\Controller;
 use App\Models\FotoBukti;
+use App\Models\JadwalPelajaran;
 use App\Models\Pertemuan;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -19,17 +21,17 @@ class CaptureController extends Controller
 
         // Check student is in this class
         $kelasId = $user->siswaProfile?->kelas_id;
-        
-        $jadwal = \App\Models\JadwalPelajaran::findOrFail($jadwalId);
+
+        $jadwal = JadwalPelajaran::findOrFail($jadwalId);
         abort_unless($jadwal->kelas_id === $kelasId, 403);
 
-        $tanggalCarbon = \Carbon\Carbon::parse($tanggal);
-        
-        $now = \Carbon\Carbon::now();
+        $tanggalCarbon = Carbon::parse($tanggal);
+
+        $now = Carbon::now();
         $isToday = $tanggalCarbon->isToday();
         $isWithinTime = $now->format('H:i') >= '06:30';
 
-        $isPast = !($isToday && $isWithinTime);
+        $isPast = ! ($isToday && $isWithinTime);
 
         $pertemuan = Pertemuan::firstOrCreate(
             ['jadwal_id' => $jadwal->id, 'tanggal' => $tanggalCarbon->format('Y-m-d 00:00:00')],
@@ -51,17 +53,17 @@ class CaptureController extends Controller
     {
         $user = Auth::user();
         $kelasId = $user->siswaProfile?->kelas_id;
-        
-        $jadwal = \App\Models\JadwalPelajaran::findOrFail($jadwalId);
+
+        $jadwal = JadwalPelajaran::findOrFail($jadwalId);
         abort_unless($jadwal->kelas_id === $kelasId, 403);
 
-        $tanggalCarbon = \Carbon\Carbon::parse($tanggal);
-        
-        $now = \Carbon\Carbon::now();
+        $tanggalCarbon = Carbon::parse($tanggal);
+
+        $now = Carbon::now();
         $isToday = $tanggalCarbon->isToday();
         $isWithinTime = $now->format('H:i') >= '06:30';
 
-        if (!($isToday && $isWithinTime)) {
+        if (! ($isToday && $isWithinTime)) {
             return redirect()->route('siswa.dashboard')->with('error', 'Waktu pengiriman laporan ditutup. Siswa hanya dapat melapor pada hari yang sama mulai pukul 06:30 hingga 23:59.');
         }
 

@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
 
 class AuthController extends Controller
@@ -28,17 +30,17 @@ class AuthController extends Controller
         $identifier = $credentials['identifier'];
         $password = $credentials['password'];
 
-        $user = \App\Models\User::where('email', $identifier)
-            ->orWhereHas('guruProfile', function($q) use ($identifier) {
+        $user = User::where('email', $identifier)
+            ->orWhereHas('guruProfile', function ($q) use ($identifier) {
                 $q->where('nip', $identifier);
             })
-            ->orWhereHas('siswaProfile', function($q) use ($identifier) {
+            ->orWhereHas('siswaProfile', function ($q) use ($identifier) {
                 $q->where('nis', $identifier);
             })
             ->first();
 
-        if ($user && \Illuminate\Support\Facades\Hash::check($password, $user->password)) {
-            if (!$user->is_active) {
+        if ($user && Hash::check($password, $user->password)) {
+            if (! $user->is_active) {
                 return back()->withErrors([
                     'identifier' => 'Akun Anda sedang dinonaktifkan.',
                 ])->onlyInput('identifier');

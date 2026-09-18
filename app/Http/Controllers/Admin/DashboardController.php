@@ -3,13 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\KehadiranGuru;
+use App\Models\KehadiranSiswa;
 use App\Models\Kelas;
 use App\Models\Pertemuan;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\View\View;
-
-use App\Models\KehadiranGuru;
 
 class DashboardController extends Controller
 {
@@ -29,7 +29,7 @@ class DashboardController extends Controller
             'labels' => ['Hadir', 'Sakit', 'Alpa', 'Dispensasi'],
             'data' => [0, 0, 0, 0],
         ];
-        
+
         $totalStats = KehadiranGuru::whereDate('created_at', '>=', $today->copy()->subDays(7))
             ->selectRaw('status, count(*) as count')
             ->groupBy('status')
@@ -46,7 +46,7 @@ class DashboardController extends Controller
             'data' => [0, 0, 0, 0, 0],
         ];
 
-        $totalStatsSiswa = \App\Models\KehadiranSiswa::whereDate('created_at', '>=', $today->copy()->subDays(7))
+        $totalStatsSiswa = KehadiranSiswa::whereDate('created_at', '>=', $today->copy()->subDays(7))
             ->selectRaw('status, count(*) as count')
             ->groupBy('status')
             ->pluck('count', 'status');

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Kelas;
 use App\Models\MataPelajaran;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,11 +17,11 @@ class MataPelajaranController extends Controller
         $query = MataPelajaran::with('kelas')->orderBy('nama');
 
         if ($request->filled('search')) {
-            $query->where('nama', 'like', '%' . $request->search . '%')
-                  ->orWhere('kode', 'like', '%' . $request->search . '%');
+            $query->where('nama', 'like', '%'.$request->search.'%')
+                ->orWhere('kode', 'like', '%'.$request->search.'%');
         }
 
-        if (!$request->has('include_adaptif')) {
+        if (! $request->has('include_adaptif')) {
             $query->where('jenis', 'normatif');
         }
 
@@ -31,7 +32,8 @@ class MataPelajaranController extends Controller
 
     public function create(): View
     {
-        $kelasList = \App\Models\Kelas::orderBy('nama')->get();
+        $kelasList = Kelas::orderBy('nama')->get();
+
         return view('admin.mata-pelajaran.create', compact('kelasList'));
     }
 
@@ -61,7 +63,8 @@ class MataPelajaranController extends Controller
     public function edit(MataPelajaran $mataPelajaran): View
     {
         $mataPelajaran->load('kelas');
-        $kelasList = \App\Models\Kelas::orderBy('nama')->get();
+        $kelasList = Kelas::orderBy('nama')->get();
+
         return view('admin.mata-pelajaran.edit', compact('mataPelajaran', 'kelasList'));
     }
 

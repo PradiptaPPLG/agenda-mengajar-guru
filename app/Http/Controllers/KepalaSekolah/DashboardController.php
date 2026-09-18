@@ -35,7 +35,7 @@ class DashboardController extends Controller
             'labels' => ['Hadir', 'Sakit', 'Alpa', 'Dispensasi'],
             'data' => [0, 0, 0, 0],
         ];
-        
+
         $totalStats = KehadiranGuru::whereDate('created_at', '>=', $today->copy()->subDays(7))
             ->selectRaw('status, count(*) as count')
             ->groupBy('status')
