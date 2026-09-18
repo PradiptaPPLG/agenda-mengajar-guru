@@ -62,6 +62,10 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
     Route::delete('/kelas/{kelas}/remove-siswa/{siswa}', [\App\Http\Controllers\Admin\KelasSiswaController::class, 'remove'])->name('kelas.siswa.remove');
     Route::post('/kelas/{kelas}/import-siswa', [\App\Http\Controllers\Admin\KelasSiswaController::class, 'import'])->name('kelas.siswa.import');
 
+    // Siswa Management
+    Route::get('siswa', [\App\Http\Controllers\Admin\SiswaController::class, 'index'])->name('siswa.index');
+    Route::post('siswa/import', [\App\Http\Controllers\Admin\SiswaController::class, 'import'])->name('siswa.import');
+
     Route::resource('mata-pelajaran', AdminMataPelajaranController::class)
         ->parameters(['mata-pelajaran' => 'mataPelajaran'])
         ->except(['show']);

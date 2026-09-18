@@ -109,7 +109,7 @@
         </div>
 
         <!-- Kolom Kanan: Manajemen Siswa -->
-        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden" x-data="{ tab: 'current', allSiswa: @json($semuaSiswa), filterKelas: '', selectedSiswa: [], selectAll: false, searchSiswa: '' }">
+        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden" x-data='{ tab: "current", allSiswa: @json($semuaSiswa), filterKelas: "", selectedSiswa: [], selectAll: false, searchSiswa: "" }'>
             <div class="flex border-b border-slate-200">
                 <button @click="tab = 'current'" :class="tab === 'current' ? 'border-b-2 border-blue-600 text-blue-600 font-semibold' : 'text-slate-500 hover:text-slate-700 font-medium'" class="flex-1 py-3.5 text-sm transition-colors">Siswa di Kelas Ini</button>
                 <button @click="tab = 'master'" :class="tab === 'master' ? 'border-b-2 border-blue-600 text-blue-600 font-semibold' : 'text-slate-500 hover:text-slate-700 font-medium'" class="flex-1 py-3.5 text-sm transition-colors">Pilih dari Master</button>
