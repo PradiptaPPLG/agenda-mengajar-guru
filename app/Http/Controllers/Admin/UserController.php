@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\GuruProfile;
 use App\Models\Kelas;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -10,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Spatie\SimpleExcel\SimpleExcelReader;
 
 class UserController extends Controller
 {
@@ -39,7 +41,7 @@ class UserController extends Controller
                 'nullable',
                 Rule::requiredIf(fn () => in_array($request->input('role'), ['super_admin', 'admin', 'kepala_sekolah'])),
                 'email',
-                'unique:users,email'
+                'unique:users,email',
             ],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'role' => ['required', 'in:super_admin,admin,kepala_sekolah,guru,siswa'],
@@ -84,7 +86,7 @@ class UserController extends Controller
                 'nullable',
                 Rule::requiredIf(fn () => in_array($request->input('role'), ['super_admin', 'admin', 'kepala_sekolah'])),
                 'email',
-                Rule::unique('users', 'email')->ignore($user->id)
+                Rule::unique('users', 'email')->ignore($user->id),
             ],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
             'role' => ['required', 'in:super_admin,admin,kepala_sekolah,guru,siswa'],
@@ -132,61 +134,72 @@ class UserController extends Controller
 
         $file = $request->file('excel_file');
         $path = $file->getRealPath();
-        
-        $reader = \Spatie\SimpleExcel\SimpleExcelReader::create($path, $file->getClientOriginalExtension())->noHeaderRow();
+
+        $reader = SimpleExcelReader::create($path, $file->getClientOriginalExtension())->noHeaderRow();
 
         $imported = 0;
         $headerFound = false;
         $nameIndex = -1;
         $emailIndex = -1;
         $nipIndex = -1;
-        
+
         $defaultPassword = Hash::make('password');
         set_time_limit(300);
 
         $reader->getRows()->each(function (array $rowProperties) use (&$imported, &$headerFound, &$nameIndex, &$emailIndex, &$nipIndex, $defaultPassword) {
-            if (!$headerFound) {
+            if (! $headerFound) {
                 foreach ($rowProperties as $index => $value) {
-                    $val = strtolower(trim((string)$value));
-                    if (str_contains($val, 'nama')) $nameIndex = $index;
-                    if (str_contains($val, 'email')) $emailIndex = $index;
-                    if (str_contains($val, 'nip') || str_contains($val, 'n i p')) $nipIndex = $index;
+                    $val = strtolower(trim((string) $value));
+                    if (str_contains($val, 'nama')) {
+                        $nameIndex = $index;
+                    }
+                    if (str_contains($val, 'email')) {
+                        $emailIndex = $index;
+                    }
+                    if (str_contains($val, 'nip') || str_contains($val, 'n i p')) {
+                        $nipIndex = $index;
+                    }
                 }
                 if ($nameIndex !== -1) {
                     $headerFound = true;
                 }
+
                 return;
             }
 
             $nama = isset($rowProperties[$nameIndex]) ? trim($rowProperties[$nameIndex]) : null;
-            if (!$nama) return;
+            if (! $nama) {
+                return;
+            }
 
             $nip = ($nipIndex !== -1 && isset($rowProperties[$nipIndex])) ? trim($rowProperties[$nipIndex]) : null;
-            
+
             $email = null;
-            if ($emailIndex !== -1 && !empty($rowProperties[$emailIndex])) {
+            if ($emailIndex !== -1 && ! empty($rowProperties[$emailIndex])) {
                 $email = trim($rowProperties[$emailIndex]);
             }
 
-            if (!$email) {
+            if (! $email) {
                 $cleanName = preg_replace('/[^a-zA-Z0-9]/', '', strtolower($nama));
-                $email = $cleanName . '.' . rand(1000, 9999) . '@guru.sekolah.sch.id';
+                $email = $cleanName.'.'.rand(1000, 9999).'@guru.sekolah.sch.id';
             }
 
             // Cek apakah guru sudah ada (berdasarkan NIP, Email, atau Nama)
             $existingUser = null;
             if ($nip) {
-                $existingProfile = \App\Models\GuruProfile::where('nip', $nip)->first();
-                if ($existingProfile) $existingUser = $existingProfile->user;
+                $existingProfile = GuruProfile::where('nip', $nip)->first();
+                if ($existingProfile) {
+                    $existingUser = $existingProfile->user;
+                }
             }
-            if (!$existingUser && $email) {
+            if (! $existingUser && $email) {
                 $existingUser = User::where('email', $email)->first();
             }
-            if (!$existingUser) {
+            if (! $existingUser) {
                 $existingUser = User::where('name', $nama)->where('role', 'guru')->first();
             }
 
-            if (!$existingUser) {
+            if (! $existingUser) {
                 $user = User::create([
                     'name' => $nama,
                     'email' => $email,
@@ -194,7 +207,7 @@ class UserController extends Controller
                     'role' => 'guru',
                 ]);
 
-                \App\Models\GuruProfile::create([
+                GuruProfile::create([
                     'user_id' => $user->id,
                     'nip' => $nip,
                 ]);

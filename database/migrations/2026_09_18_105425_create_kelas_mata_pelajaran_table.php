@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('kelas_id')->constrained()->cascadeOnDelete();
             $table->foreignId('mata_pelajaran_id')->constrained('mata_pelajarans')->cascadeOnDelete();
             $table->timestamps();
-            
+
             $table->unique(['kelas_id', 'mata_pelajaran_id']);
         });
     }

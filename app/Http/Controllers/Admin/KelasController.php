@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Kelas;
+use App\Models\SiswaProfile;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -42,7 +43,7 @@ class KelasController extends Controller
     public function edit(Kelas $kelas): View
     {
         $guruList = User::where('role', 'guru')->orderBy('name')->get();
-        $semuaSiswa = \App\Models\SiswaProfile::with(['user', 'kelas'])->get();
+        $semuaSiswa = SiswaProfile::with(['user', 'kelas'])->get();
 
         return view('admin.kelas.edit', compact('kelas', 'guruList', 'semuaSiswa'));
     }

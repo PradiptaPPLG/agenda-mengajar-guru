@@ -3,12 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\SiswaProfile;
 use App\Models\Kelas;
+use App\Models\SiswaProfile;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Spatie\SimpleExcel\SimpleExcelReader;
 
 class SiswaController extends Controller
 {
@@ -17,15 +18,18 @@ class SiswaController extends Controller
         if ($user->role !== 'siswa') {
             abort(403);
         }
-        $user->update(['is_active' => !$user->is_active]);
+        $user->update(['is_active' => ! $user->is_active]);
+
         return back()->with('success', 'Status siswa berhasil diperbarui.');
     }
 
     public function deactivateAll()
     {
         User::where('role', 'siswa')->update(['is_active' => false]);
+
         return back()->with('success', 'Seluruh akun siswa berhasil dinonaktifkan.');
     }
+
     public function index(Request $request)
     {
         $query = SiswaProfile::with(['user', 'kelas']);
@@ -59,60 +63,70 @@ class SiswaController extends Controller
 
         $file = $request->file('excel_file');
         $path = $file->getRealPath();
-        
-        $reader = \Spatie\SimpleExcel\SimpleExcelReader::create($path, $file->getClientOriginalExtension());
+
+        $reader = SimpleExcelReader::create($path, $file->getClientOriginalExtension());
         $spoutReader = $reader->getReader();
 
         $imported = 0;
         $defaultPassword = Hash::make('password');
         set_time_limit(300); // Allow up to 5 minutes for large files
 
-        $processRow = function(array $rowProperties, &$headerFound, &$nameIndex, &$emailIndex, &$nisIndex, &$kelasIndex) use (&$imported, $defaultPassword) {
-            if (!$headerFound) {
+        $processRow = function (array $rowProperties, &$headerFound, &$nameIndex, &$emailIndex, &$nisIndex, &$kelasIndex) use (&$imported, $defaultPassword) {
+            if (! $headerFound) {
                 foreach ($rowProperties as $index => $value) {
                     if (is_string($value)) {
                         $lowerVal = strtolower(trim($value));
-                        if (in_array($lowerVal, ['nama lengkap', 'nama', 'name'])) $nameIndex = $index;
-                        elseif (in_array($lowerVal, ['alamat email', 'email'])) $emailIndex = $index;
-                        elseif (in_array($lowerVal, ['nis'])) $nisIndex = $index;
-                        elseif (in_array($lowerVal, ['kelas'])) $kelasIndex = $index;
+                        if (in_array($lowerVal, ['nama lengkap', 'nama', 'name'])) {
+                            $nameIndex = $index;
+                        } elseif (in_array($lowerVal, ['alamat email', 'email'])) {
+                            $emailIndex = $index;
+                        } elseif (in_array($lowerVal, ['nis'])) {
+                            $nisIndex = $index;
+                        } elseif (in_array($lowerVal, ['kelas'])) {
+                            $kelasIndex = $index;
+                        }
                     }
                 }
-                
+
                 if ($nameIndex !== -1) {
                     $headerFound = true;
                 }
+
                 return;
             }
 
             $nama = isset($rowProperties[$nameIndex]) ? trim($rowProperties[$nameIndex]) : null;
-            if (!$nama) return;
+            if (! $nama) {
+                return;
+            }
 
             $nis = ($nisIndex !== -1 && isset($rowProperties[$nisIndex])) ? trim($rowProperties[$nisIndex]) : null;
-            $providedEmail = ($emailIndex !== -1 && !empty($rowProperties[$emailIndex])) ? trim($rowProperties[$emailIndex]) : null;
-            $kelasName = ($kelasIndex !== -1 && !empty($rowProperties[$kelasIndex])) ? trim($rowProperties[$kelasIndex]) : null;
+            $providedEmail = ($emailIndex !== -1 && ! empty($rowProperties[$emailIndex])) ? trim($rowProperties[$emailIndex]) : null;
+            $kelasName = ($kelasIndex !== -1 && ! empty($rowProperties[$kelasIndex])) ? trim($rowProperties[$kelasIndex]) : null;
 
             $user = null;
 
             if ($nis) {
                 $profile = SiswaProfile::where('nis', $nis)->first();
-                if ($profile) $user = $profile->user;
+                if ($profile) {
+                    $user = $profile->user;
+                }
             }
 
-            if (!$user && $providedEmail) {
+            if (! $user && $providedEmail) {
                 $user = User::where('email', $providedEmail)->first();
             }
 
-            if (!$user) {
+            if (! $user) {
                 $email = $providedEmail;
-                if (!$email) {
+                if (! $email) {
                     $cleanName = Str::slug($nama, '');
-                    $email = "{$cleanName}." . ($nis ?: Str::random(4)) . "@siswa.sekolah.sch.id";
+                    $email = "{$cleanName}.".($nis ?: Str::random(4)).'@siswa.sekolah.sch.id';
                 }
 
                 $existingEmail = User::where('email', $email)->first();
                 if ($existingEmail) {
-                    $email = "{$cleanName}." . Str::random(5) . "@siswa.sekolah.sch.id";
+                    $email = "{$cleanName}.".Str::random(5).'@siswa.sekolah.sch.id';
                 }
 
                 $user = User::create([
@@ -120,7 +134,7 @@ class SiswaController extends Controller
                     'email' => $email,
                     'password' => $defaultPassword,
                     'role' => 'siswa',
-                    'is_active' => false
+                    'is_active' => false,
                 ]);
             }
 
@@ -128,20 +142,23 @@ class SiswaController extends Controller
             $kelasId = null;
             if ($kelasName) {
                 $kelasObj = Kelas::where('nama', 'LIKE', $kelasName)->first();
-                
+
                 // Otomatis buat kelas jika belum ada di database
-                if (!$kelasObj) {
+                if (! $kelasObj) {
                     $tingkat = '10';
-                    if (preg_match('/^12|xii/i', $kelasName)) $tingkat = '12';
-                    elseif (preg_match('/^11|xi/i', $kelasName)) $tingkat = '11';
+                    if (preg_match('/^12|xii/i', $kelasName)) {
+                        $tingkat = '12';
+                    } elseif (preg_match('/^11|xi/i', $kelasName)) {
+                        $tingkat = '11';
+                    }
 
                     $kelasObj = Kelas::create([
                         'nama' => $kelasName,
                         'tingkat' => $tingkat,
-                        'tahun_ajaran' => date('Y') . '/' . (date('Y') + 1)
+                        'tahun_ajaran' => date('Y').'/'.(date('Y') + 1),
                     ]);
                 }
-                
+
                 $kelasId = $kelasObj->id;
             }
 
@@ -149,10 +166,10 @@ class SiswaController extends Controller
                 ['user_id' => $user->id],
                 [
                     'nis' => $nis,
-                    'kelas_id' => $kelasId
+                    'kelas_id' => $kelasId,
                 ]
             );
-            
+
             $imported++;
         };
 

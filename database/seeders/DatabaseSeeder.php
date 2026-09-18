@@ -121,8 +121,9 @@ class DatabaseSeeder extends Seeder
             ['nis' => '1234512345', 'kelas_id' => $kelas12RPL->id]
         );
 
-        // ── Panggil StudentSeeder (data siswa kelas 11) ───────────────────────
+        // ── Panggil StudentSeeder & AttendanceSeeder ─────────────────────────
         $this->call(StudentSeeder::class);
+        $this->call(AttendanceSeeder::class);
 
         // ── Summary ───────────────────────────────────────────────────────────
         $this->command->info('');

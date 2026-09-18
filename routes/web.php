@@ -3,16 +3,17 @@
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\JadwalController as AdminJadwalController;
 use App\Http\Controllers\Admin\KelasController as AdminKelasController;
+use App\Http\Controllers\Admin\KelasSiswaController;
 use App\Http\Controllers\Admin\MataPelajaranController as AdminMataPelajaranController;
+use App\Http\Controllers\Admin\SiswaController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Guru\DashboardController as GuruDashboardController;
-use App\Http\Controllers\Guru\KehadiranController as GuruKehadiranController;
-use App\Http\Controllers\Guru\KehadiranSiswaController as GuruKehadiranSiswaController;
 use App\Http\Controllers\Guru\PertemuanController as GuruPertemuanController;
 use App\Http\Controllers\KepalaSekolah\DashboardController as KsDashboardController;
 use App\Http\Controllers\KepalaSekolah\PdfController as KsPdfController;
 use App\Http\Controllers\KepalaSekolah\ReportController as KsReportController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Siswa\CaptureController as SiswaCaptureController;
 use App\Http\Controllers\Siswa\DashboardController as SiswaDashboardController;
 use App\Http\Controllers\SuperAdmin\DashboardController as SaDashboardController;
@@ -29,9 +30,9 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // Profile & Panduan
 Route::middleware('auth')->group(function () {
-    Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'index'])->name('profile.index');
-    Route::put('/profile/password', [\App\Http\Controllers\ProfileController::class, 'updatePassword'])->name('profile.password.update');
-    
+    Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
+    Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
+
     Route::get('/panduan', function () {
         return view('panduan');
     })->name('panduan');
@@ -64,20 +65,20 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
 
     Route::resource('users', AdminUserController::class)->except(['show']);
     Route::post('users/import', [AdminUserController::class, 'import'])->name('users.import');
-    
+
     // Kelas Management
     Route::resource('kelas', AdminKelasController::class)
         ->parameters(['kelas' => 'kelas'])
         ->except(['show']);
-    Route::post('/kelas/{kelas}/sync-siswa', [\App\Http\Controllers\Admin\KelasSiswaController::class, 'sync'])->name('kelas.siswa.sync');
-    Route::delete('/kelas/{kelas}/remove-siswa/{siswa}', [\App\Http\Controllers\Admin\KelasSiswaController::class, 'remove'])->name('kelas.siswa.remove');
-    Route::post('/kelas/{kelas}/import-siswa', [\App\Http\Controllers\Admin\KelasSiswaController::class, 'import'])->name('kelas.siswa.import');
+    Route::post('/kelas/{kelas}/sync-siswa', [KelasSiswaController::class, 'sync'])->name('kelas.siswa.sync');
+    Route::delete('/kelas/{kelas}/remove-siswa/{siswa}', [KelasSiswaController::class, 'remove'])->name('kelas.siswa.remove');
+    Route::post('/kelas/{kelas}/import-siswa', [KelasSiswaController::class, 'import'])->name('kelas.siswa.import');
 
     // Siswa Management
-    Route::get('siswa', [\App\Http\Controllers\Admin\SiswaController::class, 'index'])->name('siswa.index');
-    Route::post('siswa/import', [\App\Http\Controllers\Admin\SiswaController::class, 'import'])->name('siswa.import');
-    Route::post('siswa/deactivate-all', [\App\Http\Controllers\Admin\SiswaController::class, 'deactivateAll'])->name('siswa.deactivate-all');
-    Route::post('siswa/{user}/toggle-active', [\App\Http\Controllers\Admin\SiswaController::class, 'toggleActive'])->name('siswa.toggle-active');
+    Route::get('siswa', [SiswaController::class, 'index'])->name('siswa.index');
+    Route::post('siswa/import', [SiswaController::class, 'import'])->name('siswa.import');
+    Route::post('siswa/deactivate-all', [SiswaController::class, 'deactivateAll'])->name('siswa.deactivate-all');
+    Route::post('siswa/{user}/toggle-active', [SiswaController::class, 'toggleActive'])->name('siswa.toggle-active');
 
     Route::resource('mata-pelajaran', AdminMataPelajaranController::class)
         ->parameters(['mata-pelajaran' => 'mataPelajaran'])

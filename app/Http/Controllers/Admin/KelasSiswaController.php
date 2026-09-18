@@ -21,21 +21,23 @@ class KelasSiswaController extends Controller
         ]);
 
         $siswaIds = $request->input('siswa_ids', []);
-        
+
         // Update the selected students to have this kelas_id
         if (count($siswaIds) > 0) {
             SiswaProfile::whereIn('id', $siswaIds)->update(['kelas_id' => $kelas->id]);
         }
 
-        return back()->with('success', count($siswaIds) . ' Siswa berhasil ditambahkan ke kelas.');
+        return back()->with('success', count($siswaIds).' Siswa berhasil ditambahkan ke kelas.');
     }
 
     public function remove(Request $request, Kelas $kelas, SiswaProfile $siswa)
     {
         if ($siswa->kelas_id === $kelas->id) {
             $siswa->update(['kelas_id' => null]);
+
             return back()->with('success', 'Siswa berhasil dikeluarkan dari kelas.');
         }
+
         return back()->with('error', 'Siswa tidak ditemukan di kelas ini.');
     }
 
@@ -51,54 +53,63 @@ class KelasSiswaController extends Controller
         $spoutReader = $reader->getReader();
 
         $importedCount = 0;
-        
+
         $defaultPassword = Hash::make('password');
         set_time_limit(300); // Allow up to 5 minutes for large files
 
-        $processRow = function(array $rowProperties, &$headerFound, &$nameIndex, &$emailIndex, &$nisIndex) use ($kelas, &$importedCount, $defaultPassword) {
-            if (!$headerFound) {
+        $processRow = function (array $rowProperties, &$headerFound, &$nameIndex, &$emailIndex, &$nisIndex) use ($kelas, &$importedCount, $defaultPassword) {
+            if (! $headerFound) {
                 foreach ($rowProperties as $index => $value) {
                     if (is_string($value)) {
                         $lowerVal = strtolower(trim($value));
-                        if (in_array($lowerVal, ['nama lengkap', 'nama', 'name'])) $nameIndex = $index;
-                        elseif (in_array($lowerVal, ['alamat email', 'email'])) $emailIndex = $index;
-                        elseif (in_array($lowerVal, ['nis'])) $nisIndex = $index;
+                        if (in_array($lowerVal, ['nama lengkap', 'nama', 'name'])) {
+                            $nameIndex = $index;
+                        } elseif (in_array($lowerVal, ['alamat email', 'email'])) {
+                            $emailIndex = $index;
+                        } elseif (in_array($lowerVal, ['nis'])) {
+                            $nisIndex = $index;
+                        }
                     }
                 }
-                
+
                 if ($nameIndex !== -1) {
                     $headerFound = true;
                 }
+
                 return;
             }
 
             $name = isset($rowProperties[$nameIndex]) ? trim($rowProperties[$nameIndex]) : null;
-            if (!$name) return;
+            if (! $name) {
+                return;
+            }
 
             $nis = ($nisIndex !== -1 && isset($rowProperties[$nisIndex])) ? trim($rowProperties[$nisIndex]) : null;
-            $providedEmail = ($emailIndex !== -1 && !empty($rowProperties[$emailIndex])) ? trim($rowProperties[$emailIndex]) : null;
+            $providedEmail = ($emailIndex !== -1 && ! empty($rowProperties[$emailIndex])) ? trim($rowProperties[$emailIndex]) : null;
 
             $user = null;
 
             if ($nis) {
                 $profile = SiswaProfile::where('nis', $nis)->first();
-                if ($profile) $user = $profile->user;
+                if ($profile) {
+                    $user = $profile->user;
+                }
             }
 
-            if (!$user && $providedEmail) {
+            if (! $user && $providedEmail) {
                 $user = User::where('email', $providedEmail)->first();
             }
 
-            if (!$user) {
+            if (! $user) {
                 $email = $providedEmail;
-                if (!$email) {
+                if (! $email) {
                     $cleanName = Str::slug($name, '');
-                    $email = "{$cleanName}." . ($nis ?: Str::random(4)) . "@smkn1ciamis.id";
+                    $email = "{$cleanName}.".($nis ?: Str::random(4)).'@smkn1ciamis.id';
                 }
 
                 $existingEmail = User::where('email', $email)->first();
                 if ($existingEmail) {
-                    $email = "{$cleanName}." . Str::random(5) . "@smkn1ciamis.id";
+                    $email = "{$cleanName}.".Str::random(5).'@smkn1ciamis.id';
                 }
 
                 $user = User::create([
@@ -116,7 +127,7 @@ class KelasSiswaController extends Controller
 
             $profile->update([
                 'kelas_id' => $kelas->id,
-                'nis' => $nis ?? $profile->nis
+                'nis' => $nis ?? $profile->nis,
             ]);
 
             $importedCount++;
@@ -151,5 +162,4 @@ class KelasSiswaController extends Controller
 
         return back()->with('success', "Berhasil mengimpor $importedCount siswa.");
     }
-
 }

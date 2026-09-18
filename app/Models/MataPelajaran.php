@@ -5,6 +5,7 @@ namespace App\Models;
 use Database\Factories\MataPelajaranFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class MataPelajaran extends Model
@@ -19,7 +20,7 @@ class MataPelajaran extends Model
         return $this->hasMany(JadwalPelajaran::class);
     }
 
-    public function kelas(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    public function kelas(): BelongsToMany
     {
         return $this->belongsToMany(Kelas::class, 'kelas_mata_pelajaran')->withTimestamps();
     }

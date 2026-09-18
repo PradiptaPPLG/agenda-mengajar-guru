@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Guru;
 
 use App\Http\Controllers\Controller;
 use App\Models\JadwalPelajaran;
+use App\Models\KehadiranGuru;
 use App\Models\KehadiranSiswa;
 use App\Models\Pertemuan;
 use Carbon\Carbon;
@@ -63,7 +64,7 @@ class PertemuanController extends Controller
         // Ensure this pertemuan belongs to the authenticated guru
         abort_unless($pertemuan->jadwal->guru_id === Auth::id(), 403);
 
-        $tanggalCarbon = \Carbon\Carbon::parse($pertemuan->tanggal);
+        $tanggalCarbon = Carbon::parse($pertemuan->tanggal);
         if ($tanggalCarbon->lt(now()->subDays(7)->startOfDay()) || $tanggalCarbon->gt(now()->endOfDay())) {
             return back()->with('error', 'Waktu pengisian data untuk tanggal ini sudah ditutup (batas maksimal 7 hari ke belakang).');
         }
@@ -90,14 +91,14 @@ class PertemuanController extends Controller
 
         // 2. Update Guru Attendance (only if submitted)
         if (isset($validated['status'])) {
-            \App\Models\KehadiranGuru::updateOrCreate(
+            KehadiranGuru::updateOrCreate(
                 ['pertemuan_id' => $pertemuan->id, 'guru_id' => Auth::id()],
                 [
                     'status' => $validated['status'],
                     'jenis_alpa' => $validated['jenis_alpa'] ?? null,
                     'guru_pengganti_nama' => $validated['guru_pengganti_nama'] ?? null,
                     'keterangan' => $validated['keterangan'] ?? null,
-                    'waktu_hadir' => \App\Models\KehadiranGuru::where('pertemuan_id', $pertemuan->id)->where('guru_id', Auth::id())->value('waktu_hadir') ?? now(),
+                    'waktu_hadir' => KehadiranGuru::where('pertemuan_id', $pertemuan->id)->where('guru_id', Auth::id())->value('waktu_hadir') ?? now(),
                 ]
             );
             $pertemuan->update(['status' => 'berlangsung']);
