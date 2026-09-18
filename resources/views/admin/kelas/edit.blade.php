@@ -35,11 +35,11 @@
     </script>
     @endpush
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
         <!-- Kolom Kiri: Form Edit -->
-        <div class="max-w-lg" x-data="kelasForm()">
-            <div class="bg-white rounded-2xl border border-slate-200 p-6">
-                <form action="{{ route('admin.kelas.update', $kelas) }}" method="POST" class="space-y-4">
+        <div class="w-full h-full" x-data="kelasForm()">
+            <div class="bg-white rounded-2xl border border-slate-200 p-6 h-full flex flex-col">
+                <form action="{{ route('admin.kelas.update', $kelas) }}" method="POST" class="space-y-4 flex-1 flex flex-col">
                     @csrf @method('PUT')
                     
                     <div>
@@ -100,7 +100,11 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="flex items-center gap-3 pt-2">
+                    
+                    <!-- Pendorong tombol ke bawah -->
+                    <div class="flex-1"></div>
+
+                    <div class="flex items-center gap-3 pt-2 mt-auto">
                         <button type="submit" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors">Perbarui</button>
                         <a href="{{ route('admin.kelas.index') }}" class="px-6 py-2.5 border border-slate-200 text-slate-700 text-sm font-medium rounded-xl hover:bg-slate-50 transition-colors">Batal</a>
                     </div>
@@ -109,7 +113,7 @@
         </div>
 
         <!-- Kolom Kanan: Manajemen Siswa -->
-        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden" x-data='{ tab: "current", allSiswa: @json($semuaSiswa), filterKelas: "", selectedSiswa: [], selectAll: false, searchSiswa: "" }'>
+        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col h-full" x-data='{ tab: "current", allSiswa: @json($semuaSiswa), filterKelas: "", selectedSiswa: [], selectAll: false, searchSiswa: "" }'>
             <div class="flex border-b border-slate-200">
                 <button @click="tab = 'current'" :class="tab === 'current' ? 'border-b-2 border-blue-600 text-blue-600 font-semibold' : 'text-slate-500 hover:text-slate-700 font-medium'" class="flex-1 py-3.5 text-sm transition-colors">Siswa di Kelas Ini</button>
                 <button @click="tab = 'master'" :class="tab === 'master' ? 'border-b-2 border-blue-600 text-blue-600 font-semibold' : 'text-slate-500 hover:text-slate-700 font-medium'" class="flex-1 py-3.5 text-sm transition-colors">Pilih dari Master</button>
@@ -132,12 +136,24 @@
                                         <p class="text-sm font-medium text-slate-900" x-text="siswa.user.name"></p>
                                         <p class="text-xs text-slate-500">NIS: <span x-text="siswa.nis || '-'"></span></p>
                                     </div>
-                                    <form :action="'{{ route('admin.kelas.siswa.remove', ['kelas' => $kelas->id, 'siswa' => 'SISWA_ID']) }}'.replace('SISWA_ID', siswa.id)" method="POST" onsubmit="return confirm('Keluarkan siswa ini dari kelas?');">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Keluarkan dari kelas">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                        </button>
-                                    </form>
+                                    <div class="flex items-center justify-end" x-data="{ openMenu: false }">
+                                        <div class="relative inline-block text-left" @click.away="openMenu = false">
+                                            <button @click="openMenu = !openMenu" type="button" class="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/></svg>
+                                            </button>
+                                            <div x-show="openMenu" class="absolute right-0 z-[100] mt-1 w-36 origin-top-right rounded-xl bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none" style="display: none;">
+                                                <div class="py-1">
+                                                    <form :action="'{{ route('admin.kelas.siswa.remove', ['kelas' => $kelas->id, 'siswa' => 'SISWA_ID']) }}'.replace('SISWA_ID', siswa.id)" method="POST" onsubmit="event.preventDefault(); window.dispatchEvent(new CustomEvent('open-delete-modal', { detail: { form: this } }));">
+                                                        @csrf @method('DELETE')
+                                                        <button type="submit" class="group flex w-full items-center px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-red-600">
+                                                            <svg class="mr-3 h-4 w-4 text-slate-400 group-hover:text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                                            Keluarkan
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </template>
                             <div x-show="allSiswa.filter(s => s.kelas_id === {{ $kelas->id }}).length === 0" class="p-8 text-center text-sm text-slate-500">
@@ -226,8 +242,8 @@
                     <form action="{{ route('admin.kelas.siswa.import', $kelas) }}" method="POST" enctype="multipart/form-data" class="space-y-4 border border-slate-200 p-4 rounded-xl">
                         @csrf
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1.5">File Excel (.xlsx / .csv) <span class="text-red-500">*</span></label>
-                            <input type="file" name="excel_file" accept=".xlsx,.csv" required
+                            <label class="block text-sm font-medium text-slate-700 mb-1.5">File Excel (.xlsx / .xls / .csv) <span class="text-red-500">*</span></label>
+                            <input type="file" name="excel_file" accept=".xlsx,.xls,.csv" required
                                    class="w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
                         </div>
                         <button type="submit" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl transition-colors">

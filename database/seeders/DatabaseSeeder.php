@@ -62,17 +62,17 @@ class DatabaseSeeder extends Seeder
 
         // ── Guru ──────────────────────────────────────────────────────────────
         $guruData = [
-            ['name' => 'Andi Wijaya, S.Pd.',   'email' => 'andi@sekolah.sch.id',   'nip' => '198501012010011001'],
-            ['name' => 'Siti Rahayu, S.Pd.',   'email' => 'siti@sekolah.sch.id',   'nip' => '198602022010012002'],
-            ['name' => 'Budi Hartono, M.Pd.',  'email' => 'budi@sekolah.sch.id',   'nip' => '197803032008011003'],
-            ['name' => 'Dewi Kusuma, S.Pd.',   'email' => 'dewi@sekolah.sch.id',   'nip' => '199001012015012004'],
+            ['name' => 'Andi Wijaya, S.Pd.',   'nip' => '198501012010011001'],
+            ['name' => 'Siti Rahayu, S.Pd.',   'nip' => '198602022010012002'],
+            ['name' => 'Budi Hartono, M.Pd.',  'nip' => '197803032008011003'],
+            ['name' => 'Dewi Kusuma, S.Pd.',   'nip' => '199001012015012004'],
         ];
 
         $gurus = [];
         foreach ($guruData as $data) {
             $guru = User::firstOrCreate(
-                ['email' => $data['email']],
-                ['name' => $data['name'], 'password' => Hash::make('password'), 'role' => 'guru']
+                ['name' => $data['name']],
+                ['email' => null, 'password' => Hash::make('password'), 'role' => 'guru']
             );
             GuruProfile::firstOrCreate(['user_id' => $guru->id], ['nip' => $data['nip']]);
             $gurus[] = $guru;
@@ -94,19 +94,19 @@ class DatabaseSeeder extends Seeder
         // ── Siswa ─────────────────────────────────────────────────────────────
         $siswaData = [
             // X-IPA-1
-            ['name' => 'Ahmad Fauzi',    'email' => 'ahmad@siswa.sch.id',  'nis' => '2025001', 'kelas' => $kelasList[0]],
-            ['name' => 'Bella Putri',    'email' => 'bella@siswa.sch.id',  'nis' => '2025002', 'kelas' => $kelasList[0]],
-            ['name' => 'Candra Permana', 'email' => 'candra@siswa.sch.id', 'nis' => '2025003', 'kelas' => $kelasList[0]],
-            ['name' => 'Dina Maharani',  'email' => 'dina@siswa.sch.id',   'nis' => '2025004', 'kelas' => $kelasList[0]],
+            ['name' => 'Ahmad Fauzi',    'nis' => '2025001', 'kelas' => $kelasList[0]],
+            ['name' => 'Bella Putri',    'nis' => '2025002', 'kelas' => $kelasList[0]],
+            ['name' => 'Candra Permana', 'nis' => '2025003', 'kelas' => $kelasList[0]],
+            ['name' => 'Dina Maharani',  'nis' => '2025004', 'kelas' => $kelasList[0]],
             // X-IPA-2
-            ['name' => 'Eko Prasetyo',   'email' => 'eko@siswa.sch.id',    'nis' => '2025005', 'kelas' => $kelasList[1]],
-            ['name' => 'Fitri Lestari',  'email' => 'fitri@siswa.sch.id',  'nis' => '2025006', 'kelas' => $kelasList[1]],
+            ['name' => 'Eko Prasetyo',   'nis' => '2025005', 'kelas' => $kelasList[1]],
+            ['name' => 'Fitri Lestari',  'nis' => '2025006', 'kelas' => $kelasList[1]],
         ];
 
         foreach ($siswaData as $data) {
             $siswa = User::firstOrCreate(
-                ['email' => $data['email']],
-                ['name' => $data['name'], 'password' => Hash::make('password'), 'role' => 'siswa']
+                ['name' => $data['name']],
+                ['email' => null, 'password' => Hash::make('password'), 'role' => 'siswa', 'is_active' => false]
             );
             SiswaProfile::firstOrCreate(
                 ['user_id' => $siswa->id],
@@ -145,9 +145,9 @@ class DatabaseSeeder extends Seeder
         $this->command->info('   Super Admin  : superadmin@sekolah.sch.id');
         $this->command->info('   Admin        : admin@sekolah.sch.id');
         $this->command->info('   Kepala Sekolah: kepsek@sekolah.sch.id');
-        $this->command->info('   Guru 1       : andi@sekolah.sch.id');
-        $this->command->info('   Guru 2       : siti@sekolah.sch.id');
-        $this->command->info('   Siswa 1      : ahmad@siswa.sch.id');
-        $this->command->info('   Siswa 2      : bella@siswa.sch.id');
+        $this->command->info('   Guru 1       : 198501012010011001 (NIP)');
+        $this->command->info('   Guru 2       : 198602022010012002 (NIP)');
+        $this->command->info('   Siswa 1      : 2025001 (NIS)');
+        $this->command->info('   Siswa 2      : 2025002 (NIS)');
     }
 }

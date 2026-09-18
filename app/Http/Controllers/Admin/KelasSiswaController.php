@@ -42,93 +42,114 @@ class KelasSiswaController extends Controller
     public function import(Request $request, Kelas $kelas)
     {
         $request->validate([
-            'excel_file' => 'required|file|mimes:xlsx,csv|max:10240',
+            'excel_file' => 'required|file|mimes:xlsx,xls,csv|max:10240',
         ]);
 
         $path = $request->file('excel_file')->getRealPath();
-        $reader = SimpleExcelReader::create($path);
+        $extension = $request->file('excel_file')->getClientOriginalExtension();
+        $reader = SimpleExcelReader::create($path, $extension);
+        $spoutReader = $reader->getReader();
 
         $importedCount = 0;
+        
+        $defaultPassword = Hash::make('password');
+        set_time_limit(300); // Allow up to 5 minutes for large files
 
-        $reader->getRows()->each(function (array $rowProperties) use ($kelas, &$importedCount) {
-            // Find columns flexibly
-            $nameKey = $this->findKey($rowProperties, ['nama lengkap', 'nama', 'name']);
-            $emailKey = $this->findKey($rowProperties, ['alamat email', 'email']);
-            $nisKey = $this->findKey($rowProperties, ['nis']);
-            $genderKey = $this->findKey($rowProperties, ['jenis kelamin', 'jk', 'gender']);
-            $phoneKey = $this->findKey($rowProperties, ['no.hp', 'hp', 'phone', 'telepon']);
-
-            if (!$nameKey || empty($rowProperties[$nameKey])) {
-                return; // Skip if no name
-            }
-
-            $name = $rowProperties[$nameKey];
-            
-            // Prepare email
-            $email = null;
-            if ($emailKey && !empty($rowProperties[$emailKey])) {
-                $email = $rowProperties[$emailKey];
-            } else {
-                // Generate a dummy email if none provided
-                $cleanName = Str::slug($name, '');
-                $randomStr = Str::random(4);
-                $email = "{$cleanName}.{$randomStr}@smkn1ciamis.id";
-            }
-
-            // Check if user exists by email
-            $user = User::where('email', $email)->first();
-            
-            if (!$user) {
-                // Check if we have NIS, maybe we can link by NIS
-                $nis = $nisKey ? $rowProperties[$nisKey] : null;
-                $existingProfile = null;
-                
-                if ($nis) {
-                    $existingProfile = SiswaProfile::where('nis', $nis)->first();
-                    if ($existingProfile) {
-                        $user = $existingProfile->user;
+        $processRow = function(array $rowProperties, &$headerFound, &$nameIndex, &$emailIndex, &$nisIndex) use ($kelas, &$importedCount, $defaultPassword) {
+            if (!$headerFound) {
+                foreach ($rowProperties as $index => $value) {
+                    if (is_string($value)) {
+                        $lowerVal = strtolower(trim($value));
+                        if (in_array($lowerVal, ['nama lengkap', 'nama', 'name'])) $nameIndex = $index;
+                        elseif (in_array($lowerVal, ['alamat email', 'email'])) $emailIndex = $index;
+                        elseif (in_array($lowerVal, ['nis'])) $nisIndex = $index;
                     }
                 }
-
-                if (!$user) {
-                    $user = User::create([
-                        'name' => $name,
-                        'email' => $email,
-                        'password' => Hash::make('password'),
-                        'role' => 'siswa',
-                    ]);
+                
+                if ($nameIndex !== -1) {
+                    $headerFound = true;
                 }
+                return;
             }
 
-            // Create or update Siswa Profile
-            $nis = $nisKey ? $rowProperties[$nisKey] : null;
+            $name = isset($rowProperties[$nameIndex]) ? trim($rowProperties[$nameIndex]) : null;
+            if (!$name) return;
+
+            $nis = ($nisIndex !== -1 && isset($rowProperties[$nisIndex])) ? trim($rowProperties[$nisIndex]) : null;
+            $providedEmail = ($emailIndex !== -1 && !empty($rowProperties[$emailIndex])) ? trim($rowProperties[$emailIndex]) : null;
+
+            $user = null;
+
+            if ($nis) {
+                $profile = SiswaProfile::where('nis', $nis)->first();
+                if ($profile) $user = $profile->user;
+            }
+
+            if (!$user && $providedEmail) {
+                $user = User::where('email', $providedEmail)->first();
+            }
+
+            if (!$user) {
+                $email = $providedEmail;
+                if (!$email) {
+                    $cleanName = Str::slug($name, '');
+                    $email = "{$cleanName}." . ($nis ?: Str::random(4)) . "@smkn1ciamis.id";
+                }
+
+                $existingEmail = User::where('email', $email)->first();
+                if ($existingEmail) {
+                    $email = "{$cleanName}." . Str::random(5) . "@smkn1ciamis.id";
+                }
+
+                $user = User::create([
+                    'name' => $name,
+                    'email' => $email,
+                    'password' => $defaultPassword,
+                    'role' => 'siswa',
+                ]);
+            }
+
             $profile = SiswaProfile::firstOrCreate(
                 ['user_id' => $user->id],
                 ['nis' => $nis]
             );
 
-            // Assign to this class
             $profile->update([
                 'kelas_id' => $kelas->id,
                 'nis' => $nis ?? $profile->nis
             ]);
 
             $importedCount++;
-        });
+        };
+
+        if (method_exists($spoutReader, 'getSheetIterator')) {
+            $spoutReader->open($path);
+            foreach ($spoutReader->getSheetIterator() as $sheet) {
+                $headerFound = false;
+                $nameIndex = -1;
+                $emailIndex = -1;
+                $nisIndex = -1;
+                foreach ($sheet->getRowIterator() as $row) {
+                    $rowProperties = [];
+                    foreach ($row->getCells() as $cell) {
+                        $rowProperties[] = $cell->getValue();
+                    }
+                    $processRow($rowProperties, $headerFound, $nameIndex, $emailIndex, $nisIndex);
+                }
+            }
+            $spoutReader->close();
+        } else {
+            // For CSV
+            $headerFound = false;
+            $nameIndex = -1;
+            $emailIndex = -1;
+            $nisIndex = -1;
+            $reader->noHeaderRow()->getRows()->each(function (array $rowProperties) use ($processRow, &$headerFound, &$nameIndex, &$emailIndex, &$nisIndex) {
+                $processRow($rowProperties, $headerFound, $nameIndex, $emailIndex, $nisIndex);
+            });
+        }
 
         return back()->with('success', "Berhasil mengimpor $importedCount siswa.");
     }
 
-    private function findKey(array $row, array $possibleNames)
-    {
-        foreach ($row as $key => $value) {
-            $lowerKey = strtolower(trim($key));
-            foreach ($possibleNames as $possibleName) {
-                if (str_contains($lowerKey, $possibleName)) {
-                    return $key;
-                }
-            }
-        }
-        return null;
-    }
 }

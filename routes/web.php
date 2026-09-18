@@ -27,6 +27,16 @@ Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.post');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
+// Profile & Panduan
+Route::middleware('auth')->group(function () {
+    Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'index'])->name('profile.index');
+    Route::put('/profile/password', [\App\Http\Controllers\ProfileController::class, 'updatePassword'])->name('profile.password.update');
+    
+    Route::get('/panduan', function () {
+        return view('panduan');
+    })->name('panduan');
+});
+
 // ─── Guru ───────────────────────────────────────────────────────────────────
 Route::middleware(['auth', 'role:guru'])->prefix('guru')->name('guru.')->group(function () {
     Route::get('/dashboard', [GuruDashboardController::class, 'index'])->name('dashboard');
@@ -53,6 +63,7 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
 
     Route::resource('users', AdminUserController::class)->except(['show']);
+    Route::post('users/import', [AdminUserController::class, 'import'])->name('users.import');
     
     // Kelas Management
     Route::resource('kelas', AdminKelasController::class)
@@ -65,6 +76,8 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
     // Siswa Management
     Route::get('siswa', [\App\Http\Controllers\Admin\SiswaController::class, 'index'])->name('siswa.index');
     Route::post('siswa/import', [\App\Http\Controllers\Admin\SiswaController::class, 'import'])->name('siswa.import');
+    Route::post('siswa/deactivate-all', [\App\Http\Controllers\Admin\SiswaController::class, 'deactivateAll'])->name('siswa.deactivate-all');
+    Route::post('siswa/{user}/toggle-active', [\App\Http\Controllers\Admin\SiswaController::class, 'toggleActive'])->name('siswa.toggle-active');
 
     Route::resource('mata-pelajaran', AdminMataPelajaranController::class)
         ->parameters(['mata-pelajaran' => 'mataPelajaran'])

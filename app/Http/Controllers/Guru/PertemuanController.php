@@ -45,10 +45,13 @@ class PertemuanController extends Controller
 
         $pertemuan->load('kehadiranSiswas.siswa');
 
+        $isLocked = $tanggalCarbon->lt(now()->subDays(7)->startOfDay()) || $tanggalCarbon->gt(now()->endOfDay());
+
         return view('guru.pertemuan.show', [
             'jadwal' => $jadwal,
             'pertemuan' => $pertemuan,
             'tanggal' => $tanggalCarbon,
+            'isLocked' => $isLocked,
         ]);
     }
 
@@ -59,6 +62,11 @@ class PertemuanController extends Controller
     {
         // Ensure this pertemuan belongs to the authenticated guru
         abort_unless($pertemuan->jadwal->guru_id === Auth::id(), 403);
+
+        $tanggalCarbon = \Carbon\Carbon::parse($pertemuan->tanggal);
+        if ($tanggalCarbon->lt(now()->subDays(7)->startOfDay()) || $tanggalCarbon->gt(now()->endOfDay())) {
+            return back()->with('error', 'Waktu pengisian data untuk tanggal ini sudah ditutup (batas maksimal 7 hari ke belakang).');
+        }
 
         $validated = $request->validate([
             // Pertemuan

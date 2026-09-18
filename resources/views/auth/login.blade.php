@@ -26,19 +26,19 @@
                 @csrf
 
                 <div>
-                    <label for="email" class="block text-sm font-medium text-slate-700 mb-1.5">Email</label>
+                    <label for="identifier" class="block text-sm font-medium text-slate-700 mb-1.5">Email / NIP / NIS</label>
                     <input
-                        id="email"
-                        type="email"
-                        name="email"
-                        value="{{ old('email') }}"
-                        autocomplete="email"
+                        id="identifier"
+                        type="text"
+                        name="identifier"
+                        value="{{ old('identifier') }}"
+                        autocomplete="username"
                         autofocus
-                        placeholder="guru@sekolah.sch.id"
+                        placeholder="Masukkan Email, NIP, atau NIS"
                         class="w-full px-3.5 py-2.5 bg-slate-50 border rounded-xl text-sm text-slate-900 placeholder-slate-400 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white
-                               {{ $errors->has('email') ? 'border-red-400 bg-red-50' : 'border-slate-200' }}"
+                               {{ $errors->has('identifier') ? 'border-red-400 bg-red-50' : 'border-slate-200' }}"
                     >
-                    @error('email')
+                    @error('identifier')
                         <p class="mt-1.5 text-xs text-red-600">{{ $message }}</p>
                     @enderror
                 </div>

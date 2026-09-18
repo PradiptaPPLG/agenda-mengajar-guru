@@ -1,90 +1,126 @@
 <x-layouts.admin>
-    <x-slot:title>Daftar Pengguna</x-slot:title>
-    <x-slot:actions>
-        <a href="{{ route('admin.users.create') }}"
-           class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-            Tambah
-        </a>
-    </x-slot:actions>
+    <x-slot:title>Manajemen Guru</x-slot:title>
+    
+    @push('scripts')
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    @endpush
 
-    {{-- Filters --}}
-    <form method="GET" class="flex flex-wrap gap-3 mb-5">
-        <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama atau email..."
-               class="px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-56">
-        <select name="role" class="px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <option value="">Semua Role</option>
-            <option value="guru" {{ request('role') === 'guru' ? 'selected' : '' }}>Guru</option>
-            <option value="siswa" {{ request('role') === 'siswa' ? 'selected' : '' }}>Siswa</option>
-            <option value="admin" {{ request('role') === 'admin' ? 'selected' : '' }}>Admin</option>
-            <option value="kepala_sekolah" {{ request('role') === 'kepala_sekolah' ? 'selected' : '' }}>Kepala Sekolah</option>
-            <option value="super_admin" {{ request('role') === 'super_admin' ? 'selected' : '' }}>Super Admin</option>
-        </select>
-        <button type="submit" class="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-xl hover:bg-slate-800 transition-colors">Filter</button>
-    </form>
+    <div x-data="{ showImport: false }">
+        <!-- Header & Actions -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+            <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                <form action="{{ route('admin.users.index') }}" method="GET" class="flex gap-2 w-full sm:w-auto">
+                    <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama atau email..." 
+                           class="w-full sm:w-64 px-4 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500">
+                    <button type="submit" class="px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-xl text-sm font-semibold transition-colors">
+                        Filter
+                    </button>
+                    @if(request()->has('search'))
+                        <a href="{{ route('admin.users.index') }}" class="px-4 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl text-sm font-semibold transition-colors">
+                            Reset
+                        </a>
+                    @endif
+                </form>
+            </div>
+            
+            <div class="flex gap-3">
+                <a href="{{ route('admin.users.create') }}" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold shadow-sm transition-colors flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    Tambah Manual
+                </a>
+                <button @click="showImport = true" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold shadow-sm transition-colors flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    Import Excel
+                </button>
+            </div>
+        </div>
 
-    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-        <table class="w-full text-sm">
-            <thead class="bg-slate-50 border-b border-slate-200">
-                <tr>
-                    <th class="text-left px-4 py-3 font-semibold text-slate-600">Nama</th>
-                    <th class="text-left px-4 py-3 font-semibold text-slate-600 hidden md:table-cell">Email</th>
-                    <th class="text-left px-4 py-3 font-semibold text-slate-600">Role</th>
-                    <th class="text-right px-4 py-3 font-semibold text-slate-600">Aksi</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100">
-                @forelse($users as $user)
-                <tr class="hover:bg-slate-50 transition-colors">
-                    <td class="px-4 py-3">
-                        <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-                                <span class="text-xs font-bold text-blue-700">{{ substr($user->name, 0, 1) }}</span>
+        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+            <table class="w-full text-sm">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="text-left px-4 py-3 font-semibold text-slate-600">Nama</th>
+                        <th class="text-left px-4 py-3 font-semibold text-slate-600 hidden md:table-cell">Email</th>
+                        <th class="text-left px-4 py-3 font-semibold text-slate-600">Role</th>
+                        <th class="text-right px-4 py-3 font-semibold text-slate-600">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    @forelse($users as $user)
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-4 py-3">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                                    <span class="text-xs font-bold text-blue-700">{{ substr($user->name, 0, 1) }}</span>
+                                </div>
+                                <div>
+                                    <span class="font-medium text-slate-900 block">{{ $user->name }}</span>
+                                    @if($user->guruProfile)
+                                        <span class="text-xs text-slate-500">NIP: {{ $user->guruProfile->nip ?? '-' }}</span>
+                                    @endif
+                                </div>
                             </div>
-                            <span class="font-medium text-slate-900">{{ $user->name }}</span>
+                        </td>
+                        <td class="px-4 py-3 text-slate-500 hidden md:table-cell">{{ $user->email }}</td>
+                        <td class="px-4 py-3">
+                            <span class="text-xs font-medium px-2.5 py-1 rounded-full bg-amber-100 text-amber-800">
+                                Guru
+                            </span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="flex items-center justify-end">
+                            <x-action-dropdown 
+                                :editUrl="route('admin.users.edit', $user)" 
+                                :deleteUrl="$user->id !== auth()->id() ? route('admin.users.destroy', $user) : null" 
+                            />
                         </div>
-                    </td>
-                    <td class="px-4 py-3 text-slate-500 hidden md:table-cell">{{ $user->email }}</td>
-                    <td class="px-4 py-3">
-                        <span class="text-xs font-medium px-2.5 py-1 rounded-full
-                            {{ match($user->role) {
-                                'super_admin' => 'bg-slate-900 text-white',
-                                'admin' => 'bg-blue-100 text-blue-800',
-                                'kepala_sekolah' => 'bg-violet-100 text-violet-800',
-                                'guru' => 'bg-amber-100 text-amber-800',
-                                'siswa' => 'bg-emerald-100 text-emerald-800',
-                                default => 'bg-slate-100 text-slate-600',
-                            } }}">
-                            {{ $user->role_label }}
-                        </span>
-                    </td>
-                    <td class="px-4 py-3">
-                        <div class="flex items-center justify-end gap-2">
-                            <a href="{{ route('admin.users.edit', $user) }}"
-                               class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                            </a>
-                            @if($user->id !== auth()->id())
-                            <form action="{{ route('admin.users.destroy', $user) }}" method="POST"
-                                  onsubmit="return confirm('Hapus pengguna ini?')">
-                                @csrf @method('DELETE')
-                                <button type="submit" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                </button>
-                            </form>
-                            @endif
+                        </td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="4" class="px-4 py-10 text-center text-slate-400 text-sm">Tidak ada data guru ditemukan</td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
+            @if($users->hasPages())
+            <div class="px-4 py-3 border-t border-slate-100">{{ $users->links() }}</div>
+            @endif
+        </div>
+
+        <!-- Import Modal -->
+        <div x-show="showImport" style="display: none;" class="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+            <div @click.outside="showImport = false" class="bg-white rounded-2xl w-full max-w-lg shadow-xl overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+                    <h3 class="text-lg font-bold text-slate-900">Import Data Guru</h3>
+                    <button @click="showImport = false" class="text-slate-400 hover:text-slate-600">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <div class="p-6">
+                    <div class="bg-blue-50 text-blue-700 p-4 rounded-xl text-sm mb-6 space-y-2">
+                        <p class="font-semibold">Ketentuan Kolom Excel (.xlsx / .csv):</p>
+                        <ul class="list-disc pl-4 space-y-1">
+                            <li>Harus ada kolom <strong>Nama</strong> atau <strong>Nama Lengkap</strong>.</li>
+                            <li>Kolom <strong>NIP</strong> opsional namun direkomendasikan.</li>
+                            <li>Kolom <strong>Email</strong> opsional. Jika kosong, akan dibuatkan email otomatis.</li>
+                        </ul>
+                    </div>
+
+                    <form action="{{ route('admin.users.import') }}" method="POST" enctype="multipart/form-data">
+                        @csrf
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-slate-700 mb-2">File Excel / CSV <span class="text-red-500">*</span></label>
+                            <input type="file" name="excel_file" accept=".xlsx,.xls,.csv" required
+                                   class="w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200">
                         </div>
-                    </td>
-                </tr>
-                @empty
-                <tr>
-                    <td colspan="4" class="px-4 py-10 text-center text-slate-400 text-sm">Tidak ada pengguna ditemukan</td>
-                </tr>
-                @endforelse
-            </tbody>
-        </table>
-        @if($users->hasPages())
-        <div class="px-4 py-3 border-t border-slate-100">{{ $users->links() }}</div>
-        @endif
+                        <div class="flex items-center justify-end gap-3">
+                            <button type="button" @click="showImport = false" class="px-4 py-2 border border-slate-200 text-slate-700 text-sm font-medium rounded-xl hover:bg-slate-50">Batal</button>
+                            <button type="submit" class="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl">Mulai Import</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
 </x-layouts.admin>

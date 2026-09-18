@@ -21,19 +21,38 @@ class AuthController extends Controller
     public function login(Request $request): RedirectResponse
     {
         $credentials = $request->validate([
-            'email' => ['required', 'email'],
+            'identifier' => ['required', 'string'],
             'password' => ['required'],
         ]);
 
-        if (Auth::attempt($credentials, $request->boolean('remember'))) {
+        $identifier = $credentials['identifier'];
+        $password = $credentials['password'];
+
+        $user = \App\Models\User::where('email', $identifier)
+            ->orWhereHas('guruProfile', function($q) use ($identifier) {
+                $q->where('nip', $identifier);
+            })
+            ->orWhereHas('siswaProfile', function($q) use ($identifier) {
+                $q->where('nis', $identifier);
+            })
+            ->first();
+
+        if ($user && \Illuminate\Support\Facades\Hash::check($password, $user->password)) {
+            if (!$user->is_active) {
+                return back()->withErrors([
+                    'identifier' => 'Akun Anda sedang dinonaktifkan.',
+                ])->onlyInput('identifier');
+            }
+
+            Auth::login($user, $request->boolean('remember'));
             $request->session()->regenerate();
 
-            return $this->redirectByRole(Auth::user()->role);
+            return $this->redirectByRole($user->role);
         }
 
         return back()->withErrors([
-            'email' => 'Email atau password salah.',
-        ])->onlyInput('email');
+            'identifier' => 'Email/NIP/NIS atau password salah.',
+        ])->onlyInput('identifier');
     }
 
     public function logout(Request $request): RedirectResponse

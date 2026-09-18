@@ -22,6 +22,16 @@
             @csrf
             @method('PATCH')
 
+            @if($isLocked)
+            <div class="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-start gap-3">
+                <svg class="w-5 h-5 text-red-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                <div>
+                    <p class="text-sm font-bold text-red-800">Waktu Pengisian Ditutup</p>
+                    <p class="text-xs text-red-600 mt-1">Batas waktu pengisian atau pengubahan data untuk tanggal ini sudah berakhir (maksimal 7 hari ke belakang). Anda hanya dapat melihat data yang sudah ada.</p>
+                </div>
+            </div>
+            @endif
+
             {{-- ═══ KEHADIRAN GURU ═══ --}}
             <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
                 <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
@@ -185,6 +195,7 @@
             </div>
 
             {{-- Floating / sticky save button --}}
+            @if(!$isLocked)
             <div class="sticky bottom-4 z-10 mt-6">
                 <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-[0_8px_30px_rgb(0,0,0,0.12)] flex items-center justify-between">
                     <span class="text-xs text-slate-500 px-2">Pastikan semua data sudah benar</span>
@@ -194,6 +205,7 @@
                     </button>
                 </div>
             </div>
+            @endif
         </form>
 
         {{-- Foto Bukti dari Siswa --}}

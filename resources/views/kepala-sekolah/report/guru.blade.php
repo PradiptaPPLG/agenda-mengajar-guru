@@ -1,4 +1,4 @@
-<x-layouts.kepala-sekolah>
+<x-dynamic-component :component="auth()->user()->isSuperAdmin() ? 'layouts.admin' : 'layouts.kepala-sekolah'">
     <x-slot:title>Laporan Kehadiran Guru</x-slot:title>
     <x-slot:actions>
         <a href="{{ route('kepala-sekolah.pdf.guru', request()->query()) }}"
@@ -154,4 +154,4 @@
             </table>
         </div>
     </div>
-</x-layouts.kepala-sekolah>
+</x-dynamic-component>

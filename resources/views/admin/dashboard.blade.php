@@ -22,10 +22,10 @@
         @endforeach
     </div>
 
-    <div class="mt-6 grid lg:grid-cols-2 gap-4">
+    <div class="mt-6 mb-6">
         <div class="bg-white rounded-2xl border border-slate-200 p-5">
             <h3 class="font-semibold text-slate-900 mb-4">Menu Cepat</h3>
-            <div class="grid grid-cols-2 gap-3">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 @foreach([
                     ['href' => route('admin.users.create'), 'label' => 'Tambah User', 'color' => 'blue'],
                     ['href' => route('admin.kelas.create'), 'label' => 'Tambah Kelas', 'color' => 'emerald'],
@@ -38,16 +38,27 @@
                 </a>
                 @endforeach
             </div>
+        </div>
+    </div>
+
+    <div class="grid lg:grid-cols-2 gap-4">
         <div class="bg-white rounded-2xl border border-slate-200 p-5">
             <h3 class="font-semibold text-slate-900 mb-4">Statistik Kehadiran Guru (7 Hari)</h3>
             <div class="w-full h-48">
                 <canvas id="kehadiranChart"></canvas>
             </div>
         </div>
+        <div class="bg-white rounded-2xl border border-slate-200 p-5">
+            <h3 class="font-semibold text-slate-900 mb-4">Statistik Kehadiran Siswa (7 Hari)</h3>
+            <div class="w-full h-48">
+                <canvas id="kehadiranSiswaChart"></canvas>
+            </div>
+        </div>
     </div>
 
     @push('scripts')
     <script>
+        // Chart Kehadiran Guru
         const ctx = document.getElementById('kehadiranChart').getContext('2d');
         const chartData = @json($chartData);
         
@@ -60,6 +71,49 @@
                     backgroundColor: [
                         '#10b981', // Hadir - emerald
                         '#f59e0b', // Sakit - amber
+                        '#ef4444', // Alpa - red
+                        '#a855f7'  // Dispensasi - purple
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                let total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                let value = context.parsed;
+                                let percentage = total > 0 ? Math.round((value / total) * 100) + '%' : '0%';
+                                return label + percentage + ' (' + value + ')';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Chart Kehadiran Siswa
+        const ctxSiswa = document.getElementById('kehadiranSiswaChart').getContext('2d');
+        const chartDataSiswa = @json($chartDataSiswa);
+        
+        new Chart(ctxSiswa, {
+            type: 'pie',
+            data: {
+                labels: chartDataSiswa.labels,
+                datasets: [{
+                    data: chartDataSiswa.data,
+                    backgroundColor: [
+                        '#10b981', // Hadir - emerald
+                        '#f59e0b', // Sakit - amber
+                        '#3b82f6', // Izin - blue
                         '#ef4444', // Alpa - red
                         '#a855f7'  // Dispensasi - purple
                     ],

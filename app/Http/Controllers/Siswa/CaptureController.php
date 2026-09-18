@@ -24,8 +24,12 @@ class CaptureController extends Controller
         abort_unless($jadwal->kelas_id === $kelasId, 403);
 
         $tanggalCarbon = \Carbon\Carbon::parse($tanggal);
-        $jamSelesaiCarbon = \Carbon\Carbon::parse($tanggalCarbon->toDateString() . ' ' . $jadwal->jam_selesai);
-        $isPast = \Carbon\Carbon::now()->greaterThan($jamSelesaiCarbon);
+        
+        $now = \Carbon\Carbon::now();
+        $isToday = $tanggalCarbon->isToday();
+        $isWithinTime = $now->format('H:i') >= '06:30';
+
+        $isPast = !($isToday && $isWithinTime);
 
         $pertemuan = Pertemuan::firstOrCreate(
             ['jadwal_id' => $jadwal->id, 'tanggal' => $tanggalCarbon->format('Y-m-d 00:00:00')],
@@ -53,9 +57,12 @@ class CaptureController extends Controller
 
         $tanggalCarbon = \Carbon\Carbon::parse($tanggal);
         
-        $jamSelesaiCarbon = \Carbon\Carbon::parse($tanggalCarbon->toDateString() . ' ' . $jadwal->jam_selesai);
-        if (\Carbon\Carbon::now()->greaterThan($jamSelesaiCarbon)) {
-            return redirect()->route('siswa.dashboard')->with('error', 'Jam pelajaran telah berakhir. Anda tidak dapat lagi mengirim atau mengubah laporan.');
+        $now = \Carbon\Carbon::now();
+        $isToday = $tanggalCarbon->isToday();
+        $isWithinTime = $now->format('H:i') >= '06:30';
+
+        if (!($isToday && $isWithinTime)) {
+            return redirect()->route('siswa.dashboard')->with('error', 'Waktu pengiriman laporan ditutup. Siswa hanya dapat melapor pada hari yang sama mulai pukul 06:30 hingga 23:59.');
         }
 
         $pertemuan = Pertemuan::firstOrCreate(
