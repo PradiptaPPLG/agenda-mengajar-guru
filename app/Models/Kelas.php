@@ -25,6 +25,11 @@ class Kelas extends Model
         return $this->hasMany(SiswaProfile::class);
     }
 
+    public function mataPelajarans(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(MataPelajaran::class, 'kelas_mata_pelajaran')->withTimestamps();
+    }
+
     public function jadwalPelajarans(): HasMany
     {
         return $this->hasMany(JadwalPelajaran::class);
