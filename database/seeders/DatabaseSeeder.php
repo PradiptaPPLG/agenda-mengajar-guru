@@ -17,12 +17,12 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // ── Settings ─────────────────────────────────────────────────────────
-        Setting::set('school_name', 'SMK Negeri 1 Garut');
-        Setting::set('school_address', 'Jl. Cimanuk No. 309, Garut');
-        Setting::set('principal_name', 'Drs. H. Dudung Abdul Rohman, M.M.Pd.');
+        Setting::set('school_name', 'SMK Negeri 1 Ciamis');
+        Setting::set('school_address', 'Jalan Jenderal Sudirman Nomor 269, Kelurahan Sindangrasa, Kecamatan Ciamis, Kabupaten Ciamis, Jawa Barat');
+        Setting::set('principal_name', '');
         Setting::set('school_year', '2025/2026');
         Setting::set('semester', '1');
-        Setting::set('phone', '(0262) 233-045');
+        Setting::set('phone', '(0265) 771204');
 
         // ── Mata Pelajaran ────────────────────────────────────────────────────
         $mapels = [
@@ -62,7 +62,7 @@ class DatabaseSeeder extends Seeder
         // ── Kepala Sekolah ────────────────────────────────────────────────────
         User::firstOrCreate(
             ['email' => 'kepsek@sekolah.sch.id'],
-            ['name' => 'Drs. H. Dudung Abdul Rohman, M.M.Pd.', 'password' => Hash::make('password'), 'role' => 'kepala_sekolah']
+            ['name' => 'Kepala Sekolah', 'password' => Hash::make('password'), 'role' => 'kepala_sekolah']
         );
 
         // ── Guru Reviewer: Nastiti, S.Pd. ────────────────────────────────────
