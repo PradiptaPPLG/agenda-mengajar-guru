@@ -4,6 +4,33 @@
 @source '../../storage/framework/views/*.php';
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+    --color-primary: #1d4ed8;
+    --color-primary-dark: #1e40af;
+    --color-secondary: #0284c7;
+    --color-success: #16a34a;
+    --color-warning: #d97706;
+    --color-danger: #dc2626;
+    --color-surface: #f8fafc;
+    --color-border: #e2e8f0;
 }
+
+/* Base */
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f8fafc;
+    color: #0f172a;
+}
+
+/* Status badge helpers */
+.badge-hadir { @apply bg-emerald-100 text-emerald-800 border border-emerald-200; }
+.badge-sakit { @apply bg-amber-100 text-amber-800 border border-amber-200; }
+.badge-izin { @apply bg-sky-100 text-sky-800 border border-sky-200; }
+.badge-alpa { @apply bg-red-100 text-red-800 border border-red-200; }
+.badge-dispensasi { @apply bg-purple-100 text-purple-800 border border-purple-200; }
+.badge-menunggu { @apply bg-slate-100 text-slate-600 border border-slate-200; }
+.badge-berlangsung { @apply bg-blue-100 text-blue-800 border border-blue-200; }
+.badge-selesai { @apply bg-emerald-100 text-emerald-800 border border-emerald-200; }
+
+/* Mobile bottom navigation safe area */
+.pb-safe { padding-bottom: calc(4rem + env(safe-area-inset-bottom)); }

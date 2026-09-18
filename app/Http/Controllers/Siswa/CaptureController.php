@@ -1,0 +1,102 @@
+<?php
+
+namespace App\Http\Controllers\Siswa;
+
+use App\Http\Controllers\Controller;
+use App\Models\FotoBukti;
+use App\Models\Pertemuan;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\View\View;
+
+class CaptureController extends Controller
+{
+    public function show(int $jadwalId, string $tanggal): View|RedirectResponse
+    {
+        $user = Auth::user();
+
+        // Check student is in this class
+        $kelasId = $user->siswaProfile?->kelas_id;
+        
+        $jadwal = \App\Models\JadwalPelajaran::findOrFail($jadwalId);
+        abort_unless($jadwal->kelas_id === $kelasId, 403);
+
+        $tanggalCarbon = \Carbon\Carbon::parse($tanggal);
+        $jamSelesaiCarbon = \Carbon\Carbon::parse($tanggalCarbon->toDateString() . ' ' . $jadwal->jam_selesai);
+        $isPast = \Carbon\Carbon::now()->greaterThan($jamSelesaiCarbon);
+
+        $pertemuan = Pertemuan::firstOrCreate(
+            ['jadwal_id' => $jadwal->id, 'tanggal' => $tanggalCarbon->format('Y-m-d 00:00:00')],
+            ['status' => 'menunggu']
+        );
+
+        $existingCapture = FotoBukti::where('pertemuan_id', $pertemuan->id)
+            ->where('siswa_id', $user->id)
+            ->first();
+
+        return view('siswa.capture.show', [
+            'pertemuan' => $pertemuan->load(['jadwal.guru', 'jadwal.mataPelajaran', 'kehadiranGuru']),
+            'existingCapture' => $existingCapture,
+            'isPast' => $isPast,
+        ]);
+    }
+
+    public function store(Request $request, int $jadwalId, string $tanggal): RedirectResponse
+    {
+        $user = Auth::user();
+        $kelasId = $user->siswaProfile?->kelas_id;
+        
+        $jadwal = \App\Models\JadwalPelajaran::findOrFail($jadwalId);
+        abort_unless($jadwal->kelas_id === $kelasId, 403);
+
+        $tanggalCarbon = \Carbon\Carbon::parse($tanggal);
+        
+        $jamSelesaiCarbon = \Carbon\Carbon::parse($tanggalCarbon->toDateString() . ' ' . $jadwal->jam_selesai);
+        if (\Carbon\Carbon::now()->greaterThan($jamSelesaiCarbon)) {
+            return redirect()->route('siswa.dashboard')->with('error', 'Jam pelajaran telah berakhir. Anda tidak dapat lagi mengirim atau mengubah laporan.');
+        }
+
+        $pertemuan = Pertemuan::firstOrCreate(
+            ['jadwal_id' => $jadwal->id, 'tanggal' => $tanggalCarbon->format('Y-m-d 00:00:00')],
+            ['status' => 'menunggu']
+        );
+
+        $validated = $request->validate([
+            'foto' => ['required', 'image', 'max:5120'], // 5MB
+            'status_guru_dilaporkan' => ['required', 'in:hadir,sakit,alpa,dispensasi'],
+            'jenis_alpa_dilaporkan' => ['nullable', 'required_if:status_guru_dilaporkan,alpa', 'in:ada_tugas,tanpa_tugas,guru_pengganti'],
+            'guru_pengganti_nama' => ['nullable', 'required_if:jenis_alpa_dilaporkan,guru_pengganti', 'string', 'max:255'],
+        ]);
+
+        // Store the photo
+        $fotoPath = $request->file('foto')->store('foto-bukti', 'public');
+
+        // Delete old photo if re-capturing
+        $existing = FotoBukti::where('pertemuan_id', $pertemuan->id)
+            ->where('siswa_id', $user->id)
+            ->first();
+
+        if ($existing) {
+            Storage::disk('public')->delete($existing->foto_path);
+            $existing->update([
+                'foto_path' => $fotoPath,
+                'status_guru_dilaporkan' => $validated['status_guru_dilaporkan'],
+                'jenis_alpa_dilaporkan' => $validated['jenis_alpa_dilaporkan'] ?? null,
+                'guru_pengganti_nama' => $validated['guru_pengganti_nama'] ?? null,
+            ]);
+        } else {
+            FotoBukti::create([
+                'pertemuan_id' => $pertemuan->id,
+                'siswa_id' => $user->id,
+                'foto_path' => $fotoPath,
+                'status_guru_dilaporkan' => $validated['status_guru_dilaporkan'],
+                'jenis_alpa_dilaporkan' => $validated['jenis_alpa_dilaporkan'] ?? null,
+                'guru_pengganti_nama' => $validated['guru_pengganti_nama'] ?? null,
+            ]);
+        }
+
+        return redirect()->route('siswa.dashboard')->with('success', 'Foto bukti berhasil disimpan. Terima kasih!');
+    }
+}
