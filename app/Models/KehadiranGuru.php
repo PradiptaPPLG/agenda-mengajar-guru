@@ -56,4 +56,19 @@ class KehadiranGuru extends Model
             default => '-',
         };
     }
+
+    public function getSiswaReportAttribute(): ?FotoBukti
+    {
+        return $this->pertemuan?->fotoBuktis?->first();
+    }
+
+    public function getHasDiscrepancyAttribute(): bool
+    {
+        $siswaReport = $this->siswa_report;
+        if (! $siswaReport || ! $siswaReport->status_guru_dilaporkan) {
+            return false;
+        }
+
+        return $this->status !== $siswaReport->status_guru_dilaporkan;
+    }
 }

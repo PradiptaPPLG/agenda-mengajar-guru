@@ -29,6 +29,7 @@ class ReportController extends Controller
 
         $selectedGuruId = $request->input('guru_id');
         $selectedKelasId = $request->input('kelas_id');
+        $onlyDiscrepancy = $request->boolean('only_discrepancy');
 
         $query = KehadiranGuru::with([
             'guru',
@@ -47,10 +48,15 @@ class ReportController extends Controller
             $query->where('guru_id', $selectedGuruId);
         }
 
-        $kehadiran = $query->orderBy('created_at', 'desc')->get();
+        $allKehadiran = $query->orderBy('created_at', 'desc')->get();
+        $discrepancyCount = $allKehadiran->filter(fn ($kh) => $kh->has_discrepancy)->count();
+
+        $kehadiran = $onlyDiscrepancy
+            ? $allKehadiran->filter(fn ($kh) => $kh->has_discrepancy)->values()
+            : $allKehadiran;
 
         // Summary per guru
-        $summary = $kehadiran->groupBy('guru_id')->map(function ($items) {
+        $summary = $allKehadiran->groupBy('guru_id')->map(function ($items) {
             return [
                 'guru' => $items->first()->guru,
                 'hadir' => $items->where('status', 'hadir')->count(),
@@ -63,7 +69,8 @@ class ReportController extends Controller
 
         return view('kepala-sekolah.report.guru', compact(
             'kehadiran', 'summary', 'guruList', 'kelasList',
-            'startDate', 'endDate', 'selectedGuruId', 'selectedKelasId'
+            'startDate', 'endDate', 'selectedGuruId', 'selectedKelasId',
+            'onlyDiscrepancy', 'discrepancyCount'
         ));
     }
 
