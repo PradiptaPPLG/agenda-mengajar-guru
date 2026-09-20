@@ -7,6 +7,7 @@ use App\Models\Kelas;
 use App\Models\SiswaProfile;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Spatie\SimpleExcel\SimpleExcelReader;
@@ -25,7 +26,9 @@ class SiswaController extends Controller
 
     public function deactivateAll()
     {
-        User::where('role', 'siswa')->update(['is_active' => false]);
+        DB::transaction(function () {
+            User::where('role', 'siswa')->update(['is_active' => false]);
+        });
 
         return back()->with('success', 'Seluruh akun siswa berhasil dinonaktifkan.');
     }
@@ -104,73 +107,75 @@ class SiswaController extends Controller
             $providedEmail = ($emailIndex !== -1 && ! empty($rowProperties[$emailIndex])) ? trim($rowProperties[$emailIndex]) : null;
             $kelasName = ($kelasIndex !== -1 && ! empty($rowProperties[$kelasIndex])) ? trim($rowProperties[$kelasIndex]) : null;
 
-            $user = null;
+            DB::transaction(function () use ($nis, $providedEmail, $nama, $defaultPassword, $kelasName, &$imported) {
+                $user = null;
 
-            if ($nis) {
-                $profile = SiswaProfile::where('nis', $nis)->first();
-                if ($profile) {
-                    $user = $profile->user;
-                }
-            }
-
-            if (! $user && $providedEmail) {
-                $user = User::where('email', $providedEmail)->first();
-            }
-
-            if (! $user) {
-                $email = $providedEmail;
-                if (! $email) {
-                    $cleanName = Str::slug($nama, '');
-                    $email = "{$cleanName}.".($nis ?: Str::random(4)).'@siswa.sekolah.sch.id';
+                if ($nis) {
+                    $profile = SiswaProfile::where('nis', $nis)->first();
+                    if ($profile) {
+                        $user = $profile->user;
+                    }
                 }
 
-                $existingEmail = User::where('email', $email)->first();
-                if ($existingEmail) {
-                    $email = "{$cleanName}.".Str::random(5).'@siswa.sekolah.sch.id';
+                if (! $user && $providedEmail) {
+                    $user = User::where('email', $providedEmail)->first();
                 }
 
-                $user = User::create([
-                    'name' => $nama,
-                    'email' => $email,
-                    'password' => $defaultPassword,
-                    'role' => 'siswa',
-                    'is_active' => false,
-                ]);
-            }
-
-            // Cari ID kelas jika ada di Excel
-            $kelasId = null;
-            if ($kelasName) {
-                $kelasObj = Kelas::where('nama', 'LIKE', $kelasName)->first();
-
-                // Otomatis buat kelas jika belum ada di database
-                if (! $kelasObj) {
-                    $tingkat = '10';
-                    if (preg_match('/^12|xii/i', $kelasName)) {
-                        $tingkat = '12';
-                    } elseif (preg_match('/^11|xi/i', $kelasName)) {
-                        $tingkat = '11';
+                if (! $user) {
+                    $email = $providedEmail;
+                    if (! $email) {
+                        $cleanName = Str::slug($nama, '');
+                        $email = "{$cleanName}.".($nis ?: Str::random(4)).'@siswa.sekolah.sch.id';
                     }
 
-                    $kelasObj = Kelas::create([
-                        'nama' => $kelasName,
-                        'tingkat' => $tingkat,
-                        'tahun_ajaran' => date('Y').'/'.(date('Y') + 1),
+                    $existingEmail = User::where('email', $email)->first();
+                    if ($existingEmail) {
+                        $email = "{$cleanName}.".Str::random(5).'@siswa.sekolah.sch.id';
+                    }
+
+                    $user = User::create([
+                        'name' => $nama,
+                        'email' => $email,
+                        'password' => $defaultPassword,
+                        'role' => 'siswa',
+                        'is_active' => false,
                     ]);
                 }
 
-                $kelasId = $kelasObj->id;
-            }
+                // Cari ID kelas jika ada di Excel
+                $kelasId = null;
+                if ($kelasName) {
+                    $kelasObj = Kelas::where('nama', 'LIKE', $kelasName)->first();
 
-            SiswaProfile::updateOrCreate(
-                ['user_id' => $user->id],
-                [
-                    'nis' => $nis,
-                    'kelas_id' => $kelasId,
-                ]
-            );
+                    // Otomatis buat kelas jika belum ada di database
+                    if (! $kelasObj) {
+                        $tingkat = '10';
+                        if (preg_match('/^12|xii/i', $kelasName)) {
+                            $tingkat = '12';
+                        } elseif (preg_match('/^11|xi/i', $kelasName)) {
+                            $tingkat = '11';
+                        }
 
-            $imported++;
+                        $kelasObj = Kelas::create([
+                            'nama' => $kelasName,
+                            'tingkat' => $tingkat,
+                            'tahun_ajaran' => date('Y').'/'.(date('Y') + 1),
+                        ]);
+                    }
+
+                    $kelasId = $kelasObj->id;
+                }
+
+                SiswaProfile::updateOrCreate(
+                    ['user_id' => $user->id],
+                    [
+                        'nis' => $nis,
+                        'kelas_id' => $kelasId,
+                    ]
+                );
+
+                $imported++;
+            });
         };
 
         if (method_exists($spoutReader, 'getSheetIterator')) {

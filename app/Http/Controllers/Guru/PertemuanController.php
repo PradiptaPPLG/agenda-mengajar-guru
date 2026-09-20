@@ -11,6 +11,7 @@ use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class PertemuanController extends Controller
@@ -25,6 +26,11 @@ class PertemuanController extends Controller
             ->findOrFail($jadwalId);
 
         $tanggalCarbon = Carbon::parse($tanggal);
+
+        // Prevent creating ghost meetings for future dates beyond today
+        if ($tanggalCarbon->gt(now()->endOfDay())) {
+            return redirect()->route('guru.dashboard')->with('error', 'Pertemuan untuk tanggal mendatang belum dapat dibuka.');
+        }
 
         $pertemuan = Pertemuan::with([
             'kehadiranGuru',
@@ -83,36 +89,38 @@ class PertemuanController extends Controller
             'siswa.*.status' => ['required', 'in:hadir,sakit,izin,alpa,dispensasi'],
         ]);
 
-        // 1. Update Pertemuan
-        $pertemuan->update([
-            'materi_ajar' => $validated['materi_ajar'] ?? null,
-            'penugasan' => $validated['penugasan'] ?? null,
-        ]);
+        DB::transaction(function () use ($pertemuan, $validated) {
+            // 1. Update Pertemuan
+            $pertemuan->update([
+                'materi_ajar' => $validated['materi_ajar'] ?? null,
+                'penugasan' => $validated['penugasan'] ?? null,
+            ]);
 
-        // 2. Update Guru Attendance (only if submitted)
-        if (isset($validated['status'])) {
-            KehadiranGuru::updateOrCreate(
-                ['pertemuan_id' => $pertemuan->id, 'guru_id' => Auth::id()],
-                [
-                    'status' => $validated['status'],
-                    'jenis_alpa' => $validated['jenis_alpa'] ?? null,
-                    'guru_pengganti_nama' => $validated['guru_pengganti_nama'] ?? null,
-                    'keterangan' => $validated['keterangan'] ?? null,
-                    'waktu_hadir' => KehadiranGuru::where('pertemuan_id', $pertemuan->id)->where('guru_id', Auth::id())->value('waktu_hadir') ?? now(),
-                ]
-            );
-            $pertemuan->update(['status' => 'berlangsung']);
-        }
-
-        // 3. Update Siswa Attendance
-        if (isset($validated['siswa']) && is_array($validated['siswa'])) {
-            foreach ($validated['siswa'] as $siswaId => $data) {
-                KehadiranSiswa::updateOrCreate(
-                    ['pertemuan_id' => $pertemuan->id, 'siswa_id' => $siswaId],
-                    ['status' => $data['status']]
+            // 2. Update Guru Attendance (only if submitted)
+            if (isset($validated['status'])) {
+                KehadiranGuru::updateOrCreate(
+                    ['pertemuan_id' => $pertemuan->id, 'guru_id' => Auth::id()],
+                    [
+                        'status' => $validated['status'],
+                        'jenis_alpa' => $validated['jenis_alpa'] ?? null,
+                        'guru_pengganti_nama' => $validated['guru_pengganti_nama'] ?? null,
+                        'keterangan' => $validated['keterangan'] ?? null,
+                        'waktu_hadir' => KehadiranGuru::where('pertemuan_id', $pertemuan->id)->where('guru_id', Auth::id())->value('waktu_hadir') ?? now(),
+                    ]
                 );
+                $pertemuan->update(['status' => 'berlangsung']);
             }
-        }
+
+            // 3. Update Siswa Attendance
+            if (isset($validated['siswa']) && is_array($validated['siswa'])) {
+                foreach ($validated['siswa'] as $siswaId => $data) {
+                    KehadiranSiswa::updateOrCreate(
+                        ['pertemuan_id' => $pertemuan->id, 'siswa_id' => $siswaId],
+                        ['status' => $data['status']]
+                    );
+                }
+            }
+        });
 
         return back()->with('success', 'Semua data pertemuan berhasil disimpan.');
     }

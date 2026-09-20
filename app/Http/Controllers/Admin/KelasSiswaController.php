@@ -7,6 +7,7 @@ use App\Models\Kelas;
 use App\Models\SiswaProfile;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Spatie\SimpleExcel\SimpleExcelReader;
@@ -22,10 +23,12 @@ class KelasSiswaController extends Controller
 
         $siswaIds = $request->input('siswa_ids', []);
 
-        // Update the selected students to have this kelas_id
-        if (count($siswaIds) > 0) {
-            SiswaProfile::whereIn('id', $siswaIds)->update(['kelas_id' => $kelas->id]);
-        }
+        // Update the selected students to have this kelas_id atomically
+        DB::transaction(function () use ($siswaIds, $kelas) {
+            if (count($siswaIds) > 0) {
+                SiswaProfile::whereIn('id', $siswaIds)->update(['kelas_id' => $kelas->id]);
+            }
+        });
 
         return back()->with('success', count($siswaIds).' Siswa berhasil ditambahkan ke kelas.');
     }
@@ -33,7 +36,9 @@ class KelasSiswaController extends Controller
     public function remove(Request $request, Kelas $kelas, SiswaProfile $siswa)
     {
         if ($siswa->kelas_id === $kelas->id) {
-            $siswa->update(['kelas_id' => null]);
+            DB::transaction(function () use ($siswa) {
+                $siswa->update(['kelas_id' => null]);
+            });
 
             return back()->with('success', 'Siswa berhasil dikeluarkan dari kelas.');
         }
@@ -87,50 +92,52 @@ class KelasSiswaController extends Controller
             $nis = ($nisIndex !== -1 && isset($rowProperties[$nisIndex])) ? trim($rowProperties[$nisIndex]) : null;
             $providedEmail = ($emailIndex !== -1 && ! empty($rowProperties[$emailIndex])) ? trim($rowProperties[$emailIndex]) : null;
 
-            $user = null;
+            DB::transaction(function () use ($nis, $providedEmail, $name, $defaultPassword, $kelas, &$importedCount) {
+                $user = null;
 
-            if ($nis) {
-                $profile = SiswaProfile::where('nis', $nis)->first();
-                if ($profile) {
-                    $user = $profile->user;
-                }
-            }
-
-            if (! $user && $providedEmail) {
-                $user = User::where('email', $providedEmail)->first();
-            }
-
-            if (! $user) {
-                $email = $providedEmail;
-                if (! $email) {
-                    $cleanName = Str::slug($name, '');
-                    $email = "{$cleanName}.".($nis ?: Str::random(4)).'@smkn1ciamis.id';
+                if ($nis) {
+                    $profile = SiswaProfile::where('nis', $nis)->first();
+                    if ($profile) {
+                        $user = $profile->user;
+                    }
                 }
 
-                $existingEmail = User::where('email', $email)->first();
-                if ($existingEmail) {
-                    $email = "{$cleanName}.".Str::random(5).'@smkn1ciamis.id';
+                if (! $user && $providedEmail) {
+                    $user = User::where('email', $providedEmail)->first();
                 }
 
-                $user = User::create([
-                    'name' => $name,
-                    'email' => $email,
-                    'password' => $defaultPassword,
-                    'role' => 'siswa',
+                if (! $user) {
+                    $email = $providedEmail;
+                    if (! $email) {
+                        $cleanName = Str::slug($name, '');
+                        $email = "{$cleanName}.".($nis ?: Str::random(4)).'@smkn1ciamis.id';
+                    }
+
+                    $existingEmail = User::where('email', $email)->first();
+                    if ($existingEmail) {
+                        $email = "{$cleanName}.".Str::random(5).'@smkn1ciamis.id';
+                    }
+
+                    $user = User::create([
+                        'name' => $name,
+                        'email' => $email,
+                        'password' => $defaultPassword,
+                        'role' => 'siswa',
+                    ]);
+                }
+
+                $profile = SiswaProfile::firstOrCreate(
+                    ['user_id' => $user->id],
+                    ['nis' => $nis]
+                );
+
+                $profile->update([
+                    'kelas_id' => $kelas->id,
+                    'nis' => $nis ?? $profile->nis,
                 ]);
-            }
 
-            $profile = SiswaProfile::firstOrCreate(
-                ['user_id' => $user->id],
-                ['nis' => $nis]
-            );
-
-            $profile->update([
-                'kelas_id' => $kelas->id,
-                'nis' => $nis ?? $profile->nis,
-            ]);
-
-            $importedCount++;
+                $importedCount++;
+            });
         };
 
         if (method_exists($spoutReader, 'getSheetIterator')) {
