@@ -211,17 +211,18 @@
 
             {{-- Floating save button (selalu melayang di atas bottom navigation bar) --}}
             @if(!$isLocked)
-            <div class="fixed left-0 right-0 z-30 px-4 pointer-events-none" style="bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));">
-                <div class="max-w-xl mx-auto bg-white/95 backdrop-blur-md p-3 rounded-2xl border border-slate-200 shadow-[0_8px_30px_rgb(0,0,0,0.15)] flex items-center justify-between pointer-events-auto">
-                    <div class="flex items-center gap-2 px-1">
-                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <span class="text-xs text-slate-500 font-medium">Pastikan semua data sudah benar</span>
-                    </div>
-                    <button type="submit" form="main-form"
-                            class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-sm font-semibold rounded-xl transition-all shadow-sm">
-                        Simpan Semua
-                    </button>
+            <div class="fixed z-40 left-4 right-4 max-w-xl mx-auto bg-white/95 backdrop-blur-md p-3 rounded-2xl border border-slate-200 shadow-[0_8px_30px_rgb(0,0,0,0.18)] flex items-center justify-between"
+                 style="bottom: calc(5rem + env(safe-area-inset-bottom, 0px));">
+                <div class="flex items-center gap-2 px-1">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span class="text-xs text-slate-600 font-medium">Pastikan semua data sudah benar</span>
                 </div>
+                <button type="button"
+                        id="btn-submit-main-form"
+                        onclick="savePertemuanForm(this)"
+                        class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-sm font-semibold rounded-xl transition-all shadow-sm flex items-center gap-2 cursor-pointer">
+                    <span id="btn-text">Simpan Semua</span>
+                </button>
             </div>
             @endif
         </form>
@@ -365,6 +366,31 @@
                 });
             });
             checkForSavedDraft();
+        }
+
+        function savePertemuanForm(btn) {
+            const form = document.getElementById('main-form');
+            if (!form) return;
+
+            if (btn) {
+                btn.disabled = true;
+                btn.classList.add('opacity-75', 'cursor-not-allowed');
+                const btnText = document.getElementById('btn-text');
+                if (btnText) {
+                    btnText.innerHTML = `
+                        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg> Menyimpan...
+                    `;
+                }
+            }
+
+            // Clear dirty flag and local draft before sending
+            isDirty = false;
+            localStorage.removeItem(DRAFT_KEY);
+
+            form.submit();
         }
 
         // Clear dirty flag and local draft when the form is submitted
