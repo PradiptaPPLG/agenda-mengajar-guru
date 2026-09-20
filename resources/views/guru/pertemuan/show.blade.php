@@ -1,7 +1,7 @@
 <x-layouts.guru>
     <x-slot:title>{{ $jadwal->mataPelajaran->nama }}</x-slot:title>
 
-    <div class="px-4 py-4 space-y-4">
+    <div class="px-4 py-4 space-y-4 pb-36">
         {{-- Back + header --}}
         <a href="{{ route('guru.dashboard') }}" class="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900 transition-colors mb-1">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
@@ -209,13 +209,16 @@
                 @endif
             </div>
 
-            {{-- Floating / sticky save button --}}
+            {{-- Floating save button (selalu melayang di atas bottom navigation bar) --}}
             @if(!$isLocked)
-            <div class="sticky bottom-4 z-10 mt-6">
-                <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-[0_8px_30px_rgb(0,0,0,0.12)] flex items-center justify-between">
-                    <span class="text-xs text-slate-500 px-2">Pastikan semua data sudah benar</span>
-                    <button type="submit"
-                            class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm">
+            <div class="fixed left-0 right-0 z-30 px-4 pointer-events-none" style="bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));">
+                <div class="max-w-xl mx-auto bg-white/95 backdrop-blur-md p-3 rounded-2xl border border-slate-200 shadow-[0_8px_30px_rgb(0,0,0,0.15)] flex items-center justify-between pointer-events-auto">
+                    <div class="flex items-center gap-2 px-1">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span class="text-xs text-slate-500 font-medium">Pastikan semua data sudah benar</span>
+                    </div>
+                    <button type="submit" form="main-form"
+                            class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-sm font-semibold rounded-xl transition-all shadow-sm">
                         Simpan Semua
                     </button>
                 </div>
