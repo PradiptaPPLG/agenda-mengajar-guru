@@ -132,18 +132,33 @@
 
             {{-- ═══ MATERI & PENUGASAN ═══ --}}
             <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-                <div class="px-4 py-3 border-b border-slate-100">
+                <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
                     <h2 class="text-sm font-semibold text-slate-900">Materi & Penugasan</h2>
+                    <span id="draft-status" class="text-[11px] text-emerald-600 font-medium hidden"></span>
+                </div>
+                <div id="draft-alert" class="hidden m-4 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between text-xs text-amber-900">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4 text-amber-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <span>Ditemukan draf ketikan yang belum tersimpan (<span id="draft-time"></span>).</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 shrink-0">
+                        <button type="button" onclick="restoreDraft()" class="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg transition-colors">
+                            Pulihkan
+                        </button>
+                        <button type="button" onclick="discardDraft()" class="px-2 py-1 text-slate-500 hover:text-slate-800 transition-colors">
+                            Abaikan
+                        </button>
+                    </div>
                 </div>
                 <div class="p-4 space-y-3">
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1.5">Materi Ajar</label>
-                        <textarea name="materi_ajar" rows="3" placeholder="Tuliskan materi yang diajarkan..."
+                        <textarea id="input-materi-ajar" name="materi_ajar" rows="3" placeholder="Tuliskan materi yang diajarkan..."
                                   class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none track-change">{{ $pertemuan->materi_ajar }}</textarea>
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1.5">Penugasan</label>
-                        <textarea name="penugasan" rows="3" placeholder="Tuliskan penugasan untuk siswa (jika ada)..."
+                        <textarea id="input-penugasan" name="penugasan" rows="3" placeholder="Tuliskan penugasan untuk siswa (jika ada)..."
                                   class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none track-change">{{ $pertemuan->penugasan }}</textarea>
                     </div>
                 </div>
@@ -268,9 +283,91 @@
             });
         });
 
-        // Clear dirty flag when the form is submitted
+        // Auto-save draft in localStorage for materi & penugasan
+        const DRAFT_KEY = 'agenda_draft_{{ $pertemuan->id }}';
+        const materiInput = document.getElementById('input-materi-ajar');
+        const penugasanInput = document.getElementById('input-penugasan');
+        const draftAlert = document.getElementById('draft-alert');
+        const draftTime = document.getElementById('draft-time');
+        const draftStatus = document.getElementById('draft-status');
+
+        let saveTimeout = null;
+
+        function saveDraft() {
+            if (!materiInput || !penugasanInput) return;
+            const draft = {
+                materi_ajar: materiInput.value,
+                penugasan: penugasanInput.value,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                timestamp: Date.now()
+            };
+            localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+            if (draftStatus) {
+                draftStatus.textContent = 'Draf tersimpan lokal ✓';
+                draftStatus.classList.remove('hidden');
+                setTimeout(() => {
+                    draftStatus.classList.add('hidden');
+                }, 3000);
+            }
+        }
+
+        function checkForSavedDraft() {
+            try {
+                const raw = localStorage.getItem(DRAFT_KEY);
+                if (!raw) return;
+                const draft = JSON.parse(raw);
+                if (!draft) return;
+
+                const currentMateri = materiInput ? materiInput.value.trim() : '';
+                const currentPenugasan = penugasanInput ? penugasanInput.value.trim() : '';
+                const draftMateri = (draft.materi_ajar || '').trim();
+                const draftPenugasan = (draft.penugasan || '').trim();
+
+                const isDifferent = (draftMateri !== currentMateri) || (draftPenugasan !== currentPenugasan);
+                const hasContent = draftMateri.length > 0 || draftPenugasan.length > 0;
+
+                if (isDifferent && hasContent) {
+                    if (draftTime) draftTime.textContent = draft.time || 'baru saja';
+                    if (draftAlert) draftAlert.classList.remove('hidden');
+                }
+            } catch (e) {
+                console.error('Error reading draft:', e);
+            }
+        }
+
+        function restoreDraft() {
+            try {
+                const raw = localStorage.getItem(DRAFT_KEY);
+                if (!raw) return;
+                const draft = JSON.parse(raw);
+                if (materiInput && draft.materi_ajar !== undefined) materiInput.value = draft.materi_ajar;
+                if (penugasanInput && draft.penugasan !== undefined) penugasanInput.value = draft.penugasan;
+                if (draftAlert) draftAlert.classList.add('hidden');
+                isDirty = true;
+            } catch (e) {
+                console.error('Error restoring draft:', e);
+            }
+        }
+
+        function discardDraft() {
+            localStorage.removeItem(DRAFT_KEY);
+            if (draftAlert) draftAlert.classList.add('hidden');
+        }
+
+        if (materiInput && penugasanInput) {
+            [materiInput, penugasanInput].forEach(el => {
+                el.addEventListener('input', () => {
+                    clearTimeout(saveTimeout);
+                    saveTimeout = setTimeout(saveDraft, 800);
+                });
+            });
+            checkForSavedDraft();
+        }
+
+        // Clear dirty flag and local draft when the form is submitted
         document.getElementById('main-form').addEventListener('submit', () => {
             isDirty = false;
+            localStorage.removeItem(DRAFT_KEY);
         });
 
         // Display confirmation dialog before leaving
