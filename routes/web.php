@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\HariLiburController as AdminHariLiburController;
 use App\Http\Controllers\Admin\JadwalController as AdminJadwalController;
 use App\Http\Controllers\Admin\KelasController as AdminKelasController;
 use App\Http\Controllers\Admin\KelasSiswaController;
@@ -84,6 +85,7 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
         ->parameters(['mata-pelajaran' => 'mataPelajaran'])
         ->except(['show']);
     Route::resource('jadwal', AdminJadwalController::class)->except(['show']);
+    Route::resource('hari-libur', AdminHariLiburController::class)->only(['index', 'store', 'destroy']);
 });
 
 // ─── Kepala Sekolah ──────────────────────────────────────────────────────────
