@@ -18,7 +18,9 @@ class KelasFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'nama' => 'X RPL '.fake()->unique()->numberBetween(1, 9999),
+            'tingkat' => 10,
+            'tahun_ajaran' => '2026/2027',
         ];
     }
 }

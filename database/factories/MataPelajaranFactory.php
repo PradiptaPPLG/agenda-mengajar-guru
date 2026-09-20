@@ -18,7 +18,9 @@ class MataPelajaranFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'nama' => 'Mata Pelajaran '.fake()->unique()->numberBetween(1, 9999),
+            'kode' => 'MP-'.fake()->unique()->numberBetween(100, 9999),
+            'jenis' => 'normatif',
         ];
     }
 }
