@@ -9,6 +9,8 @@ use App\Models\MataPelajaran;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class JadwalController extends Controller
@@ -49,7 +51,11 @@ class JadwalController extends Controller
             'jam_selesai' => ['required', 'date_format:H:i', 'after:jam_mulai'],
         ]);
 
-        JadwalPelajaran::create($validated);
+        $this->validateNoConflict($validated);
+
+        DB::transaction(function () use ($validated) {
+            JadwalPelajaran::create($validated);
+        });
 
         return redirect()->route('admin.jadwal.index')->with('success', 'Jadwal berhasil ditambahkan.');
     }
@@ -74,7 +80,11 @@ class JadwalController extends Controller
             'jam_selesai' => ['required', 'date_format:H:i', 'after:jam_mulai'],
         ]);
 
-        $jadwal->update($validated);
+        $this->validateNoConflict($validated, $jadwal->id);
+
+        DB::transaction(function () use ($jadwal, $validated) {
+            $jadwal->update($validated);
+        });
 
         return redirect()->route('admin.jadwal.index')->with('success', 'Jadwal berhasil diperbarui.');
     }
@@ -84,5 +94,52 @@ class JadwalController extends Controller
         $jadwal->delete();
 
         return redirect()->route('admin.jadwal.index')->with('success', 'Jadwal berhasil dihapus.');
+    }
+
+    /**
+     * Validate that neither the teacher nor the class has an overlapping schedule on the given day.
+     *
+     * @param  array<string, mixed>  $validated
+     *
+     * @throws ValidationException
+     */
+    protected function validateNoConflict(array $validated, ?int $excludeJadwalId = null): void
+    {
+        // 1. Check Guru Conflict
+        $guruConflict = JadwalPelajaran::with('kelas')
+            ->where('hari', $validated['hari'])
+            ->where('guru_id', $validated['guru_id'])
+            ->when($excludeJadwalId, fn ($q) => $q->where('id', '!=', $excludeJadwalId))
+            ->where('jam_mulai', '<', $validated['jam_selesai'])
+            ->where('jam_selesai', '>', $validated['jam_mulai'])
+            ->first();
+
+        if ($guruConflict) {
+            $namaKelas = $guruConflict->kelas?->nama ?? 'lain';
+            $jam = substr($guruConflict->jam_mulai, 0, 5).' - '.substr($guruConflict->jam_selesai, 0, 5);
+
+            throw ValidationException::withMessages([
+                'guru_id' => "Guru ini sudah memiliki jadwal mengajar di kelas {$namaKelas} pada jam {$jam}.",
+            ]);
+        }
+
+        // 2. Check Kelas Conflict
+        $kelasConflict = JadwalPelajaran::with(['mataPelajaran', 'guru'])
+            ->where('hari', $validated['hari'])
+            ->where('kelas_id', $validated['kelas_id'])
+            ->when($excludeJadwalId, fn ($q) => $q->where('id', '!=', $excludeJadwalId))
+            ->where('jam_mulai', '<', $validated['jam_selesai'])
+            ->where('jam_selesai', '>', $validated['jam_mulai'])
+            ->first();
+
+        if ($kelasConflict) {
+            $namaMapel = $kelasConflict->mataPelajaran?->nama ?? 'lain';
+            $namaGuru = $kelasConflict->guru?->name ?? 'lain';
+            $jam = substr($kelasConflict->jam_mulai, 0, 5).' - '.substr($kelasConflict->jam_selesai, 0, 5);
+
+            throw ValidationException::withMessages([
+                'kelas_id' => "Kelas ini sudah memiliki jadwal pelajaran {$namaMapel} (Guru: {$namaGuru}) pada jam {$jam}.",
+            ]);
+        }
     }
 }
