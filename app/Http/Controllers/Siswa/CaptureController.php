@@ -6,10 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\FotoBukti;
 use App\Models\JadwalPelajaran;
 use App\Models\Pertemuan;
+use App\Services\ImageCompressor;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
@@ -26,6 +28,10 @@ class CaptureController extends Controller
         abort_unless($jadwal->kelas_id === $kelasId, 403);
 
         $tanggalCarbon = Carbon::parse($tanggal);
+
+        if ($tanggalCarbon->gt(now()->endOfDay())) {
+            return redirect()->route('siswa.dashboard')->with('error', 'Laporan kehadiran untuk tanggal mendatang belum dapat diakses.');
+        }
 
         $now = Carbon::now();
         $isToday = $tanggalCarbon->isToday();
@@ -73,38 +79,41 @@ class CaptureController extends Controller
         );
 
         $validated = $request->validate([
-            'foto' => ['required', 'image', 'max:5120'], // 5MB
+            'foto' => ['required', 'image', 'max:10240'], // Max 10MB input, will be compressed to < 300KB WebP
             'status_guru_dilaporkan' => ['required', 'in:hadir,sakit,alpa,dispensasi'],
             'jenis_alpa_dilaporkan' => ['nullable', 'required_if:status_guru_dilaporkan,alpa', 'in:ada_tugas,tanpa_tugas,guru_pengganti'],
             'guru_pengganti_nama' => ['nullable', 'required_if:jenis_alpa_dilaporkan,guru_pengganti', 'string', 'max:255'],
         ]);
 
-        // Store the photo
-        $fotoPath = $request->file('foto')->store('foto-bukti', 'public');
+        // Compress and store the photo as WebP
+        $imageCompressor = app(ImageCompressor::class);
+        $fotoPath = $imageCompressor->compressAndStore($request->file('foto'), 'foto-bukti', 1200, 80);
 
-        // Delete old photo if re-capturing
-        $existing = FotoBukti::where('pertemuan_id', $pertemuan->id)
-            ->where('siswa_id', $user->id)
-            ->first();
+        // Delete old photo if re-capturing and update/create record inside transaction
+        DB::transaction(function () use ($pertemuan, $user, $fotoPath, $validated) {
+            $existing = FotoBukti::where('pertemuan_id', $pertemuan->id)
+                ->where('siswa_id', $user->id)
+                ->first();
 
-        if ($existing) {
-            Storage::disk('public')->delete($existing->foto_path);
-            $existing->update([
-                'foto_path' => $fotoPath,
-                'status_guru_dilaporkan' => $validated['status_guru_dilaporkan'],
-                'jenis_alpa_dilaporkan' => $validated['jenis_alpa_dilaporkan'] ?? null,
-                'guru_pengganti_nama' => $validated['guru_pengganti_nama'] ?? null,
-            ]);
-        } else {
-            FotoBukti::create([
-                'pertemuan_id' => $pertemuan->id,
-                'siswa_id' => $user->id,
-                'foto_path' => $fotoPath,
-                'status_guru_dilaporkan' => $validated['status_guru_dilaporkan'],
-                'jenis_alpa_dilaporkan' => $validated['jenis_alpa_dilaporkan'] ?? null,
-                'guru_pengganti_nama' => $validated['guru_pengganti_nama'] ?? null,
-            ]);
-        }
+            if ($existing) {
+                Storage::disk('public')->delete($existing->foto_path);
+                $existing->update([
+                    'foto_path' => $fotoPath,
+                    'status_guru_dilaporkan' => $validated['status_guru_dilaporkan'],
+                    'jenis_alpa_dilaporkan' => $validated['jenis_alpa_dilaporkan'] ?? null,
+                    'guru_pengganti_nama' => $validated['guru_pengganti_nama'] ?? null,
+                ]);
+            } else {
+                FotoBukti::create([
+                    'pertemuan_id' => $pertemuan->id,
+                    'siswa_id' => $user->id,
+                    'foto_path' => $fotoPath,
+                    'status_guru_dilaporkan' => $validated['status_guru_dilaporkan'],
+                    'jenis_alpa_dilaporkan' => $validated['jenis_alpa_dilaporkan'] ?? null,
+                    'guru_pengganti_nama' => $validated['guru_pengganti_nama'] ?? null,
+                ]);
+            }
+        });
 
         return redirect()->route('siswa.dashboard')->with('success', 'Foto bukti berhasil disimpan. Terima kasih!');
     }

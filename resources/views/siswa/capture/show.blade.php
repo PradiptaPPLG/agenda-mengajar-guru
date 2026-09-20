@@ -77,16 +77,38 @@
             <form action="{{ route('siswa.capture.store', ['jadwal' => $pertemuan->jadwal_id, 'tanggal' => $pertemuan->tanggal->toDateString()]) }}" method="POST" enctype="multipart/form-data" class="p-5 space-y-6" id="capture-form">
                 @csrf
 
-                {{-- Camera / Gallery input --}}
+                {{-- Camera / Gallery input & Client-Side Compression --}}
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-2">Foto Bukti</label>
+                    
+                    {{-- Hidden final input submitted with form --}}
+                    <input type="file" name="foto" id="final-foto-input" class="sr-only" {{ $existingCapture ? '' : 'required' }}>
+
+                    {{-- Preview container with compression feedback --}}
                     <div id="preview-container" class="hidden mb-3 bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
-                        <img id="preview-img" src="#" alt="Preview" class="w-full h-auto max-h-64 object-contain">
+                        <div class="relative">
+                            <img id="preview-img" src="#" alt="Preview" class="w-full h-auto max-h-64 object-contain">
+                            <div id="compressing-indicator" class="hidden absolute inset-0 bg-slate-900/40 backdrop-blur-xs flex flex-col items-center justify-center text-white text-xs font-medium">
+                                <svg class="animate-spin h-6 w-6 text-white mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Mengompresi foto hemat kuota...
+                            </div>
+                        </div>
+                        <div id="compression-status" class="hidden px-3 py-2 bg-emerald-50 border-t border-emerald-100 flex items-center justify-between text-[11px] text-emerald-800">
+                            <span class="flex items-center gap-1 font-semibold">
+                                <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                WebP Hemat Kuota
+                            </span>
+                            <span id="compression-summary" class="font-medium text-emerald-700"></span>
+                        </div>
                     </div>
+
                     <div class="grid grid-cols-2 gap-2">
                         <label class="flex flex-col items-center justify-center gap-2 py-4 border-2 border-dashed border-slate-300 rounded-xl cursor-pointer hover:border-emerald-400 hover:bg-emerald-50 transition-colors">
-                            <input type="file" name="foto" accept="image/*" capture="environment"
-                                   class="sr-only" id="camera-input" onchange="previewPhoto(this)">
+                            <input type="file" accept="image/*" capture="environment"
+                                   class="sr-only" id="camera-input" onchange="handlePhotoSelection(this)">
                             <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -94,8 +116,8 @@
                             <span class="text-xs font-medium text-slate-600">Kamera</span>
                         </label>
                         <label class="flex flex-col items-center justify-center gap-2 py-4 border-2 border-dashed border-slate-300 rounded-xl cursor-pointer hover:border-emerald-400 hover:bg-emerald-50 transition-colors">
-                            <input type="file" name="foto" accept="image/*"
-                                   class="sr-only" id="gallery-input" onchange="previewPhoto(this)">
+                            <input type="file" accept="image/*"
+                                   class="sr-only" id="gallery-input" onchange="handlePhotoSelection(this)">
                             <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                             </svg>
@@ -176,18 +198,99 @@
 
     @push('scripts')
     <script>
-        function previewPhoto(input) {
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    document.getElementById('preview-img').src = e.target.result;
-                    document.getElementById('preview-container').classList.remove('hidden');
-                    // Sync the other input (camera/gallery) - both use name="foto"
-                    // Only last selected file counts
-                };
-                reader.readAsDataURL(input.files[0]);
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+
+        async function handlePhotoSelection(input) {
+            if (!input.files || !input.files[0]) return;
+            const file = input.files[0];
+            const originalSize = file.size;
+
+            const previewContainer = document.getElementById('preview-container');
+            const previewImg = document.getElementById('preview-img');
+            const indicator = document.getElementById('compressing-indicator');
+            const compressionStatus = document.getElementById('compression-status');
+            const summarySpan = document.getElementById('compression-summary');
+            const finalInput = document.getElementById('final-foto-input');
+
+            previewContainer.classList.remove('hidden');
+            indicator.classList.remove('hidden');
+            compressionStatus.classList.add('hidden');
+
+            try {
+                const img = new Image();
+                const url = URL.createObjectURL(file);
+
+                await new Promise((resolve, reject) => {
+                    img.onload = resolve;
+                    img.onerror = reject;
+                    img.src = url;
+                });
+
+                // Scale max 1200px
+                const maxDim = 1200;
+                let width = img.width;
+                let height = img.height;
+
+                if (width > maxDim || height > maxDim) {
+                    if (width >= height) {
+                        height = Math.round((height / width) * maxDim);
+                        width = maxDim;
+                    } else {
+                        width = Math.round((width / height) * maxDim);
+                        height = maxDim;
+                    }
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                // Convert to WebP blob (fallback to JPEG)
+                const blob = await new Promise((resolve) => {
+                    canvas.toBlob((b) => {
+                        if (b) {
+                            resolve(b);
+                        } else {
+                            canvas.toBlob((bJpeg) => resolve(bJpeg), 'image/jpeg', 0.82);
+                        }
+                    }, 'image/webp', 0.82);
+                });
+
+                const previewUrl = URL.createObjectURL(blob);
+                previewImg.src = previewUrl;
+
+                // Create compressed File and assign to form's file input
+                const ext = blob.type === 'image/webp' ? 'webp' : 'jpg';
+                const compressedFile = new File([blob], `foto_bukti.${ext}`, { type: blob.type });
+
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(compressedFile);
+                finalInput.files = dataTransfer.files;
+
+                const savedPct = Math.max(0, Math.round((1 - (compressedFile.size / originalSize)) * 100));
+                summarySpan.textContent = `${formatBytes(originalSize)} ➔ ${formatBytes(compressedFile.size)} (Hemat ${savedPct}%)`;
+                compressionStatus.classList.remove('hidden');
+
+                URL.revokeObjectURL(url);
+            } catch (err) {
+                console.error('Compression error, fallback to raw file:', err);
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                finalInput.files = dataTransfer.files;
+                previewImg.src = URL.createObjectURL(file);
+            } finally {
+                indicator.classList.add('hidden');
             }
         }
+
         function handleStatusGuru(val) {
             document.getElementById('alpa-guru-section').classList.toggle('hidden', val !== 'alpa');
         }
