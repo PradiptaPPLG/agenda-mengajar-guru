@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Siswa;
 
 use App\Http\Controllers\Controller;
+use App\Models\HariLibur;
 use App\Models\JadwalPelajaran;
 use App\Models\Pertemuan;
 use Carbon\Carbon;
@@ -44,9 +45,12 @@ class DashboardController extends Controller
             ];
         });
 
+        $hariLiburHariIni = HariLibur::getLibur($today);
+
         return view('siswa.dashboard', [
             'jadwalsWithStatus' => $jadwalsWithStatus,
             'today' => $today,
+            'hariLiburHariIni' => $hariLiburHariIni,
         ]);
     }
 }

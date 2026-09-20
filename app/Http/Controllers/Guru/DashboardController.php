@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Guru;
 
 use App\Http\Controllers\Controller;
+use App\Models\HariLibur;
 use App\Models\JadwalPelajaran;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -40,6 +41,12 @@ class DashboardController extends Controller
             6 => 'Sabtu',
         ];
 
+        // Query holidays in this week
+        $holidays = HariLibur::whereBetween('tanggal', [
+            $weekStart->toDateString(),
+            $weekEnd->toDateString(),
+        ])->get()->keyBy(fn ($h) => $h->tanggal->toDateString());
+
         // Build days of this week
         $mingguIni = [];
         for ($i = 0; $i < 6; $i++) {
@@ -48,6 +55,7 @@ class DashboardController extends Controller
             $mingguIni[$hariAngka] = [
                 'tanggal' => $date,
                 'jadwals' => $jadwalByHari->get($hariAngka, collect()),
+                'hariLibur' => $holidays->get($date->toDateString()),
             ];
         }
 

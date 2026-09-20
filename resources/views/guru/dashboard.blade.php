@@ -48,25 +48,38 @@
             $tanggal = $dayData['tanggal'];
             $jadwals = $dayData['jadwals'];
             $isToday = $tanggal->isSameDay($today);
+            $hariLibur = $dayData['hariLibur'] ?? null;
         @endphp
 
-        @if($jadwals->count() > 0 || $isToday)
+        @if($jadwals->count() > 0 || $isToday || $hariLibur)
         <div class="mb-4">
             {{-- Day header --}}
             <div class="flex items-center gap-2 mb-2">
                 <div class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0
-                            {{ $isToday ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600' }}">
+                            {{ $hariLibur ? 'bg-rose-100 text-rose-700 border border-rose-200' : ($isToday ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600') }}">
                     <span class="text-xs font-bold">{{ $tanggal->format('d') }}</span>
                 </div>
-                <div>
-                    <span class="text-sm font-semibold {{ $isToday ? 'text-blue-700' : 'text-slate-700' }}">
+                <div class="flex flex-wrap items-center gap-1.5">
+                    <span class="text-sm font-semibold {{ $hariLibur ? 'text-rose-700' : ($isToday ? 'text-blue-700' : 'text-slate-700') }}">
                         {{ $hariList[$hariAngka] }}
                     </span>
                     @if($isToday)
-                    <span class="ml-1.5 text-xs bg-blue-100 text-blue-700 font-medium px-2 py-0.5 rounded-full">Hari ini</span>
+                    <span class="text-xs bg-blue-100 text-blue-700 font-medium px-2 py-0.5 rounded-full">Hari ini</span>
+                    @endif
+                    @if($hariLibur)
+                    <span class="text-xs bg-rose-50 text-rose-700 font-medium px-2.5 py-0.5 rounded-full border border-rose-200 flex items-center gap-1">
+                        <span>🎌</span> {{ $hariLibur->keterangan }}
+                    </span>
                     @endif
                 </div>
             </div>
+
+            @if($hariLibur)
+            <div class="ml-10 mb-2 p-3 bg-rose-50/70 border border-rose-100 rounded-xl text-xs text-rose-700 font-medium flex items-center gap-2">
+                <svg class="w-4 h-4 text-rose-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span>Hari libur terdaftar: <strong>{{ $hariLibur->keterangan }}</strong> ({{ $hariLibur->jenis_label }}). Presensi KBM ditiadakan.</span>
+            </div>
+            @endif
 
             @if($jadwals->count() > 0)
                 <div class="space-y-2 ml-10">

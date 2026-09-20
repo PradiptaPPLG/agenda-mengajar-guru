@@ -12,6 +12,20 @@
             @endif
         </div>
 
+        @if(isset($hariLiburHariIni) && $hariLiburHariIni)
+        <div class="bg-rose-50 border border-rose-200 rounded-2xl p-4 text-rose-900">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0 text-xl">
+                    🎌
+                </div>
+                <div>
+                    <p class="font-bold text-sm">Hari Ini Libur: {{ $hariLiburHariIni->keterangan }}</p>
+                    <p class="text-xs text-rose-600 mt-0.5">{{ $hariLiburHariIni->jenis_label }} — KBM hari ini ditiadakan. Tidak ada kewajiban presensi.</p>
+                </div>
+            </div>
+        </div>
+        @endif
+
         {{-- Jadwal list --}}
         @if($jadwalsWithStatus->count() > 0)
         <div class="space-y-3">
