@@ -18,7 +18,15 @@
             {{-- Navigation --}}
             <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
                 @php $isAdmin = in_array(auth()->user()->role, ['admin', 'super_admin']); @endphp
+                
+                @if(auth()->user()->role === 'tu')
+                <x-admin-nav-link href="{{ route('tu.dashboard') }}" :active="request()->routeIs('tu.dashboard')">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+                    Dashboard TU
+                </x-admin-nav-link>
+                @endif
 
+                @if($isAdmin)
                 <x-admin-nav-link href="{{ route('admin.dashboard') }}" :active="request()->routeIs('admin.dashboard')">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
                     Dashboard
@@ -57,6 +65,57 @@
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v4l2 2"/></svg>
                     Hari Libur
                 </x-admin-nav-link>
+
+                <x-admin-nav-link href="{{ route('admin.kalender-blok.index') }}" :active="request()->routeIs('admin.kalender-blok.*')">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    Kalender Blok
+                </x-admin-nav-link>
+
+                <x-admin-nav-link href="{{ route('admin.pemetaan-blok.index') }}" :active="request()->routeIs('admin.pemetaan-blok.*')">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"/></svg>
+                    Pemetaan Blok
+                </x-admin-nav-link>
+
+                <div x-data="{ open: {{ request()->routeIs('admin.pengguna.*', 'admin.roles.*', 'admin.permissions.*', 'admin.permission-categories.*') ? 'true' : 'false' }} }">
+                    <button @click="open = !open" 
+                            class="flex w-full items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('admin.pengguna.*', 'admin.roles.*', 'admin.permissions.*', 'admin.permission-categories.*') ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
+                        <div class="flex items-center gap-2.5">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                            Pengguna & Akses
+                        </div>
+                        <svg :class="{'rotate-180': open}" class="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </button>
+                    <div x-show="open" style="display: none;" class="pl-7 pr-3 pt-1 pb-2 space-y-1">
+                        <a href="{{ route('admin.pengguna.index') }}" 
+                           class="block px-3 py-1.5 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('admin.pengguna.*') ? 'text-blue-700 bg-blue-50/50' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50' }}">
+                            Pengguna
+                        </a>
+                        <div x-data="{ openRole: {{ request()->routeIs('admin.roles.*', 'admin.permissions.*', 'admin.permission-categories.*') ? 'true' : 'false' }} }">
+                            <button @click="openRole = !openRole" 
+                                    class="flex w-full items-center justify-between px-3 py-1.5 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('admin.roles.*', 'admin.permissions.*', 'admin.permission-categories.*') ? 'text-blue-700' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50' }}">
+                                <div class="flex items-center gap-2.5">
+                                    Role & Permission
+                                </div>
+                                <svg :class="{'rotate-180': openRole}" class="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                            </button>
+                            <div x-show="openRole" style="display: none;" class="pl-4 pr-3 pt-1 space-y-1">
+                                <a href="{{ route('admin.permission-categories.index') }}" 
+                                   class="block px-3 py-1.5 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('admin.permission-categories.*') ? 'text-blue-700 bg-blue-50/50' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50' }}">
+                                    Kategori Permission
+                                </a>
+                                <a href="{{ route('admin.roles.index') }}" 
+                                   class="block px-3 py-1.5 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('admin.roles.*') ? 'text-blue-700 bg-blue-50/50' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50' }}">
+                                    Role
+                                </a>
+                                <a href="{{ route('admin.permissions.index') }}" 
+                                   class="block px-3 py-1.5 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('admin.permissions.*') ? 'text-blue-700 bg-blue-50/50' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50' }}">
+                                    Permission
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                @endif
 
                 @if(auth()->user()->isSuperAdmin())
                 <div class="pt-2 pb-1">
