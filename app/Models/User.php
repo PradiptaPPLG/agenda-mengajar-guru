@@ -62,6 +62,11 @@ class User extends Authenticatable
         return $this->role === 'kepala_sekolah';
     }
 
+    public function isPiket(): bool
+    {
+        return $this->role === 'piket';
+    }
+
     public function guruProfile(): HasOne
     {
         return $this->hasOne(GuruProfile::class);
@@ -100,6 +105,7 @@ class User extends Authenticatable
             'kepala_sekolah' => 'Kepala Sekolah',
             'guru' => 'Guru',
             'siswa' => 'Siswa',
+            'piket' => 'Guru Piket',
             default => ucfirst($this->role),
         };
     }

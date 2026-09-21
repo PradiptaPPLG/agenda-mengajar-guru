@@ -16,6 +16,7 @@ class KehadiranGuru extends Model
         'pertemuan_id',
         'guru_id',
         'status',
+        'alasan_tidak_hadir',
         'jenis_alpa',
         'guru_pengganti_nama',
         'keterangan',
@@ -41,10 +42,41 @@ class KehadiranGuru extends Model
     {
         return match ($this->status) {
             'hadir' => 'Hadir',
+            'terlambat' => 'Terlambat',
+            'tidak_hadir' => 'Tidak Hadir',
             'sakit' => 'Sakit',
             'alpa' => 'Alpa',
+            'dispensasi' => 'Dispensasi',
             default => ucfirst($this->status),
         };
+    }
+
+    public function getAlasanTidakHadirLabelAttribute(): ?string
+    {
+        return match ($this->alasan_tidak_hadir) {
+            'sakit' => 'Sakit',
+            'izin' => 'Izin',
+            'rapat_dinas' => 'Rapat Dinas',
+            'dinas_luar' => 'Dinas Luar',
+            'tugas_luar' => 'Tugas Luar',
+            'tanpa_keterangan' => 'Tanpa Keterangan',
+            default => $this->alasan_tidak_hadir ? ucfirst($this->alasan_tidak_hadir) : null,
+        };
+    }
+
+    public function isHadir(): bool
+    {
+        return $this->status === 'hadir';
+    }
+
+    public function isTerlambat(): bool
+    {
+        return $this->status === 'terlambat';
+    }
+
+    public function isTidakHadir(): bool
+    {
+        return in_array($this->status, ['tidak_hadir', 'sakit', 'alpa', 'dispensasi']);
     }
 
     public function getJenisAlpaLabelAttribute(): string

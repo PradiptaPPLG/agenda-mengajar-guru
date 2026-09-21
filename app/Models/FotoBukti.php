@@ -17,6 +17,7 @@ class FotoBukti extends Model
         'siswa_id',
         'foto_path',
         'status_guru_dilaporkan',
+        'alasan_tidak_hadir',
         'jenis_alpa_dilaporkan',
         'guru_pengganti_nama',
     ];

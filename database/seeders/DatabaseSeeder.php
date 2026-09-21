@@ -65,6 +65,12 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Kepala Sekolah', 'password' => Hash::make('password'), 'role' => 'kepala_sekolah']
         );
 
+        // ── Petugas Piket ──────────────────────────────────────────────────────
+        User::firstOrCreate(
+            ['email' => 'piket@sekolah.sch.id'],
+            ['name' => 'Petugas Piket', 'password' => Hash::make('password'), 'role' => 'piket', 'is_active' => true]
+        );
+
         // ── Guru Reviewer: Nastiti, S.Pd. ────────────────────────────────────
         $nastiti = User::firstOrCreate(
             ['name' => 'Nastiti, S.Pd.', 'role' => 'guru'],
@@ -131,6 +137,7 @@ class DatabaseSeeder extends Seeder
         $this->command->info('   Super Admin   : superadmin@sekolah.sch.id');
         $this->command->info('   Admin         : admin@sekolah.sch.id');
         $this->command->info('   Kepala Sekolah: kepsek@sekolah.sch.id');
+        $this->command->info('   Petugas Piket : piket@sekolah.sch.id');
         $this->command->info('   Guru Reviewer : NIP 198909242014012001 / password  (Nastiti, S.Pd.)');
         $this->command->info('   Siswa Reviewer: NIS 1234512345           / password  (Pradipta Endra Maulana, 12RPL)');
     }
