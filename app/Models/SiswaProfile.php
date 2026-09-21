@@ -12,7 +12,12 @@ class SiswaProfile extends Model
     /** @use HasFactory<SiswaProfileFactory> */
     use HasFactory;
 
-    protected $fillable = ['user_id', 'nis', 'kelas_id'];
+    protected $fillable = [
+        'user_id',
+        'nis',
+        'kelas_id',
+        'kelompok_blok',
+    ];
 
     public function user(): BelongsTo
     {
