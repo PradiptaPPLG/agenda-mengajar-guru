@@ -413,9 +413,9 @@ class AttendanceSeeder extends Seeder
         // Siswa Reviewer: Pradipta
         $pradipta = User::where('name', 'Pradipta Endra Maulana')->first();
 
-        // ── 7. Rentang Waktu Simulasi Pertemuan (01–18 September 2026) ────────
+        // ── 7. Rentang Waktu Simulasi Pertemuan (01–21 September 2026) ────────
         $startDate = Carbon::create(2026, 9, 1);
-        $today = Carbon::create(2026, 9, 18);
+        $today = Carbon::today();
         $period = CarbonPeriod::create($startDate, $today);
 
         $totalPertemuanCount = 0;
@@ -434,9 +434,16 @@ class AttendanceSeeder extends Seeder
                 continue; // Libur akhir pekan
             }
 
+            $isToday = $currentDate->isSameDay($today);
             $dayJadwals = $allJadwals->where('hari', $dayOfWeek);
 
             foreach ($dayJadwals as $jadwal) {
+                // Untuk hari ini, jam 3 (10:30) dan jam 4 (12:30) belum mulai,
+                // sehingga dibiarkan belum ada pertemuan agar berstatus "Belum Hadir" di dashboard
+                if ($isToday && in_array($jadwal->jam_mulai, ['10:30', '12:30'])) {
+                    continue;
+                }
+
                 $jadwalId = $jadwal->id;
                 $jadwalMeetingCounter[$jadwalId] = ($jadwalMeetingCounter[$jadwalId] ?? 0) + 1;
                 $meetingIndex = $jadwalMeetingCounter[$jadwalId];
@@ -451,7 +458,6 @@ class AttendanceSeeder extends Seeder
                 ];
                 $syllabusItem = $syllabusList[($meetingIndex - 1) % count($syllabusList)];
 
-                $isToday = $currentDate->isSameDay($today);
                 $pertemuanStatus = $isToday ? 'berlangsung' : 'selesai';
 
                 $createdAt = $currentDate->copy()->setTimeFromTimeString($jadwal->jam_mulai);
@@ -476,90 +482,141 @@ class AttendanceSeeder extends Seeder
                 $guruPengganti = null;
                 $waktuHadir = $createdAt->copy()->subMinutes(rand(5, 15));
 
-                if ($guruName === 'Nastiti, S.Pd.') {
-                    if ($gMeetingIdx === 3) {
-                        $guruStatus = 'tidak_hadir';
-                        $alasanTidakHadir = 'sakit';
-                        $keteranganGuru = 'Surat dokter terlampir (Flu & demam)';
-                        $waktuHadir = null;
-                    } elseif ($gMeetingIdx === 8) {
-                        $guruStatus = 'tidak_hadir';
-                        $alasanTidakHadir = 'rapat_dinas';
-                        $keteranganGuru = 'Menghadiri Rapat Koordinasi Kurikulum MGMP';
-                        $waktuHadir = null;
-                    }
-                } elseif ($guruName === 'Ahmad Fauzi, M.Pd.') {
-                    // 100% Hadir
-                    $guruStatus = 'hadir';
-                } elseif ($guruName === 'Budi Santoso, S.Kom.') {
-                    if ($gMeetingIdx === 5) {
-                        $guruStatus = 'tidak_hadir';
-                        $alasanTidakHadir = 'tugas_luar';
-                        $keteranganGuru = 'Pelatihan Asesor Uji Kompetensi Keahlian';
-                        $waktuHadir = null;
-                    }
-                } elseif ($guruName === 'Dewi Lestari, S.Pd.') {
-                    if ($gMeetingIdx === 4) {
-                        $guruStatus = 'terlambat';
-                        $waktuHadir = $createdAt->copy()->addMinutes(15);
-                        $keteranganGuru = 'Terjebak macet perbaikan jalan';
-                    } elseif ($gMeetingIdx === 7) {
-                        $guruStatus = 'tidak_hadir';
-                        $alasanTidakHadir = 'sakit';
-                        $keteranganGuru = 'Sakit demam, rawat jalan';
-                        $waktuHadir = null;
-                    } elseif ($gMeetingIdx === 10) {
-                        $guruStatus = 'tidak_hadir';
-                        $alasanTidakHadir = 'dinas_luar';
-                        $keteranganGuru = 'Workshop Pengimbasan SMK PK di Dinas Pendidikan';
-                        $waktuHadir = null;
-                    }
-                } elseif ($guruName === 'Siti Nurhaliza, S.Pd.') {
-                    if ($gMeetingIdx === 2) {
-                        $guruStatus = 'tidak_hadir';
-                        $alasanTidakHadir = 'sakit';
-                        $keteranganGuru = 'Surat izin sakit terlampir';
-                        $waktuHadir = null;
-                    } elseif ($gMeetingIdx === 4) {
-                        $guruStatus = 'tidak_hadir';
-                        $alasanTidakHadir = 'tugas_luar';
-                        $keteranganGuru = 'Mendampingi lomba debat Bahasa Inggris';
-                        $waktuHadir = null;
-                    } elseif ($gMeetingIdx === 6) {
-                        $guruStatus = 'terlambat';
-                        $waktuHadir = $createdAt->copy()->addMinutes(20);
-                    } elseif ($gMeetingIdx === 8) {
-                        $guruStatus = 'tidak_hadir';
-                        $alasanTidakHadir = 'tanpa_keterangan';
-                        $guruPengganti = 'Ahmad Fauzi, M.Pd.';
-                        $keteranganGuru = 'Digantikan oleh guru piket';
-                        $waktuHadir = null;
+                if ($isToday) {
+                    // Khusus HARI INI:
+                    if ($jadwal->jam_mulai === '07:00') {
+                        // Jam pertama: status guru sudah hadir dengan variasi data yang ditampilkan
+                        $seed = ($jadwal->guru_id * 13 + $jadwal->kelas_id * 7) % 100;
+                        if ($guruName === 'Nastiti, S.Pd.') {
+                            $guruStatus = 'hadir';
+                            $waktuHadir = $createdAt->copy()->subMinutes(15);
+                        } elseif ($seed < 70) {
+                            // 70% Hadir tepat waktu
+                            $guruStatus = 'hadir';
+                            $waktuHadir = $createdAt->copy()->subMinutes(rand(5, 15));
+                        } elseif ($seed < 85) {
+                            // 15% Terlambat
+                            $guruStatus = 'terlambat';
+                            $waktuHadir = $createdAt->copy()->addMinutes(rand(8, 20));
+                            $keteranganGuru = 'Terlambat karena kendala lalu lintas / koordinasi piket';
+                        } elseif ($seed < 93) {
+                            // 8% Dinas luar
+                            $guruStatus = 'tidak_hadir';
+                            $alasanTidakHadir = 'dinas_luar';
+                            $keteranganGuru = 'Surat Tugas Dinas Luar Pendampingan Kurikulum';
+                            $guruPengganti = 'Ahmad Fauzi, M.Pd.';
+                            $waktuHadir = null;
+                        } else {
+                            // 7% Sakit / Izin
+                            $guruStatus = 'tidak_hadir';
+                            $alasanTidakHadir = ($seed % 2 === 0) ? 'sakit' : 'izin';
+                            $keteranganGuru = ($alasanTidakHadir === 'sakit') ? 'Surat dokter terlampir (flu & demam)' : 'Izin keperluan keluarga mendadak';
+                            $waktuHadir = null;
+                        }
+                    } elseif ($jadwal->jam_mulai === '08:45') {
+                        // Jam kedua (sedang berjalan): variasi hadir, terlambat, rapat dinas
+                        $seed = ($jadwal->guru_id * 11 + $jadwal->kelas_id * 17) % 100;
+                        if ($seed < 65) {
+                            $guruStatus = 'hadir';
+                            $waktuHadir = $createdAt->copy()->subMinutes(rand(3, 10));
+                        } elseif ($seed < 85) {
+                            $guruStatus = 'terlambat';
+                            $waktuHadir = $createdAt->copy()->addMinutes(rand(5, 15));
+                            $keteranganGuru = 'Baru masuk kelas jam kedua';
+                        } else {
+                            $guruStatus = 'tidak_hadir';
+                            $alasanTidakHadir = 'rapat_dinas';
+                            $keteranganGuru = 'Menghadiri Rapat Dinas Pimpinan';
+                            $waktuHadir = null;
+                        }
                     }
                 } else {
-                    // Distribusi kehadiran realistis untuk guru-guru lainnya
-                    $seed = ($jadwal->guru_id * 17 + $meetingIndex * 23) % 100;
-                    if ($seed < 82) {
+                    // Logika tanggal lampau (historis)
+                    if ($guruName === 'Nastiti, S.Pd.') {
+                        if ($gMeetingIdx === 3) {
+                            $guruStatus = 'tidak_hadir';
+                            $alasanTidakHadir = 'sakit';
+                            $keteranganGuru = 'Surat dokter terlampir (Flu & demam)';
+                            $waktuHadir = null;
+                        } elseif ($gMeetingIdx === 8) {
+                            $guruStatus = 'tidak_hadir';
+                            $alasanTidakHadir = 'rapat_dinas';
+                            $keteranganGuru = 'Menghadiri Rapat Koordinasi Kurikulum MGMP';
+                            $waktuHadir = null;
+                        }
+                    } elseif ($guruName === 'Ahmad Fauzi, M.Pd.') {
+                        // 100% Hadir
                         $guruStatus = 'hadir';
-                        $waktuHadir = $createdAt->copy()->subMinutes(rand(5, 12));
-                    } elseif ($seed < 90) {
-                        $guruStatus = 'terlambat';
-                        $waktuHadir = $createdAt->copy()->addMinutes(rand(8, 18));
-                        $keteranganGuru = 'Terlambat masuk kelas karena urusan piket / koordinasi';
-                    } elseif ($seed < 94) {
-                        $guruStatus = 'tidak_hadir';
-                        $alasanTidakHadir = 'dinas_luar';
-                        $keteranganGuru = 'Surat tugas dinas luar nomor ST/2026/09/'.rand(100, 999);
-                        $waktuHadir = null;
-                    } elseif ($seed < 97) {
-                        $guruStatus = 'tidak_hadir';
-                        $alasanTidakHadir = 'sakit';
-                        $keteranganGuru = 'Izin sakit rawat jalan';
-                        $waktuHadir = null;
+                    } elseif ($guruName === 'Budi Santoso, S.Kom.') {
+                        if ($gMeetingIdx === 5) {
+                            $guruStatus = 'tidak_hadir';
+                            $alasanTidakHadir = 'tugas_luar';
+                            $keteranganGuru = 'Pelatihan Asesor Uji Kompetensi Keahlian';
+                            $waktuHadir = null;
+                        }
+                    } elseif ($guruName === 'Dewi Lestari, S.Pd.') {
+                        if ($gMeetingIdx === 4) {
+                            $guruStatus = 'terlambat';
+                            $waktuHadir = $createdAt->copy()->addMinutes(15);
+                            $keteranganGuru = 'Terjebak macet perbaikan jalan';
+                        } elseif ($gMeetingIdx === 7) {
+                            $guruStatus = 'tidak_hadir';
+                            $alasanTidakHadir = 'sakit';
+                            $keteranganGuru = 'Sakit demam, rawat jalan';
+                            $waktuHadir = null;
+                        } elseif ($gMeetingIdx === 10) {
+                            $guruStatus = 'tidak_hadir';
+                            $alasanTidakHadir = 'dinas_luar';
+                            $keteranganGuru = 'Workshop Pengimbasan SMK PK di Dinas Pendidikan';
+                            $waktuHadir = null;
+                        }
+                    } elseif ($guruName === 'Siti Nurhaliza, S.Pd.') {
+                        if ($gMeetingIdx === 2) {
+                            $guruStatus = 'tidak_hadir';
+                            $alasanTidakHadir = 'sakit';
+                            $keteranganGuru = 'Surat izin sakit terlampir';
+                            $waktuHadir = null;
+                        } elseif ($gMeetingIdx === 4) {
+                            $guruStatus = 'tidak_hadir';
+                            $alasanTidakHadir = 'tugas_luar';
+                            $keteranganGuru = 'Mendampingi lomba debat Bahasa Inggris';
+                            $waktuHadir = null;
+                        } elseif ($gMeetingIdx === 6) {
+                            $guruStatus = 'terlambat';
+                            $waktuHadir = $createdAt->copy()->addMinutes(20);
+                        } elseif ($gMeetingIdx === 8) {
+                            $guruStatus = 'tidak_hadir';
+                            $alasanTidakHadir = 'tanpa_keterangan';
+                            $guruPengganti = 'Ahmad Fauzi, M.Pd.';
+                            $keteranganGuru = 'Digantikan oleh guru piket';
+                            $waktuHadir = null;
+                        }
                     } else {
-                        $guruStatus = 'tidak_hadir';
-                        $alasanTidakHadir = 'izin';
-                        $keteranganGuru = 'Izin keperluan keluarga mendesak';
-                        $waktuHadir = null;
+                        // Distribusi kehadiran realistis untuk guru-guru lainnya di masa lalu
+                        $seed = ($jadwal->guru_id * 17 + $meetingIndex * 23) % 100;
+                        if ($seed < 82) {
+                            $guruStatus = 'hadir';
+                            $waktuHadir = $createdAt->copy()->subMinutes(rand(5, 12));
+                        } elseif ($seed < 90) {
+                            $guruStatus = 'terlambat';
+                            $waktuHadir = $createdAt->copy()->addMinutes(rand(8, 18));
+                            $keteranganGuru = 'Terlambat masuk kelas karena urusan piket / koordinasi';
+                        } elseif ($seed < 94) {
+                            $guruStatus = 'tidak_hadir';
+                            $alasanTidakHadir = 'dinas_luar';
+                            $keteranganGuru = 'Surat tugas dinas luar nomor ST/2026/09/'.rand(100, 999);
+                            $waktuHadir = null;
+                        } elseif ($seed < 97) {
+                            $guruStatus = 'tidak_hadir';
+                            $alasanTidakHadir = 'sakit';
+                            $keteranganGuru = 'Izin sakit rawat jalan';
+                            $waktuHadir = null;
+                        } else {
+                            $guruStatus = 'tidak_hadir';
+                            $alasanTidakHadir = 'izin';
+                            $keteranganGuru = 'Izin keperluan keluarga mendesak';
+                            $waktuHadir = null;
+                        }
                     }
                 }
 
