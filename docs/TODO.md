@@ -30,3 +30,15 @@ Dokumen ini mencatat peta jalan implementasi perbaikan alur bisnis, pencegahan b
   - [x] Atribut kamera HP langsung `capture="environment"` pada input foto siswa.
   - [x] Indikator ketidaksesuaian (*discrepancy flag*) antara laporan siswa vs klaim guru di model dan laporan Kepala Sekolah.
   - [x] Fitur auto-save draft materi dan penugasan di browser (`localStorage`) beserta tombol pulihkan/abaikan.
+
+- [x] **Fase 4: Overhaul Presensi Guru & Monitoring Real-Time (Piket, Kepala Sekolah, Siswa ➔ Guru Sync)**
+  - [x] Sinkronisasi Siswa ➔ Guru: Status kehadiran guru dilaporkan oleh siswa dan otomatis tersinkron ke `kehadiran_gurus`. Pilihan self-attendance di sisi guru dihapus.
+  - [x] Hierarki Status Kehadiran Guru: Hadir (🟢), Terlambat (🟠), Tidak Hadir (🔴) dengan sub-kategori spesifik (Sakit, Izin, Rapat Dinas, Dinas Luar, Tugas Luar, Tanpa Keterangan) + teks nama Guru Pengganti.
+  - [x] Kebijakan Waktu Akses Fleksibel: Guru dan siswa tetap dapat mengakses dan melengkapi agenda/presensi di luar jam aktif (susulan hingga 7 hari ke belakang).
+  - [x] Instant Student Search Bar: Filter pencarian instan nama / NIS siswa di halaman input agenda guru.
+  - [x] Role Baru Petugas Piket (`piket`): Dashboard monitoring real-time KBM per jam pelajaran, filter angkatan (X, XI, XII), status guru masuk kelas. Kredensial: `piket@sekolah.sch.id`.
+  - [x] Monitoring Card Grid Kepala Sekolah: Layout card grid per jam pelajaran dengan visual status dinamis (Hijau, Oranye, Merah), filter status & tingkat, serta auto-refresh 60 detik.
+  - [x] Export Jadwal Admin: Fitur ekspor jadwal pelajaran ke file Excel (`.xlsx`) dan PDF.
+  - [x] Pagination Admin: Penambahan paginasi standar pada daftar kelas admin.
+  - [x] Feature Test & Code Styling: Pengujian menyeluruh dengan `PiketAndAttendanceWorkflowTest` (7 skenario pengujian, total suite 28 lulus) & pemformatan Laravel Pint.
+
