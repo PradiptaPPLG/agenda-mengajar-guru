@@ -12,7 +12,7 @@ class GuruProfile extends Model
     /** @use HasFactory<GuruProfileFactory> */
     use HasFactory;
 
-    protected $fillable = ['user_id', 'nip'];
+    protected $fillable = ['user_id', 'nip', 'kaprog_jurusan'];
 
     public function user(): BelongsTo
     {
