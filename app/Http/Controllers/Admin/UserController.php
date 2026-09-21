@@ -17,8 +17,9 @@ class UserController extends Controller
 {
     public function index(Request $request): View
     {
-        $users = User::where('role', 'guru')
-            ->when($request->input('search'), fn ($q, $s) => $q->where('name', 'like', "%{$s}%")->orWhere('email', 'like', "%{$s}%"))
+        $role = $request->input('role');
+        $users = User::when($role, fn ($q) => $q->where('role', $role), fn ($q) => $q->whereIn('role', ['guru', 'piket']))
+            ->when($request->input('search'), fn ($q, $s) => $q->where(fn ($sub) => $sub->where('name', 'like', "%{$s}%")->orWhere('email', 'like', "%{$s}%")))
             ->orderBy('name')
             ->paginate(20)
             ->withQueryString();
@@ -39,12 +40,12 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => [
                 'nullable',
-                Rule::requiredIf(fn () => in_array($request->input('role'), ['super_admin', 'admin', 'kepala_sekolah'])),
+                Rule::requiredIf(fn () => in_array($request->input('role'), ['super_admin', 'admin', 'kepala_sekolah', 'piket'])),
                 'email',
                 'unique:users,email',
             ],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'role' => ['required', 'in:super_admin,admin,kepala_sekolah,guru,siswa'],
+            'role' => ['required', 'in:super_admin,admin,kepala_sekolah,guru,siswa,piket'],
             'nip' => [Rule::requiredIf(fn () => $request->input('role') === 'guru'), 'nullable', 'string', 'max:30'],
             'nis' => [Rule::requiredIf(fn () => $request->input('role') === 'siswa'), 'nullable', 'string', 'max:30'],
             'kelas_id' => ['nullable', 'exists:kelas,id'],
@@ -84,12 +85,12 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => [
                 'nullable',
-                Rule::requiredIf(fn () => in_array($request->input('role'), ['super_admin', 'admin', 'kepala_sekolah'])),
+                Rule::requiredIf(fn () => in_array($request->input('role'), ['super_admin', 'admin', 'kepala_sekolah', 'piket'])),
                 'email',
                 Rule::unique('users', 'email')->ignore($user->id),
             ],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
-            'role' => ['required', 'in:super_admin,admin,kepala_sekolah,guru,siswa'],
+            'role' => ['required', 'in:super_admin,admin,kepala_sekolah,guru,siswa,piket'],
             'nip' => [Rule::requiredIf(fn () => $request->input('role') === 'guru'), 'nullable', 'string', 'max:30'],
             'nis' => [Rule::requiredIf(fn () => $request->input('role') === 'siswa'), 'nullable', 'string', 'max:30'],
             'kelas_id' => ['nullable', 'exists:kelas,id'],

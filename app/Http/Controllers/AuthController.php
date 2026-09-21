@@ -74,6 +74,7 @@ class AuthController extends Controller
             'kepala_sekolah' => redirect()->route('kepala-sekolah.dashboard'),
             'guru' => redirect()->route('guru.dashboard'),
             'siswa' => redirect()->route('siswa.dashboard'),
+            'piket' => redirect()->route('piket.dashboard'),
             default => redirect()->route('login'),
         };
     }

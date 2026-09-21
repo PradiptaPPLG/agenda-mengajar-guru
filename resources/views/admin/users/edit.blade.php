@@ -25,7 +25,7 @@
                     <label class="block text-sm font-medium text-slate-700 mb-1.5">Role <span class="text-red-500">*</span></label>
                     <select name="role" required onchange="handleRoleChange(this.value)"
                             class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        @foreach(['super_admin' => 'Super Admin', 'admin' => 'Admin', 'kepala_sekolah' => 'Kepala Sekolah', 'guru' => 'Guru', 'siswa' => 'Siswa'] as $val => $label)
+                        @foreach(['super_admin' => 'Super Admin', 'admin' => 'Admin', 'kepala_sekolah' => 'Kepala Sekolah', 'guru' => 'Guru', 'piket' => 'Guru Piket', 'siswa' => 'Siswa'] as $val => $label)
                         <option value="{{ $val }}" {{ old('role', $user->role) === $val ? 'selected' : '' }}>{{ $label }}</option>
                         @endforeach
                     </select>

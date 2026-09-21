@@ -30,6 +30,7 @@
                         <option value="admin" {{ old('role') === 'admin' ? 'selected' : '' }}>Admin</option>
                         <option value="kepala_sekolah" {{ old('role') === 'kepala_sekolah' ? 'selected' : '' }}>Kepala Sekolah</option>
                         <option value="guru" {{ old('role') === 'guru' ? 'selected' : '' }}>Guru</option>
+                        <option value="piket" {{ old('role') === 'piket' ? 'selected' : '' }}>Guru Piket</option>
                         <option value="siswa" {{ old('role') === 'siswa' ? 'selected' : '' }}>Siswa</option>
                     </select>
                     @error('role')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
