@@ -27,6 +27,9 @@ class DatabaseSeeder extends Seeder
         // ── Master Jam Pelajaran ─────────────────────────────────────────────
         $this->call(MasterJamPelajaranSeeder::class);
 
+        // ── Role & Permission ────────────────────────────────────────────────
+        $this->call(PermissionSeeder::class);
+
         // ── Mata Pelajaran ────────────────────────────────────────────────────
         $mapels = [
             ['nama' => 'Matematika',                  'kode' => 'MTK'],
