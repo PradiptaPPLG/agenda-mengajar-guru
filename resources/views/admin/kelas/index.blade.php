@@ -44,5 +44,11 @@
                 @endforelse
             </tbody>
         </table>
+
+        @if($kelas->hasPages())
+        <div class="px-4 py-3 border-t border-slate-200">
+            {{ $kelas->links() }}
+        </div>
+        @endif
     </div>
 </x-layouts.admin>

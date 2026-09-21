@@ -6,15 +6,71 @@ use App\Http\Controllers\Controller;
 use App\Models\JadwalPelajaran;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
+use App\Models\Setting;
 use App\Models\User;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Spatie\SimpleExcel\SimpleExcelWriter;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class JadwalController extends Controller
 {
+    public function exportExcel(Request $request): BinaryFileResponse
+    {
+        $jadwals = JadwalPelajaran::with(['kelas', 'guru', 'mataPelajaran'])
+            ->when($request->input('kelas_id'), fn ($q, $id) => $q->where('kelas_id', $id))
+            ->when($request->input('guru_id'), fn ($q, $id) => $q->where('guru_id', $id))
+            ->orderBy('hari')
+            ->orderBy('jam_mulai')
+            ->get();
+
+        $hariNames = [1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu', 4 => 'Kamis', 5 => 'Jumat', 6 => 'Sabtu', 7 => 'Minggu'];
+
+        $tempPath = tempnam(sys_get_temp_dir(), 'jadwal_').'.xlsx';
+        $writer = SimpleExcelWriter::create($tempPath);
+
+        foreach ($jadwals as $j) {
+            $writer->addRow([
+                'Hari' => $hariNames[$j->hari] ?? 'Hari '.$j->hari,
+                'Jam Mulai' => substr($j->jam_mulai, 0, 5),
+                'Jam Selesai' => substr($j->jam_selesai, 0, 5),
+                'Kelas' => $j->kelas->nama ?? '-',
+                'Mata Pelajaran' => $j->mataPelajaran->nama ?? '-',
+                'Kode Mapel' => $j->mataPelajaran->kode ?? '-',
+                'Guru Pengampu' => $j->guru->name ?? '-',
+            ]);
+        }
+
+        $writer->close();
+
+        return response()->download($tempPath, 'jadwal-pelajaran-'.now()->format('Y-m-d').'.xlsx')
+            ->deleteFileAfterSend(true);
+    }
+
+    public function exportPdf(Request $request): Response
+    {
+        $jadwals = JadwalPelajaran::with(['kelas', 'guru', 'mataPelajaran'])
+            ->when($request->input('kelas_id'), fn ($q, $id) => $q->where('kelas_id', $id))
+            ->when($request->input('guru_id'), fn ($q, $id) => $q->where('guru_id', $id))
+            ->orderBy('hari')
+            ->orderBy('jam_mulai')
+            ->get();
+
+        $hariNames = [1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu', 4 => 'Kamis', 5 => 'Jumat', 6 => 'Sabtu', 7 => 'Minggu'];
+        $schoolName = Setting::get('school_name', 'SMK Negeri 1 Ciamis');
+        $schoolYear = Setting::get('school_year', '2025/2026');
+
+        $pdf = Pdf::loadView('admin.jadwal.pdf', compact('jadwals', 'hariNames', 'schoolName', 'schoolYear'))
+            ->setPaper('a4', 'portrait');
+
+        return $pdf->download('jadwal-pelajaran-'.now()->format('Y-m-d').'.pdf');
+    }
+
     public function index(Request $request): View
     {
         $jadwals = JadwalPelajaran::with(['kelas', 'guru', 'mataPelajaran'])

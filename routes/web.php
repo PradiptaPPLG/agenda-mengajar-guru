@@ -14,6 +14,7 @@ use App\Http\Controllers\Guru\PertemuanController as GuruPertemuanController;
 use App\Http\Controllers\KepalaSekolah\DashboardController as KsDashboardController;
 use App\Http\Controllers\KepalaSekolah\PdfController as KsPdfController;
 use App\Http\Controllers\KepalaSekolah\ReportController as KsReportController;
+use App\Http\Controllers\Piket\DashboardController as PiketDashboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Siswa\CaptureController as SiswaCaptureController;
 use App\Http\Controllers\Siswa\DashboardController as SiswaDashboardController;
@@ -84,9 +85,19 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
     Route::resource('mata-pelajaran', AdminMataPelajaranController::class)
         ->parameters(['mata-pelajaran' => 'mataPelajaran'])
         ->except(['show']);
+    Route::get('jadwal/export/excel', [AdminJadwalController::class, 'exportExcel'])->name('jadwal.export.excel');
+    Route::get('jadwal/export/pdf', [AdminJadwalController::class, 'exportPdf'])->name('jadwal.export.pdf');
     Route::resource('jadwal', AdminJadwalController::class)->except(['show']);
     Route::resource('hari-libur', AdminHariLiburController::class)->only(['index', 'store', 'destroy']);
 });
+
+// ─── Guru / Petugas Piket ────────────────────────────────────────────────────
+Route::middleware(['auth', 'role:piket,admin,super_admin'])
+    ->prefix('piket')
+    ->name('piket.')
+    ->group(function () {
+        Route::get('/dashboard', [PiketDashboardController::class, 'index'])->name('dashboard');
+    });
 
 // ─── Kepala Sekolah ──────────────────────────────────────────────────────────
 Route::middleware(['auth', 'role:kepala_sekolah,super_admin'])

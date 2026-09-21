@@ -14,7 +14,7 @@ class KelasController extends Controller
 {
     public function index(): View
     {
-        $kelas = Kelas::with('waliKelas')->withCount('siswaProfiles')->orderBy('nama')->get();
+        $kelas = Kelas::with('waliKelas')->withCount('siswaProfiles')->orderBy('nama')->paginate(15)->withQueryString();
 
         return view('admin.kelas.index', compact('kelas'));
     }
