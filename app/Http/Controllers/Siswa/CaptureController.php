@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Siswa;
 use App\Http\Controllers\Controller;
 use App\Models\FotoBukti;
 use App\Models\JadwalPelajaran;
+use App\Models\KehadiranGuru;
 use App\Models\Pertemuan;
 use App\Services\ImageCompressor;
 use Carbon\Carbon;
@@ -33,11 +34,8 @@ class CaptureController extends Controller
             return redirect()->route('siswa.dashboard')->with('error', 'Laporan kehadiran untuk tanggal mendatang belum dapat diakses.');
         }
 
-        $now = Carbon::now();
-        $isToday = $tanggalCarbon->isToday();
-        $isWithinTime = $now->format('H:i') >= '06:30';
-
-        $isPast = ! ($isToday && $isWithinTime);
+        // Allow access outside current hours within 7 days for catch-up/recap
+        $isPast = $tanggalCarbon->lt(now()->subDays(7)->startOfDay());
 
         $pertemuan = Pertemuan::firstOrCreate(
             ['jadwal_id' => $jadwal->id, 'tanggal' => $tanggalCarbon->format('Y-m-d 00:00:00')],
@@ -65,12 +63,8 @@ class CaptureController extends Controller
 
         $tanggalCarbon = Carbon::parse($tanggal);
 
-        $now = Carbon::now();
-        $isToday = $tanggalCarbon->isToday();
-        $isWithinTime = $now->format('H:i') >= '06:30';
-
-        if (! ($isToday && $isWithinTime)) {
-            return redirect()->route('siswa.dashboard')->with('error', 'Waktu pengiriman laporan ditutup. Siswa hanya dapat melapor pada hari yang sama mulai pukul 06:30 hingga 23:59.');
+        if ($tanggalCarbon->gt(now()->endOfDay()) || $tanggalCarbon->lt(now()->subDays(7)->startOfDay())) {
+            return redirect()->route('siswa.dashboard')->with('error', 'Waktu pengiriman laporan untuk tanggal ini sudah ditutup (maksimal 7 hari ke belakang).');
         }
 
         $pertemuan = Pertemuan::firstOrCreate(
@@ -79,27 +73,37 @@ class CaptureController extends Controller
         );
 
         $validated = $request->validate([
-            'foto' => ['required', 'image', 'max:10240'], // Max 10MB input, will be compressed to < 300KB WebP
-            'status_guru_dilaporkan' => ['required', 'in:hadir,sakit,alpa,dispensasi'],
-            'jenis_alpa_dilaporkan' => ['nullable', 'required_if:status_guru_dilaporkan,alpa', 'in:ada_tugas,tanpa_tugas,guru_pengganti'],
-            'guru_pengganti_nama' => ['nullable', 'required_if:jenis_alpa_dilaporkan,guru_pengganti', 'string', 'max:255'],
+            'foto' => ['nullable', 'image', 'max:10240'], // Max 10MB input, will be compressed to < 300KB WebP
+            'status_guru_dilaporkan' => ['required', 'in:hadir,terlambat,tidak_hadir,sakit,alpa,dispensasi'],
+            'alasan_tidak_hadir' => ['nullable', 'required_if:status_guru_dilaporkan,tidak_hadir', 'in:sakit,izin,rapat_dinas,dinas_luar,tugas_luar,tanpa_keterangan'],
+            'jenis_alpa_dilaporkan' => ['nullable', 'string', 'max:50'],
+            'guru_pengganti_nama' => ['nullable', 'string', 'max:255'],
         ]);
 
-        // Compress and store the photo as WebP
-        $imageCompressor = app(ImageCompressor::class);
-        $fotoPath = $imageCompressor->compressAndStore($request->file('foto'), 'foto-bukti', 1200, 80);
+        $existing = FotoBukti::where('pertemuan_id', $pertemuan->id)
+            ->where('siswa_id', $user->id)
+            ->first();
 
-        // Delete old photo if re-capturing and update/create record inside transaction
-        DB::transaction(function () use ($pertemuan, $user, $fotoPath, $validated) {
-            $existing = FotoBukti::where('pertemuan_id', $pertemuan->id)
-                ->where('siswa_id', $user->id)
-                ->first();
+        if (! $existing && ! $request->hasFile('foto')) {
+            return back()->withErrors(['foto' => 'Foto bukti kehadiran wajib diunggah.'])->withInput();
+        }
 
+        $fotoPath = $existing?->foto_path;
+        if ($request->hasFile('foto')) {
+            $imageCompressor = app(ImageCompressor::class);
+            $fotoPath = $imageCompressor->compressAndStore($request->file('foto'), 'foto-bukti', 1200, 80);
+        }
+
+        // Save FotoBukti & automatically sync teacher attendance in KehadiranGuru
+        DB::transaction(function () use ($pertemuan, $user, $fotoPath, $validated, $existing, $jadwal, $request) {
             if ($existing) {
-                Storage::disk('public')->delete($existing->foto_path);
+                if ($request->hasFile('foto') && $existing->foto_path && $existing->foto_path !== $fotoPath) {
+                    Storage::disk('public')->delete($existing->foto_path);
+                }
                 $existing->update([
                     'foto_path' => $fotoPath,
                     'status_guru_dilaporkan' => $validated['status_guru_dilaporkan'],
+                    'alasan_tidak_hadir' => $validated['alasan_tidak_hadir'] ?? null,
                     'jenis_alpa_dilaporkan' => $validated['jenis_alpa_dilaporkan'] ?? null,
                     'guru_pengganti_nama' => $validated['guru_pengganti_nama'] ?? null,
                 ]);
@@ -109,12 +113,27 @@ class CaptureController extends Controller
                     'siswa_id' => $user->id,
                     'foto_path' => $fotoPath,
                     'status_guru_dilaporkan' => $validated['status_guru_dilaporkan'],
+                    'alasan_tidak_hadir' => $validated['alasan_tidak_hadir'] ?? null,
                     'jenis_alpa_dilaporkan' => $validated['jenis_alpa_dilaporkan'] ?? null,
                     'guru_pengganti_nama' => $validated['guru_pengganti_nama'] ?? null,
                 ]);
             }
+
+            // Sync to KehadiranGuru
+            $statusGuru = $validated['status_guru_dilaporkan'];
+            KehadiranGuru::updateOrCreate(
+                ['pertemuan_id' => $pertemuan->id, 'guru_id' => $jadwal->guru_id],
+                [
+                    'status' => $statusGuru,
+                    'alasan_tidak_hadir' => $validated['alasan_tidak_hadir'] ?? null,
+                    'guru_pengganti_nama' => $validated['guru_pengganti_nama'] ?? null,
+                    'waktu_hadir' => KehadiranGuru::where('pertemuan_id', $pertemuan->id)->where('guru_id', $jadwal->guru_id)->value('waktu_hadir') ?? now(),
+                ]
+            );
+
+            $pertemuan->update(['status' => 'berlangsung']);
         });
 
-        return redirect()->route('siswa.dashboard')->with('success', 'Foto bukti berhasil disimpan. Terima kasih!');
+        return redirect()->route('siswa.dashboard')->with('success', 'Foto bukti dan presensi guru berhasil disimpan!');
     }
 }

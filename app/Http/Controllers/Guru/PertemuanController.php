@@ -79,11 +79,6 @@ class PertemuanController extends Controller
             // Pertemuan
             'materi_ajar' => ['nullable', 'string', 'max:5000'],
             'penugasan' => ['nullable', 'string', 'max:5000'],
-            // Guru
-            'status' => ['nullable', 'in:hadir,sakit,alpa,dispensasi'],
-            'jenis_alpa' => ['nullable', 'required_if:status,alpa', 'in:ada_tugas,tanpa_tugas,guru_pengganti'],
-            'guru_pengganti_nama' => ['nullable', 'required_if:jenis_alpa,guru_pengganti', 'string', 'max:255'],
-            'keterangan' => ['nullable', 'string', 'max:1000'],
             // Siswa
             'siswa' => ['nullable', 'array'],
             'siswa.*.status' => ['required', 'in:hadir,sakit,izin,alpa,dispensasi'],
@@ -94,22 +89,17 @@ class PertemuanController extends Controller
             $pertemuan->update([
                 'materi_ajar' => $validated['materi_ajar'] ?? null,
                 'penugasan' => $validated['penugasan'] ?? null,
+                'status' => 'berlangsung',
             ]);
 
-            // 2. Update Guru Attendance (only if submitted)
-            if (isset($validated['status'])) {
-                KehadiranGuru::updateOrCreate(
-                    ['pertemuan_id' => $pertemuan->id, 'guru_id' => Auth::id()],
-                    [
-                        'status' => $validated['status'],
-                        'jenis_alpa' => $validated['jenis_alpa'] ?? null,
-                        'guru_pengganti_nama' => $validated['guru_pengganti_nama'] ?? null,
-                        'keterangan' => $validated['keterangan'] ?? null,
-                        'waktu_hadir' => KehadiranGuru::where('pertemuan_id', $pertemuan->id)->where('guru_id', Auth::id())->value('waktu_hadir') ?? now(),
-                    ]
-                );
-                $pertemuan->update(['status' => 'berlangsung']);
-            }
+            // 2. Ensure KehadiranGuru exists with default 'hadir' if not yet created by student
+            KehadiranGuru::firstOrCreate(
+                ['pertemuan_id' => $pertemuan->id, 'guru_id' => Auth::id()],
+                [
+                    'status' => 'hadir',
+                    'waktu_hadir' => now(),
+                ]
+            );
 
             // 3. Update Siswa Attendance
             if (isset($validated['siswa']) && is_array($validated['siswa'])) {
@@ -122,6 +112,6 @@ class PertemuanController extends Controller
             }
         });
 
-        return back()->with('success', 'Semua data pertemuan berhasil disimpan.');
+        return back()->with('success', 'Agenda mengajar dan presensi siswa berhasil disimpan.');
     }
 }

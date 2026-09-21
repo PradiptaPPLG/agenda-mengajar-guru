@@ -14,12 +14,13 @@
             <p class="text-sm text-emerald-100 mt-0.5">{{ $pertemuan->tanggal->translatedFormat('l, d F Y') }}</p>
         </div>
 
-        {{-- Teacher status from the teacher's own record --}}
+        {{-- Teacher status from the teacher's own record / student sync --}}
         @if($pertemuan->kehadiranGuru)
         <div class="bg-white rounded-2xl border border-slate-200 p-4 flex items-center gap-3">
             <div class="w-10 h-10 rounded-xl
                         {{ match($pertemuan->kehadiranGuru->status) {
                             'hadir' => 'bg-emerald-100',
+                            'terlambat' => 'bg-amber-100',
                             'sakit' => 'bg-amber-100',
                             'dispensasi' => 'bg-purple-100',
                             default => 'bg-red-100',
@@ -27,6 +28,7 @@
                         flex items-center justify-center shrink-0">
                 <svg class="w-5 h-5 {{ match($pertemuan->kehadiranGuru->status) {
                             'hadir' => 'text-emerald-600',
+                            'terlambat' => 'text-amber-600',
                             'sakit' => 'text-amber-600',
                             'dispensasi' => 'text-purple-600',
                             default => 'text-red-600',
@@ -36,8 +38,18 @@
                 </svg>
             </div>
             <div>
-                <p class="text-xs text-slate-500 font-medium">Status Kehadiran Guru</p>
-                <p class="text-sm font-semibold text-slate-900">{{ $pertemuan->kehadiranGuru->status_label }}</p>
+                <p class="text-xs text-slate-500 font-medium">Status Kehadiran Guru Terkini</p>
+                <div class="flex items-center gap-2">
+                    <p class="text-sm font-semibold text-slate-900">{{ $pertemuan->kehadiranGuru->status_label }}</p>
+                    @if($pertemuan->kehadiranGuru->alasan_tidak_hadir)
+                        <span class="text-xs px-2 py-0.5 rounded-md bg-red-50 text-red-700 font-medium border border-red-100">
+                            {{ $pertemuan->kehadiranGuru->alasan_tidak_hadir_label }}
+                        </span>
+                    @endif
+                </div>
+                @if($pertemuan->kehadiranGuru->guru_pengganti_nama)
+                    <p class="text-xs text-slate-600 mt-0.5">Guru Pengganti: <span class="font-medium">{{ $pertemuan->kehadiranGuru->guru_pengganti_nama }}</span></p>
+                @endif
             </div>
         </div>
         @endif
@@ -51,16 +63,40 @@
             <div class="p-4 bg-slate-50 flex flex-col items-center">
                 <img src="{{ Storage::url($existingCapture->foto_path) }}" alt="Foto Bukti"
                      class="w-full h-auto max-h-64 object-contain rounded-xl">
-                <div class="mt-3 flex items-center gap-2">
+                <div class="mt-3 flex flex-wrap items-center justify-center gap-2">
                     <span class="text-xs font-medium px-2.5 py-1 rounded-full
                         {{ match($existingCapture->status_guru_dilaporkan) {
                             'hadir' => 'badge-hadir',
+                            'terlambat' => 'badge-sakit',
                             'sakit' => 'badge-sakit',
                             'dispensasi' => 'badge-dispensasi',
                             default => 'badge-alpa',
                         } }}">
-                        Dilaporkan: {{ ucfirst($existingCapture->status_guru_dilaporkan) }}
+                        Dilaporkan: {{ match($existingCapture->status_guru_dilaporkan) {
+                            'hadir' => 'Hadir',
+                            'terlambat' => 'Terlambat',
+                            'tidak_hadir' => 'Tidak Hadir',
+                            default => ucfirst($existingCapture->status_guru_dilaporkan)
+                        } }}
                     </span>
+                    @if($existingCapture->alasan_tidak_hadir)
+                        <span class="text-xs font-medium px-2.5 py-1 rounded-full bg-red-100 text-red-800">
+                            Alasan: {{ match($existingCapture->alasan_tidak_hadir) {
+                                'sakit' => 'Sakit',
+                                'izin' => 'Izin',
+                                'rapat_dinas' => 'Rapat Dinas',
+                                'dinas_luar' => 'Dinas Luar',
+                                'tugas_luar' => 'Tugas Luar',
+                                'tanpa_keterangan' => 'Tanpa Keterangan',
+                                default => ucfirst($existingCapture->alasan_tidak_hadir)
+                            } }}
+                        </span>
+                    @endif
+                    @if($existingCapture->guru_pengganti_nama)
+                        <span class="text-xs font-medium px-2.5 py-1 rounded-full bg-blue-100 text-blue-800">
+                            Pengganti: {{ $existingCapture->guru_pengganti_nama }}
+                        </span>
+                    @endif
                 </div>
             </div>
         </div>
@@ -129,59 +165,90 @@
 
                 {{-- Status guru --}}
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-2">Status Guru yang Anda Lihat</label>
-                    <div class="grid grid-cols-4 gap-2">
+                    <label class="block text-xs font-semibold text-slate-600 mb-2">Status Guru yang Anda Laporkan</label>
+                    <div class="grid grid-cols-3 gap-2">
                         @php
-                            $statusStyles = [
-                                'hadir' => 'peer-checked:border-emerald-500 peer-checked:bg-emerald-50 peer-checked:text-emerald-700 hover:border-emerald-300',
-                                'sakit' => 'peer-checked:border-amber-500 peer-checked:bg-amber-50 peer-checked:text-amber-700 hover:border-amber-300',
-                                'alpa' => 'peer-checked:border-red-500 peer-checked:bg-red-50 peer-checked:text-red-700 hover:border-red-300',
-                                'dispensasi' => 'peer-checked:border-purple-500 peer-checked:bg-purple-50 peer-checked:text-purple-700 hover:border-purple-300',
-                            ];
+                            $curStatus = old('status_guru_dilaporkan') ?? $existingCapture?->status_guru_dilaporkan ?? 'hadir';
+                            // Normalize legacy status if needed
+                            if (in_array($curStatus, ['sakit', 'alpa', 'dispensasi'])) {
+                                $curStatus = 'tidak_hadir';
+                            }
                         @endphp
-                        @foreach(['hadir' => 'Hadir', 'sakit' => 'Sakit', 'alpa' => 'Alpa', 'dispensasi' => 'Dispensasi'] as $val => $label)
-                        <label class="relative">
-                            <input type="radio" name="status_guru_dilaporkan" value="{{ $val }}" class="sr-only peer"
-                                   {{ (old('status_guru_dilaporkan') ?? $existingCapture?->status_guru_dilaporkan) === $val ? 'checked' : '' }}
+                        {{-- Hadir --}}
+                        <label class="relative cursor-pointer">
+                            <input type="radio" name="status_guru_dilaporkan" value="hadir" class="sr-only peer"
+                                   {{ $curStatus === 'hadir' ? 'checked' : '' }}
                                    onchange="handleStatusGuru(this.value)">
-                            <div class="text-center py-3 rounded-xl border-2 border-slate-200 cursor-pointer transition-all
-                                        {{ $statusStyles[$val] }}">
-                                <span class="text-sm font-semibold">{{ $label }}</span>
+                            <div class="text-center py-3 rounded-xl border-2 border-slate-200 peer-checked:border-emerald-500 peer-checked:bg-emerald-50 peer-checked:text-emerald-700 hover:border-emerald-300 transition-all">
+                                <span class="text-sm font-semibold flex items-center justify-center gap-1.5">
+                                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                    Hadir
+                                </span>
                             </div>
                         </label>
-                        @endforeach
+
+                        {{-- Terlambat --}}
+                        <label class="relative cursor-pointer">
+                            <input type="radio" name="status_guru_dilaporkan" value="terlambat" class="sr-only peer"
+                                   {{ $curStatus === 'terlambat' ? 'checked' : '' }}
+                                   onchange="handleStatusGuru(this.value)">
+                            <div class="text-center py-3 rounded-xl border-2 border-slate-200 peer-checked:border-amber-500 peer-checked:bg-amber-50 peer-checked:text-amber-700 hover:border-amber-300 transition-all">
+                                <span class="text-sm font-semibold flex items-center justify-center gap-1.5">
+                                    <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                                    Terlambat
+                                </span>
+                            </div>
+                        </label>
+
+                        {{-- Tidak Hadir --}}
+                        <label class="relative cursor-pointer">
+                            <input type="radio" name="status_guru_dilaporkan" value="tidak_hadir" class="sr-only peer"
+                                   {{ $curStatus === 'tidak_hadir' ? 'checked' : '' }}
+                                   onchange="handleStatusGuru(this.value)">
+                            <div class="text-center py-3 rounded-xl border-2 border-slate-200 peer-checked:border-red-500 peer-checked:bg-red-50 peer-checked:text-red-700 hover:border-red-300 transition-all">
+                                <span class="text-sm font-semibold flex items-center justify-center gap-1.5">
+                                    <span class="w-2 h-2 rounded-full bg-red-500"></span>
+                                    Tidak Hadir
+                                </span>
+                            </div>
+                        </label>
                     </div>
                     @error('status_guru_dilaporkan')<p class="text-xs text-red-600 mt-1">{{ $message }}</p>@enderror
                 </div>
 
-                {{-- Alpa detail --}}
-                <div id="alpa-guru-section" class="{{ (old('status_guru_dilaporkan') ?? $existingCapture?->status_guru_dilaporkan) === 'alpa' ? '' : 'hidden' }} space-y-3">
+                {{-- Sub-Kategori / Alasan jika Tidak Hadir --}}
+                <div id="tidak-hadir-section" class="{{ $curStatus === 'tidak_hadir' ? '' : 'hidden' }} p-4 rounded-xl bg-red-50/60 border border-red-100 space-y-4">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-2">Jenis Ketidakhadiran Guru</label>
-                        <div class="space-y-2">
-                            @foreach(['ada_tugas' => 'Ada Tugas', 'tanpa_tugas' => 'Tanpa Tugas', 'guru_pengganti' => 'Ada Guru Pengganti'] as $val => $label)
-                            <label class="flex items-center gap-2.5 p-3 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 has-[:checked]:border-emerald-400 has-[:checked]:bg-emerald-50">
-                                <input type="radio" name="jenis_alpa_dilaporkan" value="{{ $val }}" class="text-emerald-600"
-                                       {{ (old('jenis_alpa_dilaporkan') ?? $existingCapture?->jenis_alpa_dilaporkan) === $val ? 'checked' : '' }}
-                                       onchange="handleJenisAlpaGuru(this.value)">
-                                <span class="text-sm text-slate-700">{{ $label }}</span>
-                            </label>
-                            @endforeach
-                        </div>
-                        @error('jenis_alpa_dilaporkan')<p class="text-xs text-red-600 mt-1">{{ $message }}</p>@enderror
+                        <label class="block text-xs font-semibold text-slate-700 mb-1.5">Jenis Ketidakhadiran Guru <span class="text-red-500">*</span></label>
+                        <select name="alasan_tidak_hadir" id="alasan_tidak_hadir" class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500">
+                            <option value="">-- Pilih Jenis Ketidakhadiran --</option>
+                            @php
+                                $curAlasan = old('alasan_tidak_hadir') ?? $existingCapture?->alasan_tidak_hadir;
+                            @endphp
+                            <option value="sakit" {{ $curAlasan === 'sakit' ? 'selected' : '' }}>Sakit</option>
+                            <option value="izin" {{ $curAlasan === 'izin' ? 'selected' : '' }}>Izin</option>
+                            <option value="rapat_dinas" {{ $curAlasan === 'rapat_dinas' ? 'selected' : '' }}>Rapat Dinas</option>
+                            <option value="dinas_luar" {{ $curAlasan === 'dinas_luar' ? 'selected' : '' }}>Dinas Luar</option>
+                            <option value="tugas_luar" {{ $curAlasan === 'tugas_luar' ? 'selected' : '' }}>Tugas Luar</option>
+                            <option value="tanpa_keterangan" {{ $curAlasan === 'tanpa_keterangan' ? 'selected' : '' }}>Tanpa Keterangan (Alpa)</option>
+                        </select>
+                        @error('alasan_tidak_hadir')<p class="text-xs text-red-600 mt-1">{{ $message }}</p>@enderror
                     </div>
-                    <div id="guru-pengganti-siswa-section" class="{{ (old('jenis_alpa_dilaporkan') ?? $existingCapture?->jenis_alpa_dilaporkan) === 'guru_pengganti' ? '' : 'hidden' }}">
-                        <label class="block text-xs font-semibold text-slate-600 mb-1.5">Nama Guru Pengganti</label>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1.5">Nama Guru Pengganti (Jika Ada)</label>
                         <input type="text" name="guru_pengganti_nama"
                                value="{{ old('guru_pengganti_nama') ?? $existingCapture?->guru_pengganti_nama }}"
-                               placeholder="Nama guru pengganti..."
-                               class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                               placeholder="Tulis nama guru yang menggantikan jika ada..."
+                               class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500">
+                        <p class="text-[11px] text-slate-500 mt-1">Kosongkan bila kelas tidak ada guru pengganti.</p>
+                        @error('guru_pengganti_nama')<p class="text-xs text-red-600 mt-1">{{ $message }}</p>@enderror
                     </div>
                 </div>
 
                 <button type="submit"
-                        class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm">
-                    {{ $existingCapture ? 'Perbarui Foto Bukti' : 'Kirim Foto Bukti' }}
+                        class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm cursor-pointer">
+                    {{ $existingCapture ? 'Perbarui Foto Bukti & Presensi' : 'Kirim Foto Bukti & Presensi' }}
                 </button>
             </form>
         </div>
@@ -190,8 +257,8 @@
             <svg class="w-10 h-10 text-red-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
             </svg>
-            <p class="text-red-800 font-semibold mb-1">Jam Pelajaran Telah Berakhir</p>
-            <p class="text-red-600 text-sm">Waktu untuk mengirimkan atau mengubah foto bukti sudah ditutup.</p>
+            <p class="text-red-800 font-semibold mb-1">Akses Ditutup</p>
+            <p class="text-red-600 text-sm">Waktu pengisian laporan untuk tanggal ini telah kedaluwarsa (maksimal 7 hari ke belakang).</p>
         </div>
         @endif
     </div>
@@ -292,10 +359,10 @@
         }
 
         function handleStatusGuru(val) {
-            document.getElementById('alpa-guru-section').classList.toggle('hidden', val !== 'alpa');
-        }
-        function handleJenisAlpaGuru(val) {
-            document.getElementById('guru-pengganti-siswa-section').classList.toggle('hidden', val !== 'guru_pengganti');
+            const section = document.getElementById('tidak-hadir-section');
+            if (section) {
+                section.classList.toggle('hidden', val !== 'tidak_hadir');
+            }
         }
     </script>
     @endpush

@@ -32,108 +32,75 @@
             </div>
             @endif
 
-            {{-- ═══ KEHADIRAN GURU ═══ --}}
+            {{-- ═══ STATUS KEHADIRAN GURU (Disinkronkan dari Siswa) ═══ --}}
             <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
                 <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-                    <h2 class="text-sm font-semibold text-slate-900">Kehadiran Saya</h2>
-                    @if($pertemuan->kehadiranGuru)
-                        <span class="text-xs font-medium px-2.5 py-1 rounded-full
-                            {{ match($pertemuan->kehadiranGuru->status) {
-                                'hadir' => 'badge-hadir',
-                                'sakit' => 'badge-sakit',
-                                'dispensasi' => 'badge-dispensasi',
-                                default => 'badge-alpa',
-                            } }}">
-                            {{ $pertemuan->kehadiranGuru->status_label }}
-                        </span>
-                    @endif
+                    <div>
+                        <h2 class="text-sm font-semibold text-slate-900">Status Kehadiran Guru</h2>
+                        <p class="text-[11px] text-slate-400">Presensi kehadiran guru dicatat secara objektif oleh perwakilan siswa di kelas</p>
+                    </div>
+                    @php
+                        $guruStatus = $pertemuan->kehadiranGuru?->status ?? 'hadir';
+                    @endphp
+                    <span class="text-xs font-semibold px-2.5 py-1 rounded-full
+                        {{ match($guruStatus) {
+                            'hadir' => 'badge-hadir',
+                            'terlambat' => 'badge-sakit',
+                            'sakit' => 'badge-sakit',
+                            'dispensasi' => 'badge-dispensasi',
+                            default => 'badge-alpa',
+                        } }}">
+                        {{ match($guruStatus) {
+                            'hadir' => 'Hadir',
+                            'terlambat' => 'Terlambat',
+                            'tidak_hadir' => 'Tidak Hadir',
+                            default => ucfirst($guruStatus)
+                        } }}
+                    </span>
                 </div>
 
-                @if($pertemuan->kehadiranGuru)
-                {{-- Already checked in --}}
                 <div class="p-4">
-                    <div class="flex items-start gap-3 bg-slate-50 rounded-xl p-3">
-                        <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
-                            <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                    <div class="flex items-start gap-3 bg-slate-50 rounded-xl p-3 border border-slate-100">
+                        <div class="w-9 h-9 rounded-xl {{ $guruStatus === 'hadir' ? 'bg-emerald-100 text-emerald-600' : ($guruStatus === 'terlambat' ? 'bg-amber-100 text-amber-600' : 'bg-red-100 text-red-600') }} flex items-center justify-center shrink-0">
+                            @if($guruStatus === 'hadir')
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                            @elseif($guruStatus === 'terlambat')
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            @else
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                            @endif
                         </div>
-                        <div>
-                            <p class="text-sm font-medium text-slate-900">Absen tercatat pukul {{ $pertemuan->kehadiranGuru->waktu_hadir?->format('H:i') }}</p>
-                            @if($pertemuan->kehadiranGuru->jenis_alpa)
-                            <p class="text-xs text-slate-500 mt-0.5">{{ $pertemuan->kehadiranGuru->jenis_alpa_label }}
-                                @if($pertemuan->kehadiranGuru->guru_pengganti_nama)
-                                 — Guru Pengganti: <strong>{{ $pertemuan->kehadiranGuru->guru_pengganti_nama }}</strong>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-xs font-semibold text-slate-700">
+                                @if($pertemuan->kehadiranGuru)
+                                    Presensi Tercatat: <span class="font-bold text-slate-900">{{ $pertemuan->kehadiranGuru->status_label }}</span>
+                                    @if($pertemuan->kehadiranGuru->waktu_hadir)
+                                        (pukul {{ $pertemuan->kehadiranGuru->waktu_hadir->format('H:i') }})
+                                    @endif
+                                @else
+                                    Presensi Default: <span class="font-bold text-emerald-600">Hadir</span> (Otomatis)
                                 @endif
                             </p>
+                            @if($pertemuan->kehadiranGuru?->alasan_tidak_hadir)
+                                <p class="text-xs text-red-600 font-medium mt-0.5">Alasan: {{ $pertemuan->kehadiranGuru->alasan_tidak_hadir_label }}</p>
+                            @endif
+                            @if($pertemuan->kehadiranGuru?->guru_pengganti_nama)
+                                <p class="text-xs text-blue-600 mt-0.5">Guru Pengganti di Kelas: <strong>{{ $pertemuan->kehadiranGuru->guru_pengganti_nama }}</strong></p>
+                            @endif
+                            @if($pertemuan->fotoBuktis->isNotEmpty())
+                                <p class="text-[11px] text-slate-500 mt-1">Divalidasi oleh foto bukti perwakilan siswa: {{ $pertemuan->fotoBuktis->first()->siswa->name ?? 'Siswa' }}</p>
+                            @else
+                                <p class="text-[11px] text-slate-400 mt-1">Siswa di kelas ini belum mengunggah foto bukti konfirmasi kehadiran.</p>
                             @endif
                         </div>
                     </div>
                 </div>
-                @else
-                {{-- Check in form --}}
-                <div class="p-4 space-y-3">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-2">Status Kehadiran</label>
-                        <div class="grid grid-cols-4 gap-2">
-                            @php
-                                $statusStyles = [
-                                    'hadir' => 'peer-checked:border-emerald-500 peer-checked:bg-emerald-50 peer-checked:text-emerald-700 hover:border-emerald-300',
-                                    'sakit' => 'peer-checked:border-amber-500 peer-checked:bg-amber-50 peer-checked:text-amber-700 hover:border-amber-300',
-                                    'alpa' => 'peer-checked:border-red-500 peer-checked:bg-red-50 peer-checked:text-red-700 hover:border-red-300',
-                                    'dispensasi' => 'peer-checked:border-purple-500 peer-checked:bg-purple-50 peer-checked:text-purple-700 hover:border-purple-300',
-                                ];
-                            @endphp
-                            @foreach(['hadir' => 'Hadir', 'sakit' => 'Sakit', 'alpa' => 'Alpa', 'dispensasi' => 'Dispensasi'] as $val => $label)
-                            <label class="relative">
-                                <input type="radio" name="status" value="{{ $val }}" class="sr-only peer track-change"
-                                       {{ old('status') === $val ? 'checked' : '' }} onchange="handleStatusChange(this.value)">
-                                <div class="text-center py-2.5 rounded-xl border-2 border-slate-200 cursor-pointer transition-all
-                                            {{ $statusStyles[$val] }}">
-                                    <span class="text-sm font-semibold">{{ $label }}</span>
-                                </div>
-                            </label>
-                            @endforeach
-                        </div>
-                        @error('status')<p class="text-xs text-red-600 mt-1">{{ $message }}</p>@enderror
-                    </div>
-
-                    {{-- Alpa options (shown only when alpa selected) --}}
-                    <div id="alpa-section" class="{{ old('status') === 'alpa' ? '' : 'hidden' }} space-y-3">
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-2">Jenis Ketidakhadiran</label>
-                            <div class="space-y-2">
-                                @foreach(['ada_tugas' => 'Ada Tugas (ada penugasan)', 'tanpa_tugas' => 'Tanpa Tugas', 'guru_pengganti' => 'Ada Guru Pengganti'] as $val => $label)
-                                <label class="flex items-center gap-2.5 p-3 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors has-[:checked]:border-blue-400 has-[:checked]:bg-blue-50">
-                                    <input type="radio" name="jenis_alpa" value="{{ $val }}" class="text-blue-600 track-change"
-                                           {{ old('jenis_alpa') === $val ? 'checked' : '' }} onchange="handleJenisAlpa(this.value)">
-                                    <span class="text-sm text-slate-700">{{ $label }}</span>
-                                </label>
-                                @endforeach
-                            </div>
-                            @error('jenis_alpa')<p class="text-xs text-red-600 mt-1">{{ $message }}</p>@enderror
-                        </div>
-
-                        <div id="guru-pengganti-section" class="{{ old('jenis_alpa') === 'guru_pengganti' ? '' : 'hidden' }}">
-                            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Nama Guru Pengganti</label>
-                            <input type="text" name="guru_pengganti_nama" value="{{ old('guru_pengganti_nama') }}"
-                                   placeholder="Nama guru pengganti..."
-                                   class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 track-change">
-                            @error('guru_pengganti_nama')<p class="text-xs text-red-600 mt-1">{{ $message }}</p>@enderror
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1.5">Keterangan (opsional)</label>
-                        <textarea name="keterangan" rows="2" placeholder="Tambahan keterangan..."
-                                  class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none track-change">{{ old('keterangan') }}</textarea>
-                    </div>
-                </div>
-                @endif
             </div>
 
-            {{-- ═══ MATERI & PENUGASAN ═══ --}}
+            {{-- ═══ JURNAL MENGAJAR ═══ --}}
             <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
                 <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-                    <h2 class="text-sm font-semibold text-slate-900">Materi & Penugasan</h2>
+                    <h2 class="text-sm font-semibold text-slate-900">Jurnal Mengajar</h2>
                     <span id="draft-status" class="text-[11px] text-emerald-600 font-medium hidden"></span>
                 </div>
                 <div id="draft-alert" class="hidden m-4 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between text-xs text-amber-900">
@@ -166,25 +133,36 @@
 
             {{-- ═══ DAFTAR SISWA ═══ --}}
             <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-                <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-                    <h2 class="text-sm font-semibold text-slate-900">Daftar Kehadiran Siswa</h2>
-                    <span class="text-xs text-slate-500">{{ $pertemuan->kehadiranSiswas->count() }} siswa</span>
+                <div class="px-4 py-3 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                    <div>
+                        <h2 class="text-sm font-semibold text-slate-900">Daftar Kehadiran Siswa</h2>
+                        <span class="text-xs text-slate-500" id="siswa-total-count">{{ $pertemuan->kehadiranSiswas->count() }} siswa</span>
+                    </div>
+                    {{-- Search bar siswa --}}
+                    <div class="relative w-full sm:w-64">
+                        <input type="text" id="search-siswa-input" oninput="filterSiswaList(this.value)" placeholder="Cari nama atau NIS siswa..."
+                               class="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all">
+                        <svg class="w-4 h-4 text-slate-400 absolute left-2.5 top-2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    </div>
                 </div>
 
                 @if($pertemuan->kehadiranSiswas->count() > 0)
-                <div class="divide-y divide-slate-100 pb-2">
+                <div class="divide-y divide-slate-100 pb-2" id="siswa-list-container">
                     @foreach($pertemuan->kehadiranSiswas->sortBy('siswa.name') as $ks)
-                    <div class="px-4 py-3 flex items-center gap-3">
+                    <div class="px-4 py-3 flex items-center gap-3 siswa-row" data-name="{{ strtolower($ks->siswa->name ?? '') }} {{ strtolower($ks->siswa->siswaProfile?->nis ?? '') }}">
                         {{-- Avatar --}}
                         <div class="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center shrink-0">
                             <span class="text-xs font-bold text-slate-600">{{ substr($ks->siswa->name ?? '?', 0, 1) }}</span>
                         </div>
                         <div class="flex-1 min-w-0">
                             <p class="text-sm font-medium text-slate-900 truncate">{{ $ks->siswa->name }}</p>
+                            @if($ks->siswa->siswaProfile?->nis)
+                                <p class="text-[11px] text-slate-400">NIS: {{ $ks->siswa->siswaProfile->nis }}</p>
+                            @endif
                         </div>
                         {{-- Status dropdown --}}
                         <select name="siswa[{{ $ks->siswa_id }}][status]"
-                                class="track-change text-xs font-medium border rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500
+                                class="track-change text-xs font-medium border rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer
                                        {{ match($ks->status) {
                                            'hadir' => 'border-emerald-200 bg-emerald-50 text-emerald-800',
                                            'sakit' => 'border-amber-200 bg-amber-50 text-amber-800',
@@ -201,6 +179,9 @@
                         </select>
                     </div>
                     @endforeach
+                    <div id="no-siswa-found" class="hidden p-6 text-center text-sm text-slate-400">
+                        Tidak ada siswa yang cocok dengan pencarian
+                    </div>
                 </div>
                 @else
                 <div class="p-6 text-center text-sm text-slate-400">
@@ -406,6 +387,28 @@
                 e.returnValue = ''; // Standard way to show the browser's "Leave site?" prompt
             }
         });
+
+        // Live search filter for student list
+        function filterSiswaList(query) {
+            const q = query.toLowerCase().trim();
+            const rows = document.querySelectorAll('.siswa-row');
+            const noFound = document.getElementById('no-siswa-found');
+            let visibleCount = 0;
+
+            rows.forEach(row => {
+                const name = row.getAttribute('data-name') || '';
+                if (!q || name.includes(q)) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            if (noFound) {
+                noFound.classList.toggle('hidden', visibleCount > 0);
+            }
+        }
     </script>
     @endpush
 </x-layouts.guru>
