@@ -8,7 +8,7 @@
         </a>
     </x-slot:actions>
 
-    <form method="GET" class="bg-white rounded-2xl border border-slate-200 p-4 mb-5 flex flex-wrap gap-3">
+    <form method="GET" class="bg-white rounded-2xl border border-slate-200 p-4 mb-5 flex flex-wrap gap-3" id="siswa-report-form">
         <div>
             <label class="block text-xs font-medium text-slate-600 mb-1">Dari Tanggal</label>
             <input type="date" name="start_date" value="{{ $startDate->toDateString() }}"
@@ -21,7 +21,8 @@
         </div>
         <div>
             <label class="block text-xs font-medium text-slate-600 mb-1">Kelas</label>
-            <select name="kelas_id" class="px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <select name="kelas_id" class="px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onchange="document.getElementById('siswa-report-form').submit()">
                 <option value="">Semua Kelas</option>
                 @foreach($kelasList as $k)
                 <option value="{{ $k->id }}" {{ $selectedKelasId == $k->id ? 'selected' : '' }}>{{ $k->nama }}</option>
@@ -63,8 +64,17 @@
                         <td class="px-4 py-3 text-center text-purple-700 font-semibold">{{ $item['dispensasi'] }}</td>
                         <td class="px-4 py-3 text-center text-slate-600">{{ $item['total'] }}</td>
                         <td class="px-4 py-3 text-center">
-                            @php $pct = $item['total'] > 0 ? round($item['hadir'] / $item['total'] * 100) : 0; @endphp
-                            <span class="text-xs font-medium px-2 py-0.5 rounded-full {{ $pct >= 75 ? 'bg-emerald-100 text-emerald-800' : ($pct >= 50 ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800') }}">
+                            @php
+                                $pct = $item['total'] > 0 ? round($item['hadir'] / $item['total'] * 100) : 0;
+                                $heatmapClass = match (true) {
+                                    $pct >= 90 => 'bg-emerald-600 text-white font-bold border-emerald-700 shadow-2xs',
+                                    $pct >= 80 => 'bg-emerald-100 text-emerald-900 font-bold border-emerald-300',
+                                    $pct >= 70 => 'bg-amber-100 text-amber-900 font-bold border-amber-300',
+                                    $pct >= 55 => 'bg-orange-100 text-orange-900 font-bold border-orange-300',
+                                    default => 'bg-red-600 text-white font-bold border-red-700 shadow-2xs',
+                                };
+                            @endphp
+                            <span class="text-xs px-2.5 py-1 rounded-lg border {{ $heatmapClass }} inline-block w-14 text-center">
                                 {{ $pct }}%
                             </span>
                         </td>
@@ -75,5 +85,10 @@
                 </tbody>
             </table>
         </div>
+        @if($summary->hasPages())
+        <div class="px-4 py-3 border-t border-slate-200">
+            {{ $summary->links() }}
+        </div>
+        @endif
     </div>
 </x-dynamic-component>

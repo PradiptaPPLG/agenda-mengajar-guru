@@ -34,6 +34,14 @@ class CaptureController extends Controller
             return redirect()->route('siswa.dashboard')->with('error', 'Laporan kehadiran untuk tanggal mendatang belum dapat diakses.');
         }
 
+        if ($tanggalCarbon->isToday()) {
+            $nowTime = now()->format('H:i');
+            $jamMulai = substr($jadwal->jam_mulai, 0, 5);
+            if ($nowTime < $jamMulai) {
+                return redirect()->route('siswa.dashboard')->with('error', "Pengambilan foto untuk mata pelajaran {$jadwal->mataPelajaran->nama} belum dibuka (Mulai pukul {$jamMulai} WIB).");
+            }
+        }
+
         // Allow access outside current hours within 7 days for catch-up/recap
         $isPast = $tanggalCarbon->lt(now()->subDays(7)->startOfDay());
 
@@ -65,6 +73,14 @@ class CaptureController extends Controller
 
         if ($tanggalCarbon->gt(now()->endOfDay()) || $tanggalCarbon->lt(now()->subDays(7)->startOfDay())) {
             return redirect()->route('siswa.dashboard')->with('error', 'Waktu pengiriman laporan untuk tanggal ini sudah ditutup (maksimal 7 hari ke belakang).');
+        }
+
+        if ($tanggalCarbon->isToday()) {
+            $nowTime = now()->format('H:i');
+            $jamMulai = substr($jadwal->jam_mulai, 0, 5);
+            if ($nowTime < $jamMulai) {
+                return redirect()->route('siswa.dashboard')->with('error', "Pengambilan foto untuk mata pelajaran {$jadwal->mataPelajaran->nama} belum dibuka (Mulai pukul {$jamMulai} WIB).");
+            }
         }
 
         $pertemuan = Pertemuan::firstOrCreate(

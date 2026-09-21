@@ -48,9 +48,10 @@
     </div>
 
     {{-- Filter --}}
-    <form method="GET" class="flex flex-wrap gap-3 mb-4">
+    <form method="GET" class="flex flex-wrap gap-3 mb-4" id="libur-filter-form">
         @if($years->isNotEmpty())
-        <select name="tahun" class="px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <select name="tahun" class="px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onchange="document.getElementById('libur-filter-form').submit()">
             <option value="">Semua Tahun</option>
             @foreach($years as $y)
             <option value="{{ $y }}" {{ request('tahun') == $y ? 'selected' : '' }}>Tahun {{ $y }}</option>
@@ -58,13 +59,13 @@
         </select>
         @endif
 
-        <select name="jenis" class="px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <select name="jenis" class="px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onchange="document.getElementById('libur-filter-form').submit()">
             <option value="">Semua Kategori</option>
             <option value="nasional" {{ request('jenis') === 'nasional' ? 'selected' : '' }}>Libur Nasional</option>
             <option value="cuti_bersama" {{ request('jenis') === 'cuti_bersama' ? 'selected' : '' }}>Cuti Bersama</option>
             <option value="khusus" {{ request('jenis') === 'khusus' ? 'selected' : '' }}>Agenda Khusus</option>
         </select>
-        <button type="submit" class="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-xl hover:bg-slate-800 transition-colors">Filter</button>
     </form>
 
     {{-- Tabel Daftar Hari Libur --}}

@@ -9,21 +9,20 @@
         <!-- Header & Actions -->
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                <form action="{{ route('admin.siswa.index') }}" method="GET" class="flex gap-2 w-full sm:w-auto">
-                    <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama atau NIS..." 
-                           class="w-full sm:w-64 px-4 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500">
-                    <select name="kelas_id" class="px-4 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 bg-white">
+                <form action="{{ route('admin.siswa.index') }}" method="GET" class="flex gap-2 w-full sm:w-auto" id="siswa-filter-form">
+                    <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama atau NIS..."
+                           id="siswa-search-input"
+                           class="w-full sm:w-64 px-4 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500"
+                           oninput="debouncedFilterSubmit('siswa-filter-form', 'siswa-search-input')">
+                    <select name="kelas_id" class="px-4 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 bg-white"
+                            onchange="document.getElementById('siswa-filter-form').submit()">
                         <option value="">Semua Kelas</option>
-                        <option value="null" {{ request('kelas_id') === 'null' ? 'selected' : '' }}>Belum Masuk Kelas</option>
                         @foreach($kelasList as $kelas)
                             <option value="{{ $kelas->id }}" {{ request('kelas_id') == $kelas->id ? 'selected' : '' }}>
                                 {{ $kelas->nama }}
                             </option>
                         @endforeach
                     </select>
-                    <button type="submit" class="px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-xl text-sm font-semibold transition-colors">
-                        Filter
-                    </button>
                     @if(request()->hasAny(['search', 'kelas_id']))
                         <a href="{{ route('admin.siswa.index') }}" class="px-4 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl text-sm font-semibold transition-colors">
                             Reset

@@ -7,7 +7,6 @@ use App\Models\JadwalPelajaran;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
 use App\Models\Setting;
-use App\Models\SiswaProfile;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -114,19 +113,6 @@ class DatabaseSeeder extends Seeder
             );
         }
 
-        // ── Siswa Reviewer: Pradipta Endra Maulana ────────────────────────────
-        $pradipta = User::firstOrCreate(
-            ['name' => 'Pradipta Endra Maulana', 'role' => 'siswa'],
-            ['email' => null, 'password' => Hash::make('password'), 'role' => 'siswa', 'is_active' => true]
-        );
-        // Pastikan is_active = true untuk akun reviewer ini
-        $pradipta->update(['is_active' => true]);
-
-        SiswaProfile::firstOrCreate(
-            ['user_id' => $pradipta->id],
-            ['nis' => '1234512345', 'kelas_id' => $kelas12RPL->id]
-        );
-
         // ── Panggil StudentSeeder & AttendanceSeeder ─────────────────────────
         $this->call(StudentSeeder::class);
         $this->call(AttendanceSeeder::class);
@@ -139,6 +125,5 @@ class DatabaseSeeder extends Seeder
         $this->command->info('   Kepala Sekolah: kepsek@sekolah.sch.id');
         $this->command->info('   Petugas Piket : piket@sekolah.sch.id');
         $this->command->info('   Guru Reviewer : NIP 198909242014012001 / password  (Nastiti, S.Pd.)');
-        $this->command->info('   Siswa Reviewer: NIS 1234512345           / password  (Pradipta Endra Maulana, 12RPL)');
     }
 }

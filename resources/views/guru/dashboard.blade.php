@@ -67,8 +67,8 @@
                     <span class="text-xs bg-blue-100 text-blue-700 font-medium px-2 py-0.5 rounded-full">Hari ini</span>
                     @endif
                     @if($hariLibur)
-                    <span class="text-xs bg-rose-50 text-rose-700 font-medium px-2.5 py-0.5 rounded-full border border-rose-200 flex items-center gap-1">
-                        <span>🎌</span> {{ $hariLibur->keterangan }}
+                    <span class="text-xs bg-rose-50 text-rose-700 font-medium px-2.5 py-0.5 rounded-full border border-rose-200">
+                        {{ $hariLibur->keterangan }}
                     </span>
                     @endif
                 </div>

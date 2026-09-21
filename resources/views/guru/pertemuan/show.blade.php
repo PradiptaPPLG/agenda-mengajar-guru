@@ -34,15 +34,15 @@
 
             {{-- ═══ STATUS KEHADIRAN GURU (Disinkronkan dari Siswa) ═══ --}}
             <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-                <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-                    <div>
+                <div class="px-4 py-3 border-b border-slate-100 flex items-start gap-2 justify-between">
+                    <div class="min-w-0">
                         <h2 class="text-sm font-semibold text-slate-900">Status Kehadiran Guru</h2>
-                        <p class="text-[11px] text-slate-400">Presensi kehadiran guru dicatat secara objektif oleh perwakilan siswa di kelas</p>
+                        <p class="text-[11px] text-slate-400 leading-relaxed">Presensi kehadiran guru dicatat secara objektif oleh perwakilan siswa di kelas</p>
                     </div>
                     @php
                         $guruStatus = $pertemuan->kehadiranGuru?->status ?? 'hadir';
                     @endphp
-                    <span class="text-xs font-semibold px-2.5 py-1 rounded-full
+                    <span class="text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 whitespace-nowrap
                         {{ match($guruStatus) {
                             'hadir' => 'badge-hadir',
                             'terlambat' => 'badge-sakit',
@@ -88,12 +88,52 @@
                                 <p class="text-xs text-blue-600 mt-0.5">Guru Pengganti di Kelas: <strong>{{ $pertemuan->kehadiranGuru->guru_pengganti_nama }}</strong></p>
                             @endif
                             @if($pertemuan->fotoBuktis->isNotEmpty())
-                                <p class="text-[11px] text-slate-500 mt-1">Divalidasi oleh foto bukti perwakilan siswa: {{ $pertemuan->fotoBuktis->first()->siswa->name ?? 'Siswa' }}</p>
+                                <p class="text-[11px] text-slate-500 mt-1">Divalidasi oleh foto bukti perwakilan siswa: <strong>{{ $pertemuan->fotoBuktis->first()->siswa->name ?? 'Siswa' }}</strong></p>
                             @else
                                 <p class="text-[11px] text-slate-400 mt-1">Siswa di kelas ini belum mengunggah foto bukti konfirmasi kehadiran.</p>
                             @endif
                         </div>
                     </div>
+
+                    {{-- Preview Foto Bukti dari Siswa --}}
+                    @if($pertemuan->fotoBuktis->isNotEmpty())
+                    <div class="mt-4 pt-3.5 border-t border-slate-100">
+                        <p class="text-xs font-semibold text-slate-800 mb-2 flex items-center gap-1.5">
+                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            Foto Bukti Presensi Siswa ({{ $pertemuan->fotoBuktis->count() }})
+                        </p>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            @foreach($pertemuan->fotoBuktis as $foto)
+                            @php
+                                $imgSrc = str_starts_with($foto->foto_path, 'images/') ? asset($foto->foto_path) : Storage::url($foto->foto_path);
+                            @endphp
+                            <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 flex items-center gap-3 hover:border-blue-300 transition-all">
+                                <a href="{{ $imgSrc }}" target="_blank" title="Klik untuk memperbesar foto" class="w-16 h-16 rounded-lg overflow-hidden bg-slate-200 shrink-0 border border-slate-200 relative group">
+                                    <img src="{{ $imgSrc }}" alt="Bukti {{ $foto->siswa->name }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform">
+                                    <div class="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                    </div>
+                                </a>
+                                <div class="min-w-0 flex-1 space-y-0.5">
+                                    <p class="text-xs font-bold text-slate-800 truncate">{{ $foto->siswa->name }}</p>
+                                    <p class="text-[11px] text-slate-500">Status Lapor: <span class="font-semibold {{ $foto->status_guru_dilaporkan === 'hadir' ? 'text-emerald-700' : 'text-red-600' }}">{{ ucfirst($foto->status_guru_dilaporkan) }}</span></p>
+                                    @if($foto->alasan_tidak_hadir)
+                                        <p class="text-[10px] text-red-600 font-medium truncate">Alasan: {{ match($foto->alasan_tidak_hadir) {
+                                            'sakit' => 'Sakit',
+                                            'izin' => 'Izin',
+                                            'rapat_dinas' => 'Rapat Dinas',
+                                            'dinas_luar' => 'Dinas Luar',
+                                            'tugas_luar' => 'Tugas Luar',
+                                            'tanpa_keterangan' => 'Tanpa Keterangan',
+                                            default => ucfirst($foto->alasan_tidak_hadir)
+                                        } }}</p>
+                                    @endif
+                                </div>
+                            </div>
+                            @endforeach
+                        </div>
+                    </div>
+                    @endif
                 </div>
             </div>
 
@@ -208,28 +248,7 @@
             @endif
         </form>
 
-        {{-- Foto Bukti dari Siswa --}}
-        @if($pertemuan->fotoBuktis->count() > 0)
-        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden mt-6">
-            <div class="px-4 py-3 border-b border-slate-100">
-                <h2 class="text-sm font-semibold text-slate-900">Foto Bukti Siswa ({{ $pertemuan->fotoBuktis->count() }})</h2>
-            </div>
-            <div class="p-4 grid grid-cols-3 gap-2">
-                @foreach($pertemuan->fotoBuktis as $foto)
-                <div class="relative rounded-xl overflow-hidden aspect-square bg-slate-100">
-                    <img src="{{ Storage::url($foto->foto_path) }}" alt="Bukti {{ $foto->siswa->name }}"
-                         class="w-full h-full object-cover">
-                    <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-1.5">
-                        <p class="text-white text-xs truncate">{{ $foto->siswa->name }}</p>
-                        <span class="text-xs {{ $foto->status_guru_dilaporkan === 'hadir' ? 'text-emerald-300' : 'text-red-300' }}">
-                            {{ ucfirst($foto->status_guru_dilaporkan) }}
-                        </span>
-                    </div>
-                </div>
-                @endforeach
-            </div>
-        </div>
-        @endif
+
     </div>
 
     @push('scripts')

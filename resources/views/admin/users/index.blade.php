@@ -9,12 +9,11 @@
         <!-- Header & Actions -->
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                <form action="{{ route('admin.users.index') }}" method="GET" class="flex gap-2 w-full sm:w-auto">
-                    <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama atau email..." 
-                           class="w-full sm:w-64 px-4 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500">
-                    <button type="submit" class="px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-xl text-sm font-semibold transition-colors">
-                        Filter
-                    </button>
+                <form action="{{ route('admin.users.index') }}" method="GET" class="flex gap-2 w-full sm:w-auto" id="users-filter-form">
+                    <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama atau email..."
+                           id="users-search-input"
+                           class="w-full sm:w-64 px-4 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500"
+                           oninput="debouncedFilterSubmit('users-filter-form', 'users-search-input')">
                     @if(request()->has('search'))
                         <a href="{{ route('admin.users.index') }}" class="px-4 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl text-sm font-semibold transition-colors">
                             Reset

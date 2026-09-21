@@ -17,6 +17,7 @@ class DashboardController extends Controller
         $user = Auth::user();
         $today = Carbon::today();
         $hariAngka = (int) $today->format('N'); // 1=Mon, 6=Sat
+        $nowTime = Carbon::now()->format('H:i');
 
         // Get student's class
         $kelasId = $user->siswaProfile?->kelas_id;
@@ -30,18 +31,28 @@ class DashboardController extends Controller
                 ->get()
             : collect();
 
-        // For each jadwal, find existing pertemuan and student's capture
-        $jadwalsWithStatus = $jadwals->map(function (JadwalPelajaran $jadwal) use ($today, $user) {
+        // For each jadwal, calculate whether lesson start time has been reached
+        $jadwalsWithStatus = $jadwals->map(function (JadwalPelajaran $jadwal) use ($today, $user, $nowTime) {
             $pertemuan = Pertemuan::with(['fotoBuktis' => function ($q) use ($user) {
                 $q->where('siswa_id', $user->id);
             }])->where('jadwal_id', $jadwal->id)
                 ->whereDate('tanggal', $today)
                 ->first();
 
+            $jamMulai = substr($jadwal->jam_mulai, 0, 5);
+            $jamSelesai = substr($jadwal->jam_selesai, 0, 5);
+
+            $isStarted = ($nowTime >= $jamMulai);
+            $isActiveNow = ($nowTime >= $jamMulai && $nowTime <= $jamSelesai);
+
             return [
                 'jadwal' => $jadwal,
                 'pertemuan' => $pertemuan,
                 'sudahCapture' => $pertemuan?->fotoBuktis->isNotEmpty() ?? false,
+                'isStarted' => $isStarted,
+                'isActiveNow' => $isActiveNow,
+                'jamMulai' => $jamMulai,
+                'jamSelesai' => $jamSelesai,
             ];
         });
 
@@ -50,6 +61,7 @@ class DashboardController extends Controller
         return view('siswa.dashboard', [
             'jadwalsWithStatus' => $jadwalsWithStatus,
             'today' => $today,
+            'nowTime' => $nowTime,
             'hariLiburHariIni' => $hariLiburHariIni,
         ]);
     }

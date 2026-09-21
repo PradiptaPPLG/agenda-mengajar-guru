@@ -1,8 +1,7 @@
 <?php
 
-namespace App\Http\Controllers\KepalaSekolah;
+namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use App\Models\JadwalPelajaran;
 use App\Models\KehadiranGuru;
 use App\Models\KehadiranSiswa;
@@ -12,7 +11,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
-class DashboardController extends Controller
+class PublicDashboardController extends Controller
 {
     public function index(Request $request): View
     {
@@ -20,7 +19,7 @@ class DashboardController extends Controller
         $hari = $today->dayOfWeekIso;
         $nowTime = Carbon::now()->format('H:i');
 
-        // Statistik agregat hari ini
+        // Aggregate Stats Hari Ini
         $stats = [
             'guru_hadir_hari_ini' => KehadiranGuru::whereDate('created_at', $today)->where('status', 'hadir')->count(),
             'guru_terlambat_hari_ini' => KehadiranGuru::whereDate('created_at', $today)->where('status', 'terlambat')->count(),
@@ -29,7 +28,7 @@ class DashboardController extends Controller
             'pertemuan_hari_ini' => Pertemuan::whereDate('tanggal', $today)->count(),
         ];
 
-        // ── Real-Time Monitoring KBM Hari Ini Berbasis Kartu & Jam Berjalan ──
+        // Real-Time Monitoring KBM Hari Ini
         $allJadwals = JadwalPelajaran::with(['kelas', 'guru', 'mataPelajaran'])
             ->where('hari', $hari)
             ->orderBy('jam_mulai')
@@ -51,7 +50,7 @@ class DashboardController extends Controller
             return $slot;
         });
 
-        // Deteksi slot jam yang aktif sekarang
+        // Deteksi slot jam aktif
         $currentActiveSlotIndex = null;
         foreach ($timeSlots as $idx => $slot) {
             if ($nowTime >= $slot['jam_mulai'] && $nowTime <= $slot['jam_selesai']) {
@@ -131,12 +130,10 @@ class DashboardController extends Controller
             ];
         });
 
-        // Filter slot waktu
+        // Filter
         if ($selectedSlotKey !== 'all') {
             $monitoringCards = $monitoringCards->where('slot_index', $selectedSlotKey);
         }
-
-        // Filter tingkat kelas
         if ($selectedTingkat !== 'all') {
             $monitoringCards = $monitoringCards->filter(function ($item) use ($selectedTingkat) {
                 $t = strtoupper($item['tingkat']);
@@ -154,45 +151,24 @@ class DashboardController extends Controller
                 return true;
             });
         }
-
-        // Filter status utama
         if ($selectedStatus !== 'all') {
             $monitoringCards = $monitoringCards->where('status', $selectedStatus);
         }
-
-        // Filter sub-status alasan tidak hadir
         if ($selectedAlasan !== 'all') {
             $monitoringCards = $monitoringCards->where('alasan_key', $selectedAlasan);
         }
 
-        // Recent kehadiran guru (last 7 days) - paginated per 10
-        $recentKehadiran = KehadiranGuru::with(['guru', 'pertemuan.jadwal.kelas', 'pertemuan.jadwal.mataPelajaran'])
-            ->whereDate('created_at', '>=', $today->copy()->subDays(7))
-            ->orderByDesc('created_at')
-            ->paginate(10)
-            ->withQueryString();
-
-        // ── Chart data: tren kehadiran GURU 7 hari (bar) ──
-        $chartLabels = [];
+        // 7-day Pie charts
         $chartHadir = [];
         $chartTerlambat = [];
         $chartTidakHadir = [];
         for ($i = 6; $i >= 0; $i--) {
             $date = $today->copy()->subDays($i);
-            $chartLabels[] = $date->translatedFormat('D, d M');
             $dayQuery = KehadiranGuru::whereDate('created_at', $date);
             $chartHadir[] = (clone $dayQuery)->where('status', 'hadir')->count();
             $chartTerlambat[] = (clone $dayQuery)->where('status', 'terlambat')->count();
             $chartTidakHadir[] = (clone $dayQuery)->whereIn('status', ['tidak_hadir', 'sakit', 'alpa', 'dispensasi'])->count();
         }
-        $chartData = [
-            'labels' => $chartLabels,
-            'hadir' => $chartHadir,
-            'terlambat' => $chartTerlambat,
-            'tidak_hadir' => $chartTidakHadir,
-        ];
-
-        // ── Pie chart guru: total 7 hari ──
         $guruPie = [
             'hadir' => array_sum($chartHadir),
             'terlambat' => array_sum($chartTerlambat),
@@ -205,24 +181,6 @@ class DashboardController extends Controller
             'tidak_hadir' => round($guruPie['tidak_hadir'] / $guruPieTotal * 100, 1),
         ];
 
-        // ── Chart data: tren kehadiran SISWA 7 hari (bar) ──
-        $siswaChartLabels = [];
-        $siswaChartHadir = [];
-        $siswaChartTidakHadir = [];
-        for ($i = 6; $i >= 0; $i--) {
-            $date = $today->copy()->subDays($i);
-            $siswaChartLabels[] = $date->translatedFormat('D, d M');
-            $dayQ = KehadiranSiswa::whereDate('created_at', $date);
-            $siswaChartHadir[] = (clone $dayQ)->where('status', 'hadir')->count();
-            $siswaChartTidakHadir[] = (clone $dayQ)->whereIn('status', ['sakit', 'izin', 'alpa', 'dispensasi'])->count();
-        }
-        $siswaChartData = [
-            'labels' => $siswaChartLabels,
-            'hadir' => $siswaChartHadir,
-            'tidak_hadir' => $siswaChartTidakHadir,
-        ];
-
-        // ── Pie chart siswa: total 7 hari ──
         $siswaQuery7 = KehadiranSiswa::whereDate('created_at', '>=', $today->copy()->subDays(7));
         $siswaPie = [
             'hadir' => (clone $siswaQuery7)->where('status', 'hadir')->count(),
@@ -240,13 +198,10 @@ class DashboardController extends Controller
             'dispensasi' => round($siswaPie['dispensasi'] / $siswaPieTotal * 100, 1),
         ];
 
-        return view('kepala-sekolah.dashboard', compact(
+        return view('public-dashboard', compact(
             'stats',
-            'recentKehadiran',
-            'chartData',
             'guruPie',
             'guruPiePct',
-            'siswaChartData',
             'siswaPie',
             'siswaPiePct',
             'today',

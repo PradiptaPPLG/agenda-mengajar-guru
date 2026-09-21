@@ -16,14 +16,15 @@ use App\Http\Controllers\KepalaSekolah\PdfController as KsPdfController;
 use App\Http\Controllers\KepalaSekolah\ReportController as KsReportController;
 use App\Http\Controllers\Piket\DashboardController as PiketDashboardController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PublicDashboardController;
 use App\Http\Controllers\Siswa\CaptureController as SiswaCaptureController;
 use App\Http\Controllers\Siswa\DashboardController as SiswaDashboardController;
 use App\Http\Controllers\SuperAdmin\DashboardController as SaDashboardController;
 use App\Http\Controllers\SuperAdmin\SettingsController as SaSettingsController;
 use Illuminate\Support\Facades\Route;
 
-// Root redirect
-Route::get('/', fn () => redirect()->route('login'));
+// Root landing public
+Route::get('/', [PublicDashboardController::class, 'index'])->name('home');
 
 // Auth
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');

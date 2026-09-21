@@ -21,20 +21,21 @@
         </div>
     </x-slot:actions>
 
-    <form method="GET" class="flex flex-wrap gap-3 mb-5">
-        <select name="kelas_id" class="px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+    <form method="GET" class="flex flex-wrap gap-3 mb-5" id="jadwal-filter-form">
+        <select name="kelas_id" class="px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onchange="document.getElementById('jadwal-filter-form').submit()">
             <option value="">Semua Kelas</option>
             @foreach($kelasList as $k)
             <option value="{{ $k->id }}" {{ request('kelas_id') == $k->id ? 'selected' : '' }}>{{ $k->nama }}</option>
             @endforeach
         </select>
-        <select name="guru_id" class="px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <select name="guru_id" class="px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onchange="document.getElementById('jadwal-filter-form').submit()">
             <option value="">Semua Guru</option>
             @foreach($guruList as $g)
             <option value="{{ $g->id }}" {{ request('guru_id') == $g->id ? 'selected' : '' }}>{{ $g->name }}</option>
             @endforeach
         </select>
-        <button type="submit" class="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-xl hover:bg-slate-800 transition-colors">Filter</button>
     </form>
 
     <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">

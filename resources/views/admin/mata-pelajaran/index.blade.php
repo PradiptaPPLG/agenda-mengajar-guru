@@ -9,13 +9,15 @@
     </x-slot:actions>
     <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
         <div class="p-4 border-b border-slate-200 bg-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <form action="{{ route('admin.mata-pelajaran.index') }}" method="GET" class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto" x-data="{ includeAdaptif: {{ request('include_adaptif') ? 'true' : 'false' }} }">
+            <form action="{{ route('admin.mata-pelajaran.index') }}" method="GET" class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto" id="mapel-filter-form" x-data="{ includeAdaptif: {{ request('include_adaptif') ? 'true' : 'false' }} }">
                 <div class="relative">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                     </div>
-                    <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari pelajaran..." 
-                           class="w-full sm:w-64 pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari pelajaran..."
+                           id="mapel-search-input"
+                           class="w-full sm:w-64 pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                           oninput="debouncedFilterSubmit('mapel-filter-form', 'mapel-search-input')">
                 </div>
                 <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
                     <input type="checkbox" name="include_adaptif" value="1" x-model="includeAdaptif" @change="$el.form.submit()" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500">

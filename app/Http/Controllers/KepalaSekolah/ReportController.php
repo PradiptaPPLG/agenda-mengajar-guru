@@ -10,6 +10,7 @@ use App\Models\Pertemuan;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\View\View;
 
 class ReportController extends Controller
@@ -51,12 +52,23 @@ class ReportController extends Controller
         $allKehadiran = $query->orderBy('created_at', 'desc')->get();
         $discrepancyCount = $allKehadiran->filter(fn ($kh) => $kh->has_discrepancy)->count();
 
-        $kehadiran = $onlyDiscrepancy
+        $kehadiranCollection = $onlyDiscrepancy
             ? $allKehadiran->filter(fn ($kh) => $kh->has_discrepancy)->values()
             : $allKehadiran;
 
-        // Summary per guru
-        $summary = $allKehadiran->groupBy('guru_id')->map(function ($items) {
+        // Paginate Kehadiran Detail (10 per page)
+        $kehadiranPage = LengthAwarePaginator::resolveCurrentPage('page');
+        $perPage = 10;
+        $kehadiran = new LengthAwarePaginator(
+            $kehadiranCollection->slice(($kehadiranPage - 1) * $perPage, $perPage)->values(),
+            $kehadiranCollection->count(),
+            $perPage,
+            $kehadiranPage,
+            ['path' => LengthAwarePaginator::resolveCurrentPath(), 'pageName' => 'page', 'query' => $request->query()]
+        );
+
+        // Summary per guru (10 per page)
+        $summaryCollection = $allKehadiran->groupBy('guru_id')->map(function ($items) {
             return [
                 'guru' => $items->first()->guru,
                 'hadir' => $items->where('status', 'hadir')->count(),
@@ -66,6 +78,15 @@ class ReportController extends Controller
                 'total' => $items->count(),
             ];
         })->values();
+
+        $summaryPage = LengthAwarePaginator::resolveCurrentPage('summary_page');
+        $summary = new LengthAwarePaginator(
+            $summaryCollection->slice(($summaryPage - 1) * $perPage, $perPage)->values(),
+            $summaryCollection->count(),
+            $perPage,
+            $summaryPage,
+            ['path' => LengthAwarePaginator::resolveCurrentPath(), 'pageName' => 'summary_page', 'query' => $request->query()]
+        );
 
         return view('kepala-sekolah.report.guru', compact(
             'kehadiran', 'summary', 'guruList', 'kelasList',
@@ -97,8 +118,8 @@ class ReportController extends Controller
             ->whereIn('pertemuan_id', $pertemuanIds)
             ->get();
 
-        // Summary per siswa
-        $summary = $kehadiranSiswaData->groupBy('siswa_id')->map(function ($items) {
+        // Summary per siswa (10 per page)
+        $summaryCollection = $kehadiranSiswaData->groupBy('siswa_id')->map(function ($items) {
             return [
                 'siswa' => $items->first()->siswa,
                 'hadir' => $items->where('status', 'hadir')->count(),
@@ -109,6 +130,16 @@ class ReportController extends Controller
                 'total' => $items->count(),
             ];
         })->values();
+
+        $page = LengthAwarePaginator::resolveCurrentPage('page');
+        $perPage = 10;
+        $summary = new LengthAwarePaginator(
+            $summaryCollection->slice(($page - 1) * $perPage, $perPage)->values(),
+            $summaryCollection->count(),
+            $perPage,
+            $page,
+            ['path' => LengthAwarePaginator::resolveCurrentPath(), 'pageName' => 'page', 'query' => $request->query()]
+        );
 
         return view('kepala-sekolah.report.siswa', compact(
             'summary', 'kelasList', 'startDate', 'endDate', 'selectedKelasId'

@@ -1,49 +1,130 @@
-<x-layouts.kepala-sekolah>
-    <x-slot:title>Dashboard Kepala Sekolah</x-slot:title>
+<!DOCTYPE html>
+<html lang="id" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agenda Mengajar — {{ \App\Models\Setting::get('school_name', 'Sekolah') }}</title>
+    
+    <link rel="preconnect" href="https://fonts.bunny.net">
+    <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700" rel="stylesheet" />
 
-    <div class="space-y-6">
-        {{-- KPI Cards --}}
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body class="h-full bg-slate-50 text-slate-900 antialiased flex flex-col min-h-screen">
+    {{-- Header Topbar Public --}}
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-xs">
+        <div class="w-full px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 flex items-center justify-center shrink-0">
+                    <img src="{{ asset('images/logo_new.png') }}" alt="Logo" class="w-full h-full object-contain">
+                </div>
+                <div>
+                    <h1 class="text-sm font-bold text-slate-900 leading-tight">{{ \App\Models\Setting::get('school_name', 'SMK Negeri 1 Ciamis') }}</h1>
+                </div>
+            </div>
+
+            {{-- Right Navigation / Menu 3-Dots --}}
+            <div class="flex items-center gap-3" x-data="{ openMenu: false }">
+                @auth
+                    @php
+                        $user = auth()->user();
+                        $dashRoute = match($user->role) {
+                            'admin', 'super_admin' => route('admin.dashboard'),
+                            'guru' => route('guru.dashboard'),
+                            'siswa' => route('siswa.dashboard'),
+                            'kepala_sekolah' => route('kepala-sekolah.dashboard'),
+                            'piket' => route('piket.dashboard'),
+                            default => route('login'),
+                        };
+                    @endphp
+                    <a href="{{ $dashRoute }}" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-colors shadow-xs flex items-center gap-2">
+                        <span>Ke Dashboard ({{ strtoupper($user->role) }})</span>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                    </a>
+                @endauth
+
+                {{-- Dropdown Menu Titik Tiga (3 Dots) --}}
+                <div class="relative">
+                    <button @click="openMenu = !openMenu" @click.away="openMenu = false" class="p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors focus:outline-none" title="Menu Options">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/>
+                        </svg>
+                    </button>
+
+                    <div x-show="openMenu" x-transition style="display: none;" class="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-200 py-2 z-50">
+                        <div class="px-4 py-2 border-b border-slate-100">
+                            <p class="text-xs font-bold text-slate-800">Akses Sistem</p>
+                            <p class="text-[11px] text-slate-500">Masuk sesuai hak akses</p>
+                        </div>
+
+                        @guest
+                        <a href="{{ route('login') }}" class="flex items-center gap-3 px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                            <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
+                            <span>Masuk / Login Akun</span>
+                        </a>
+                        @else
+                        <a href="{{ $dashRoute }}" class="flex items-center gap-3 px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                            <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                            <span>Dashboard Utama</span>
+                        </a>
+                        <form method="POST" action="{{ route('logout') }}" class="w-full">
+                            @csrf
+                            <button type="submit" class="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors text-left">
+                                <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                                <span>Keluar / Logout</span>
+                            </button>
+                        </form>
+                        @endguest
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    {{-- Main Container --}}
+    <main class="w-full px-4 sm:px-6 lg:px-8 pt-8 pb-6 space-y-6 flex-1">
+        
+        {{-- KPI Summary Cards --}}
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3">
-                <div class="shrink-0 w-10 h-10 aspect-square rounded-lg bg-emerald-50 flex items-center justify-center">
+            <div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3 shadow-xs">
+                <div class="shrink-0 w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
                     <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 </div>
                 <div class="min-w-0">
                     <p class="text-2xl font-bold text-slate-900 leading-none">{{ $stats['guru_hadir_hari_ini'] }}</p>
-                    <p class="text-xs text-slate-500 mt-1 font-medium truncate">Hadir Hari Ini</p>
+                    <p class="text-xs text-slate-500 mt-1 font-medium truncate">Guru Hadir</p>
                 </div>
             </div>
 
-            {{-- Terlambat --}}
-            <div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3">
-                <div class="shrink-0 w-10 h-10 aspect-square rounded-lg bg-amber-50 flex items-center justify-center">
+            <div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3 shadow-xs">
+                <div class="shrink-0 w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
                     <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 </div>
                 <div class="min-w-0">
                     <p class="text-2xl font-bold text-slate-900 leading-none">{{ $stats['guru_terlambat_hari_ini'] }}</p>
-                    <p class="text-xs text-slate-500 mt-1 font-medium truncate">Terlambat</p>
+                    <p class="text-xs text-slate-500 mt-1 font-medium truncate">Guru Terlambat</p>
                 </div>
             </div>
 
-            {{-- Tidak Hadir --}}
-            <div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3">
-                <div class="shrink-0 w-10 h-10 aspect-square rounded-lg bg-red-50 flex items-center justify-center">
+            <div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3 shadow-xs">
+                <div class="shrink-0 w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center">
                     <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 </div>
                 <div class="min-w-0">
                     <p class="text-2xl font-bold text-slate-900 leading-none">{{ $stats['guru_tidak_hadir_hari_ini'] }}</p>
-                    <p class="text-xs text-slate-500 mt-1 font-medium truncate">Tidak Hadir</p>
+                    <p class="text-xs text-slate-500 mt-1 font-medium truncate">Tidak Hadir / Izin</p>
                 </div>
             </div>
 
-            {{-- Total Guru --}}
-            <div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3">
-                <div class="shrink-0 w-10 h-10 aspect-square rounded-lg bg-blue-50 flex items-center justify-center">
+            <div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3 shadow-xs">
+                <div class="shrink-0 w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
                     <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                 </div>
                 <div class="min-w-0">
                     <p class="text-2xl font-bold text-slate-900 leading-none">{{ $stats['total_guru'] }}</p>
-                    <p class="text-xs text-slate-500 mt-1 font-medium truncate">Total Guru</p>
+                    <p class="text-xs text-slate-500 mt-1 font-medium truncate">Total Tenaga Pengajar</p>
                 </div>
             </div>
         </div>
@@ -51,9 +132,8 @@
         {{-- ═══ SECTION: MONITORING REAL-TIME BERBASIS KARTU & JAM BERJALAN ═══ --}}
         <div class="bg-white rounded-2xl border border-slate-200 p-5 space-y-4 shadow-xs">
             
-            {{-- Header Bar: Title (Kiri) + Dual Pie Charts Guru & Siswa (Kanan) --}}
+            {{-- Header Bar: Title + Dual Pie Charts --}}
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-center pb-4 border-b border-slate-100">
-                {{-- Left Side: Header Title --}}
                 <div class="lg:col-span-5 space-y-2">
                     <div class="flex items-center gap-2">
                         <h2 class="text-base font-bold text-slate-900">Monitoring Kehadiran Real-Time</h2>
@@ -62,21 +142,20 @@
                             Live
                         </span>
                     </div>
-                    <p class="text-xs text-slate-500 leading-relaxed">Memantau kehadiran per ruang kelas sesuai jam pelajaran aktif (Pukul {{ $nowTime }} WIB)</p>
+                    <p class="text-xs text-slate-500 leading-relaxed">Status ruang kelas & kehadiran pengajar saat ini (Pukul {{ $nowTime }} WIB)</p>
                 </div>
 
-                {{-- Right Side: Dual Pie Charts Widget (Guru & Siswa side-by-side) --}}
                 <div class="lg:col-span-7 bg-slate-50/80 border border-slate-200 rounded-xl p-3 space-y-2">
                     <div class="flex items-center justify-between border-b border-slate-200/60 pb-1.5">
-                        <span class="text-xs font-bold text-slate-800">Distribusi Kehadiran (7 Hari)</span>
+                        <span class="text-xs font-bold text-slate-800">Distribusi Kehadiran (7 Hari Terakhir)</span>
                         <span class="text-[10px] font-semibold text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200">Guru & Siswa</span>
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {{-- Guru Pie Chart Card --}}
+                        {{-- Guru Pie Chart --}}
                         <div class="bg-white p-2.5 rounded-lg border border-slate-200/80 flex items-center gap-3">
                             <div class="w-20 h-20 relative shrink-0">
-                                <canvas id="guruPieChartHeader"></canvas>
+                                <canvas id="guruPieChartPublic"></canvas>
                             </div>
                             <div class="space-y-1 w-full min-w-0">
                                 <p class="text-[11px] font-bold text-slate-900 border-b border-slate-100 pb-0.5">Kehadiran Guru</p>
@@ -89,16 +168,16 @@
                                     <span class="font-bold text-slate-900">{{ $guruPiePct['terlambat'] }}%</span>
                                 </div>
                                 <div class="flex items-center justify-between text-[10px]">
-                                    <span class="flex items-center gap-1 truncate"><span class="w-2 h-2 rounded-full bg-red-400 shrink-0"></span>Absen</span>
+                                    <span class="flex items-center gap-1 truncate"><span class="w-2 h-2 rounded-full bg-red-400 shrink-0"></span>Tidak Hadir</span>
                                     <span class="font-bold text-slate-900">{{ $guruPiePct['tidak_hadir'] }}%</span>
                                 </div>
                             </div>
                         </div>
 
-                        {{-- Siswa Pie Chart Card --}}
+                        {{-- Siswa Pie Chart --}}
                         <div class="bg-white p-2.5 rounded-lg border border-slate-200/80 flex items-center gap-3">
                             <div class="w-20 h-20 relative shrink-0">
-                                <canvas id="siswaPieChartHeader"></canvas>
+                                <canvas id="siswaPieChartPublic"></canvas>
                             </div>
                             <div class="space-y-1 w-full min-w-0">
                                 <p class="text-[11px] font-bold text-slate-900 border-b border-slate-100 pb-0.5">Kehadiran Siswa</p>
@@ -107,11 +186,11 @@
                                     <span class="font-bold text-slate-900">{{ $siswaPiePct['hadir'] }}%</span>
                                 </div>
                                 <div class="flex items-center justify-between text-[10px]">
-                                    <span class="flex items-center gap-1 truncate"><span class="w-2 h-2 rounded-full bg-amber-400 shrink-0"></span>Skt/Izn</span>
+                                    <span class="flex items-center gap-1 truncate"><span class="w-2 h-2 rounded-full bg-amber-400 shrink-0"></span>Sakit / Izin</span>
                                     <span class="font-bold text-slate-900">{{ $siswaPiePct['sakit'] + $siswaPiePct['izin'] }}%</span>
                                 </div>
                                 <div class="flex items-center justify-between text-[10px]">
-                                    <span class="flex items-center gap-1 truncate"><span class="w-2 h-2 rounded-full bg-red-400 shrink-0"></span>Alpa</span>
+                                    <span class="flex items-center gap-1 truncate"><span class="w-2 h-2 rounded-full bg-red-400 shrink-0"></span>Tidak Hadir (Alpa)</span>
                                     <span class="font-bold text-slate-900">{{ $siswaPiePct['alpa'] }}%</span>
                                 </div>
                             </div>
@@ -120,9 +199,8 @@
                 </div>
             </div>
 
-            {{-- Filter Bar: 4 Dropdowns Sejajar (Di Bawah Pie Chart, Di Atas Card Grid) --}}
+            {{-- Filter Bar --}}
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
-                {{-- Dropdown Jam Pelajaran --}}
                 <div>
                     <label class="block text-[11px] font-bold text-slate-700 mb-1">Jam Pelajaran</label>
                     <select onchange="window.location.href = this.value" class="w-full text-xs font-semibold bg-blue-50 border border-blue-200 text-blue-900 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-2xs">
@@ -139,7 +217,6 @@
                     </select>
                 </div>
 
-                {{-- Filter Tingkat --}}
                 <div>
                     <label class="block text-[11px] font-semibold text-slate-600 mb-1">Tingkat Kelas</label>
                     <select onchange="window.location.href = this.value" class="w-full text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
@@ -150,19 +227,17 @@
                     </select>
                 </div>
 
-                {{-- Filter Status Utama --}}
                 <div>
                     <label class="block text-[11px] font-semibold text-slate-600 mb-1">Status Kehadiran</label>
                     <select onchange="window.location.href = this.value" class="w-full text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
                         <option value="{{ request()->fullUrlWithQuery(['status' => 'all']) }}" {{ $selectedStatus === 'all' ? 'selected' : '' }}>Semua Status</option>
-                        <option value="{{ request()->fullUrlWithQuery(['status' => 'hadir']) }}" {{ $selectedStatus === 'hadir' ? 'selected' : '' }}>🟢 Hadir</option>
-                        <option value="{{ request()->fullUrlWithQuery(['status' => 'terlambat']) }}" {{ $selectedStatus === 'terlambat' ? 'selected' : '' }}>🟠 Terlambat</option>
-                        <option value="{{ request()->fullUrlWithQuery(['status' => 'belum_hadir']) }}" {{ $selectedStatus === 'belum_hadir' ? 'selected' : '' }}>🔴 Belum Hadir</option>
-                        <option value="{{ request()->fullUrlWithQuery(['status' => 'tidak_hadir']) }}" {{ $selectedStatus === 'tidak_hadir' ? 'selected' : '' }}>🔴 Tidak Hadir</option>
+                        <option value="{{ request()->fullUrlWithQuery(['status' => 'hadir']) }}" {{ $selectedStatus === 'hadir' ? 'selected' : '' }}>Hadir</option>
+                        <option value="{{ request()->fullUrlWithQuery(['status' => 'terlambat']) }}" {{ $selectedStatus === 'terlambat' ? 'selected' : '' }}>Terlambat</option>
+                        <option value="{{ request()->fullUrlWithQuery(['status' => 'belum_hadir']) }}" {{ $selectedStatus === 'belum_hadir' ? 'selected' : '' }}>Belum Hadir</option>
+                        <option value="{{ request()->fullUrlWithQuery(['status' => 'tidak_hadir']) }}" {{ $selectedStatus === 'tidak_hadir' ? 'selected' : '' }}>Tidak Hadir</option>
                     </select>
                 </div>
 
-                {{-- Filter Sub-Alasan --}}
                 <div>
                     <label class="block text-[11px] font-semibold text-slate-600 mb-1">Alasan Tidak Hadir</label>
                     <select onchange="window.location.href = this.value" class="w-full text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
@@ -177,7 +252,7 @@
                 </div>
             </div>
 
-            {{-- ═══ CARD GRID MONITORING KEHADIRAN ═══ --}}
+            {{-- Card Grid Monitoring Kehadiran --}}
             @if($monitoringCards->count() > 0)
             <div class="grid grid-cols-6 gap-2 pt-2">
                 @foreach($monitoringCards as $card)
@@ -213,47 +288,40 @@
                         ],
                     };
                 @endphp
-                <div class="bg-white rounded-lg border border-slate-200 overflow-hidden hover:shadow-sm transition-shadow flex flex-col">
-                    {{-- Accent strip kiri berdasarkan status --}}
+                <div class="bg-white rounded-lg border border-slate-200 overflow-hidden hover:shadow-xs transition-shadow flex flex-col">
                     <div class="flex flex-1">
                         <div class="w-1 flex-shrink-0 {{ $theme['top'] }}"></div>
-                        <div class="flex-1 p-3 flex flex-col gap-2">
-
-                            {{-- Baris atas: Kelas --}}
+                        <div class="flex-1 p-3 flex flex-col gap-2 min-w-0">
                             <span class="px-2.5 py-1 rounded-md bg-slate-100 text-slate-800 text-xs font-extrabold tracking-wide self-start">
                                 {{ $card['kelas_nama'] }}
                             </span>
 
-                            {{-- Mapel & Guru --}}
-                            <div>
-                                <h3 class="font-semibold text-slate-900 text-xs leading-snug">{{ $card['mapel_nama'] }}</h3>
-                                <p class="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1">
+                            <div class="min-w-0">
+                                <h3 class="font-semibold text-slate-900 text-xs leading-snug truncate">{{ $card['mapel_nama'] }}</h3>
+                                <p class="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1 min-w-0">
                                     <svg class="w-2.5 h-2.5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                                     <span class="truncate">{{ $card['guru_nama'] }}</span>
                                 </p>
                             </div>
 
-                            {{-- Footer: Status + Waktu --}}
                             <div class="flex items-center justify-between pt-2 border-t border-slate-100 mt-auto">
-                                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold border {{ $theme['badge'] }}">
-                                    <span class="w-1.5 h-1.5 rounded-full {{ $theme['dot'] }}"></span>
-                                    {{ $theme['text'] }}
+                                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold border {{ $theme['badge'] }} truncate">
+                                    <span class="w-1.5 h-1.5 rounded-full {{ $theme['dot'] }} shrink-0"></span>
+                                    <span class="truncate">{{ $theme['text'] }}</span>
                                 </span>
                                 @if($card['waktu_hadir'])
-                                    <span class="text-[10px] text-slate-400 tabular-nums">{{ \Carbon\Carbon::parse($card['waktu_hadir'])->format('H:i') }}</span>
+                                    <span class="text-[10px] text-slate-400 tabular-nums shrink-0">{{ \Carbon\Carbon::parse($card['waktu_hadir'])->format('H:i') }}</span>
                                 @endif
                             </div>
 
-                            {{-- Alasan tidak hadir --}}
                             @if($card['alasan_label'])
                                 <div class="px-2 py-1.5 rounded bg-red-50 border border-red-100">
-                                    <p class="text-[10px] text-red-700 font-medium leading-snug">{{ $card['alasan_label'] }}</p>
+                                    <p class="text-[10px] text-red-700 font-medium leading-snug truncate">{{ $card['alasan_label'] }}</p>
                                     @if($card['guru_pengganti'])
                                         <p class="text-[10px] text-blue-600 font-medium mt-0.5 truncate">↳ {{ $card['guru_pengganti'] }}</p>
                                     @endif
                                 </div>
                             @endif
-
                         </div>
                     </div>
                 </div>
@@ -266,63 +334,15 @@
             </div>
             @endif
         </div>
+    </main>
 
+    <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500">
+        &copy; {{ date('Y') }} {{ \App\Models\Setting::get('school_name', 'Sekolah') }}. All rights reserved.
+    </footer>
 
-
-        {{-- ═══ SECTION: KEHADIRAN TERBARU (7 HARI) ═══ --}}
-        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-            <div class="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
-                <h3 class="font-semibold text-slate-900">Catatan Kehadiran Guru Terkini (7 Hari)</h3>
-                <a href="{{ route('kepala-sekolah.report.guru') }}" class="text-sm text-blue-600 hover:text-blue-700 font-medium">Lihat Laporan Lengkap →</a>
-            </div>
-            <table class="w-full text-sm">
-                <thead class="bg-slate-50 border-b border-slate-200">
-                    <tr>
-                        <th class="text-left px-4 py-3 font-semibold text-slate-600">Guru</th>
-                        <th class="text-left px-4 py-3 font-semibold text-slate-600 hidden md:table-cell">Mata Pelajaran</th>
-                        <th class="text-left px-4 py-3 font-semibold text-slate-600 hidden md:table-cell">Kelas</th>
-                        <th class="text-left px-4 py-3 font-semibold text-slate-600">Status</th>
-                        <th class="text-left px-4 py-3 font-semibold text-slate-600 hidden lg:table-cell">Waktu</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100">
-                    @forelse($recentKehadiran as $kh)
-                    <tr class="hover:bg-slate-50 transition-colors">
-                        <td class="px-4 py-3 font-medium text-slate-900">{{ $kh->guru->name }}</td>
-                        <td class="px-4 py-3 text-slate-500 hidden md:table-cell">{{ $kh->pertemuan?->jadwal?->mataPelajaran?->nama ?? '—' }}</td>
-                        <td class="px-4 py-3 text-slate-500 hidden md:table-cell">{{ $kh->pertemuan?->jadwal?->kelas?->nama ?? '—' }}</td>
-                        <td class="px-4 py-3">
-                            <div class="flex items-center gap-1.5">
-                                <span class="text-xs font-medium px-2.5 py-1 rounded-full
-                                    {{ $kh->status === 'hadir' ? 'badge-hadir' : ($kh->status === 'terlambat' ? 'badge-sakit' : 'badge-alpa') }}">
-                                    {{ $kh->status_label }}
-                                </span>
-                                @if($kh->alasan_tidak_hadir)
-                                    <span class="text-[11px] text-slate-500">({{ $kh->alasan_tidak_hadir_label }})</span>
-                                @endif
-                            </div>
-                        </td>
-                        <td class="px-4 py-3 text-slate-500 text-xs hidden lg:table-cell">{{ $kh->created_at->format('d/m H:i') }}</td>
-                    </tr>
-                    @empty
-                    <tr><td colspan="5" class="px-4 py-8 text-center text-slate-400 text-sm">Belum ada data kehadiran</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
-            @if($recentKehadiran->hasPages())
-            <div class="px-4 py-3 border-t border-slate-200">
-                {{ $recentKehadiran->links() }}
-            </div>
-            @endif
-        </div>
-    </div>
-
-    @push('scripts')
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     <script>
-        // Plugin custom untuk menggambar teks persentase (%) langsung di atas slice pie/doughnut chart
         const slicePercentagePlugin = {
-            id: 'slicePercentage',
+            id: 'slicePercentagePublic',
             afterDraw(chart) {
                 const { ctx, data } = chart;
                 const meta = chart.getDatasetMeta(0);
@@ -335,7 +355,7 @@
                     const val = data.datasets[0].data[index];
                     if (!val || val === 0) return;
                     const pct = Math.round((val / total) * 100);
-                    if (pct < 4) return; // Sembunyikan jika terlalu kecil agar tidak menumpuk
+                    if (pct < 4) return;
 
                     const { x, y } = element.tooltipPosition();
                     ctx.save();
@@ -368,8 +388,7 @@
         };
 
         const guruPie = @json($guruPie);
-        // ── Guru Pie Header (Top Right) ──
-        new Chart(document.getElementById('guruPieChartHeader'), {
+        new Chart(document.getElementById('guruPieChartPublic'), {
             type: 'doughnut',
             data: {
                 labels: ['Hadir', 'Terlambat', 'Tidak Hadir'],
@@ -380,8 +399,7 @@
         });
 
         const siswaPie = @json($siswaPie);
-        // ── Siswa Pie Header (Top Right) ──
-        new Chart(document.getElementById('siswaPieChartHeader'), {
+        new Chart(document.getElementById('siswaPieChartPublic'), {
             type: 'doughnut',
             data: {
                 labels: ['Hadir', 'Sakit', 'Izin', 'Alpa', 'Dispensasi'],
@@ -391,5 +409,5 @@
             plugins: [slicePercentagePlugin]
         });
     </script>
-    @endpush
-</x-layouts.kepala-sekolah>
+</body>
+</html>

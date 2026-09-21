@@ -140,6 +140,17 @@
         </div>
     </div>
 
+    <script>
+        window.filterSubmitTimer = null;
+        function debouncedFilterSubmit(formElement, delay = 400) {
+            if (window.filterSubmitTimer) clearTimeout(window.filterSubmitTimer);
+            window.filterSubmitTimer = setTimeout(() => {
+                if (formElement) {
+                    formElement.submit();
+                }
+            }, delay);
+        }
+    </script>
     @stack('scripts')
 </body>
 </html>

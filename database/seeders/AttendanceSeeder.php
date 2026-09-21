@@ -411,7 +411,7 @@ class AttendanceSeeder extends Seeder
         }
 
         // Siswa Reviewer: Pradipta
-        $pradipta = User::where('name', 'Pradipta Endra Maulana')->first();
+        $pradipta = User::where('name', 'LIKE', '%PRADIPTA%')->first();
 
         // ── 7. Rentang Waktu Simulasi Pertemuan (01–18 September 2026) ────────
         $startDate = Carbon::create(2026, 9, 1);
@@ -575,73 +575,69 @@ class AttendanceSeeder extends Seeder
                     'updated_at' => $updatedAt,
                 ]);
 
-                // ── Presensi Siswa untuk Kelas Terpilih (PPLG, RPL, DKV, AKL1) ─
-                // Fokuskan pengisian presensi siswa pada sampel kelas agar eksekusi seed tetap super cepat (< 5 detik)
-                $targetClassesForStudentAttendance = ['11PPLG', '12RPL', '11DKV', '11AKL1'];
-                if (in_array($jadwal->kelas->nama, $targetClassesForStudentAttendance)) {
-                    $studentIds = $kelasSiswaMap[$jadwal->kelas_id] ?? [];
-                    $kehadiranSiswaBatch = [];
+                // ── Presensi Siswa untuk Seluruh Kelas ──────────────────────────────────
+                $studentIds = $kelasSiswaMap[$jadwal->kelas_id] ?? [];
+                $kehadiranSiswaBatch = [];
 
-                    foreach ($studentIds as $idx => $sId) {
-                        if ($pradipta && $sId === $pradipta->id) {
-                            $pradiptaMeetingCounter++;
-                            if ($pradiptaMeetingCounter === 4) {
-                                $siswaStatus = 'izin';
-                                $ket = 'Izin ada keperluan keluarga';
-                            } elseif ($pradiptaMeetingCounter === 12) {
-                                $siswaStatus = 'sakit';
-                                $ket = 'Surat dokter terlampir';
-                            } else {
-                                $siswaStatus = 'hadir';
-                                $ket = null;
-                            }
+                foreach ($studentIds as $idx => $sId) {
+                    if ($pradipta && $sId === $pradipta->id) {
+                        $pradiptaMeetingCounter++;
+                        if ($pradiptaMeetingCounter === 4) {
+                            $siswaStatus = 'izin';
+                            $ket = 'Izin ada keperluan keluarga';
+                        } elseif ($pradiptaMeetingCounter === 12) {
+                            $siswaStatus = 'sakit';
+                            $ket = 'Surat dokter terlampir';
                         } else {
-                            $seedValue = ($sId * 17 + $meetingIndex * 23) % 100;
-                            if ($idx % 12 === 0 && $seedValue < 25) {
-                                $siswaStatus = 'sakit';
-                                $ket = 'Surat dokter terlampir';
-                            } elseif ($idx % 10 === 0 && $seedValue < 20) {
-                                $siswaStatus = 'izin';
-                                $ket = 'Izin keperluan keluarga';
-                            } elseif ($idx % 15 === 0 && $seedValue < 15) {
-                                $siswaStatus = 'dispensasi';
-                                $ket = 'Dispensasi kepengurusan OSIS';
-                            } elseif ($idx % 20 === 0 && $seedValue < 10) {
-                                $siswaStatus = 'alpa';
-                                $ket = 'Tanpa keterangan';
-                            } else {
-                                $siswaStatus = 'hadir';
-                                $ket = null;
-                            }
+                            $siswaStatus = 'hadir';
+                            $ket = null;
                         }
-
-                        $kehadiranSiswaBatch[] = [
-                            'pertemuan_id' => $pertemuan->id,
-                            'siswa_id' => $sId,
-                            'status' => $siswaStatus,
-                            'keterangan' => $ket,
-                            'created_at' => $createdAt->toDateTimeString(),
-                            'updated_at' => $updatedAt->toDateTimeString(),
-                        ];
-                    }
-
-                    if (! empty($kehadiranSiswaBatch)) {
-                        foreach (array_chunk($kehadiranSiswaBatch, 200) as $chunk) {
-                            KehadiranSiswa::insert($chunk);
+                    } else {
+                        $seedValue = ($sId * 17 + $meetingIndex * 23) % 100;
+                        if ($idx % 12 === 0 && $seedValue < 25) {
+                            $siswaStatus = 'sakit';
+                            $ket = 'Surat dokter terlampir';
+                        } elseif ($idx % 10 === 0 && $seedValue < 20) {
+                            $siswaStatus = 'izin';
+                            $ket = 'Izin keperluan keluarga';
+                        } elseif ($idx % 15 === 0 && $seedValue < 15) {
+                            $siswaStatus = 'dispensasi';
+                            $ket = 'Dispensasi kepengurusan OSIS';
+                        } elseif ($idx % 20 === 0 && $seedValue < 10) {
+                            $siswaStatus = 'alpa';
+                            $ket = 'Tanpa keterangan';
+                        } else {
+                            $siswaStatus = 'hadir';
+                            $ket = null;
                         }
                     }
 
-                    // Foto bukti siswa reviewer (Pradipta di 12RPL)
-                    if ($pradipta && in_array($pradipta->id, $studentIds) && $guruStatus === 'hadir') {
-                        FotoBukti::create([
-                            'pertemuan_id' => $pertemuan->id,
-                            'siswa_id' => $pradipta->id,
-                            'foto_path' => 'images/logo_new.png',
-                            'status_guru_dilaporkan' => 'hadir',
-                            'created_at' => $createdAt,
-                            'updated_at' => $updatedAt,
-                        ]);
+                    $kehadiranSiswaBatch[] = [
+                        'pertemuan_id' => $pertemuan->id,
+                        'siswa_id' => $sId,
+                        'status' => $siswaStatus,
+                        'keterangan' => $ket,
+                        'created_at' => $createdAt->toDateTimeString(),
+                        'updated_at' => $updatedAt->toDateTimeString(),
+                    ];
+                }
+
+                if (! empty($kehadiranSiswaBatch)) {
+                    foreach (array_chunk($kehadiranSiswaBatch, 200) as $chunk) {
+                        KehadiranSiswa::insert($chunk);
                     }
+                }
+
+                // Foto bukti siswa reviewer (Pradipta di 12RPL)
+                if ($pradipta && in_array($pradipta->id, $studentIds) && $guruStatus === 'hadir') {
+                    FotoBukti::create([
+                        'pertemuan_id' => $pertemuan->id,
+                        'siswa_id' => $pradipta->id,
+                        'foto_path' => 'images/logo_new.png',
+                        'status_guru_dilaporkan' => 'hadir',
+                        'created_at' => $createdAt,
+                        'updated_at' => $updatedAt,
+                    ]);
                 }
             }
         }
