@@ -7,6 +7,7 @@ use App\Models\FotoBukti;
 use App\Models\JadwalPelajaran;
 use App\Models\KehadiranGuru;
 use App\Models\Pertemuan;
+use App\Models\Setting;
 use App\Services\ImageCompressor;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
@@ -111,7 +112,7 @@ class CaptureController extends Controller
         }
 
         // Save FotoBukti & automatically sync teacher attendance in KehadiranGuru
-        DB::transaction(function () use ($pertemuan, $user, $fotoPath, $validated, $existing, $jadwal, $request) {
+        DB::transaction(function () use ($pertemuan, $user, $fotoPath, $validated, $existing, $jadwal, $request, $tanggalCarbon) {
             if ($existing) {
                 if ($request->hasFile('foto') && $existing->foto_path && $existing->foto_path !== $fotoPath) {
                     Storage::disk('public')->delete($existing->foto_path);
@@ -135,8 +136,21 @@ class CaptureController extends Controller
                 ]);
             }
 
-            // Sync to KehadiranGuru
+            // Apply Tolerance Logic
             $statusGuru = $validated['status_guru_dilaporkan'];
+            if ($statusGuru === 'hadir' && $tanggalCarbon->isToday()) {
+                $toleransi = Setting::get('toleransi_keterlambatan_menit', 5);
+                $jamMulai = substr($jadwal->jam_mulai, 0, 5);
+                $waktuBatas = Carbon::parse($jamMulai)->addMinutes((int) $toleransi)->format('H:i');
+                $nowTime = now()->format('H:i');
+
+                if ($nowTime > $waktuBatas) {
+                    $statusGuru = 'terlambat';
+                    $validated['status_guru_dilaporkan'] = 'terlambat';
+                }
+            }
+
+            // Sync to KehadiranGuru
             KehadiranGuru::updateOrCreate(
                 ['pertemuan_id' => $pertemuan->id, 'guru_id' => $jadwal->guru_id],
                 [

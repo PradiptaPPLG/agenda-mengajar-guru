@@ -17,12 +17,19 @@ class MataPelajaranController extends Controller
         $query = MataPelajaran::with('kelas')->orderBy('nama');
 
         if ($request->filled('search')) {
-            $query->where('nama', 'like', '%'.$request->search.'%')
-                ->orWhere('kode', 'like', '%'.$request->search.'%');
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('nama', 'like', '%'.$search.'%')
+                    ->orWhere('kode', 'like', '%'.$search.'%');
+            });
         }
 
-        if (! $request->has('include_adaptif')) {
-            $query->where('jenis', 'normatif');
+        if ($request->filled('jenis')) {
+            if ($request->jenis === 'umum') {
+                $query->whereIn('jenis', ['umum', 'normatif']);
+            } elseif ($request->jenis === 'produktif') {
+                $query->whereIn('jenis', ['produktif', 'adaptif', 'kejuruan']);
+            }
         }
 
         $mataPelajarans = $query->paginate(20)->withQueryString();
@@ -42,7 +49,7 @@ class MataPelajaranController extends Controller
         $validated = $request->validate([
             'nama' => ['required', 'string', 'max:100'],
             'kode' => ['required', 'string', 'max:20', 'unique:mata_pelajarans'],
-            'jenis' => ['required', 'in:normatif,adaptif'],
+            'jenis' => ['required', 'in:umum,produktif,normatif,adaptif,kejuruan'],
             'kelas_ids' => ['nullable', 'array'],
             'kelas_ids.*' => ['exists:kelas,id'],
         ]);
@@ -53,7 +60,7 @@ class MataPelajaranController extends Controller
             'jenis' => $validated['jenis'],
         ]);
 
-        if ($validated['jenis'] === 'adaptif' && isset($validated['kelas_ids'])) {
+        if (in_array($validated['jenis'], ['produktif', 'adaptif']) && isset($validated['kelas_ids'])) {
             $mataPelajaran->kelas()->sync($validated['kelas_ids']);
         }
 
@@ -73,7 +80,7 @@ class MataPelajaranController extends Controller
         $validated = $request->validate([
             'nama' => ['required', 'string', 'max:100'],
             'kode' => ['required', 'string', 'max:20', Rule::unique('mata_pelajarans')->ignore($mataPelajaran->id)],
-            'jenis' => ['required', 'in:normatif,adaptif'],
+            'jenis' => ['required', 'in:umum,produktif,normatif,adaptif,kejuruan'],
             'kelas_ids' => ['nullable', 'array'],
             'kelas_ids.*' => ['exists:kelas,id'],
         ]);
@@ -84,7 +91,7 @@ class MataPelajaranController extends Controller
             'jenis' => $validated['jenis'],
         ]);
 
-        if ($validated['jenis'] === 'adaptif' && isset($validated['kelas_ids'])) {
+        if (in_array($validated['jenis'], ['produktif', 'adaptif']) && isset($validated['kelas_ids'])) {
             $mataPelajaran->kelas()->sync($validated['kelas_ids']);
         } else {
             $mataPelajaran->kelas()->detach();

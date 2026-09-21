@@ -14,7 +14,7 @@ class MataPelajaran extends Model
     /** @use HasFactory<MataPelajaranFactory> */
     use HasFactory, SoftDeletes;
 
-    protected $fillable = ['nama', 'kode', 'jenis'];
+    protected $fillable = ['nama', 'kode', 'jenis', 'kelompok_blok'];
 
     public function jadwalPelajarans(): HasMany
     {

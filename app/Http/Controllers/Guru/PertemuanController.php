@@ -82,6 +82,7 @@ class PertemuanController extends Controller
             // Siswa
             'siswa' => ['nullable', 'array'],
             'siswa.*.status' => ['required', 'in:hadir,sakit,izin,alpa,dispensasi'],
+            'siswa.*.keterangan' => ['nullable', 'string', 'max:255'],
         ]);
 
         DB::transaction(function () use ($pertemuan, $validated) {
@@ -106,7 +107,10 @@ class PertemuanController extends Controller
                 foreach ($validated['siswa'] as $siswaId => $data) {
                     KehadiranSiswa::updateOrCreate(
                         ['pertemuan_id' => $pertemuan->id, 'siswa_id' => $siswaId],
-                        ['status' => $data['status']]
+                        [
+                            'status' => $data['status'],
+                            'keterangan' => $data['keterangan'] ?? null,
+                        ]
                     );
                 }
             }

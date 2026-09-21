@@ -22,6 +22,11 @@
             </div>
         </div>
 
+        {{-- Banner Sistem Blok (hanya muncul jika ada kelas sistem blok) --}}
+        @if($kelasSistemBlok->isNotEmpty())
+            <x-blok-aktif-banner :mingguAktif="$mingguAktif" :kelasList="$kelasSistemBlok" />
+        @endif
+
         {{-- KPI Summary Stats --}}
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             <div class="bg-white rounded-2xl border border-slate-200 p-4">
@@ -177,6 +182,17 @@
                                 <span class="text-xs font-bold text-rose-600">Belum Hadir</span>
                             @endif
                         </div>
+
+                        @if($item['status'] === 'belum_hadir')
+                            <form action="{{ route('piket.teguran.store') }}" method="POST">
+                                @csrf
+                                <input type="hidden" name="guru_id" value="{{ $item['guru_id'] }}">
+                                <input type="hidden" name="jadwal_id" value="{{ $item['jadwal_id'] }}">
+                                <button type="submit" class="px-2 py-1 bg-red-100 hover:bg-red-200 text-red-700 text-[10px] font-bold rounded shadow-xs transition border border-red-200" title="Kirim notifikasi teguran ke guru">
+                                    Tegur
+                                </button>
+                            </form>
+                        @endif
 
                         @if($item['waktu_hadir'])
                             <span class="text-[11px] text-slate-400">{{ \Carbon\Carbon::parse($item['waktu_hadir'])->format('H:i') }} WIB</span>

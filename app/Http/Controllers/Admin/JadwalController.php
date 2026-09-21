@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Imports\JadwalImport;
 use App\Models\JadwalPelajaran;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
@@ -15,6 +16,7 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Maatwebsite\Excel\Facades\Excel;
 use Spatie\SimpleExcel\SimpleExcelWriter;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
@@ -49,6 +51,27 @@ class JadwalController extends Controller
         $writer->close();
 
         return response()->download($tempPath, 'jadwal-pelajaran-'.now()->format('Y-m-d').'.xlsx')
+            ->deleteFileAfterSend(true);
+    }
+
+    public function downloadTemplate(): BinaryFileResponse
+    {
+        $tempPath = tempnam(sys_get_temp_dir(), 'jadwal_template_').'.xlsx';
+        $writer = SimpleExcelWriter::create($tempPath);
+
+        // Header dan contoh data yang sesuai dengan JadwalImport
+        $writer->addRow([
+            'kelas' => 'X RPL 1 (Sesuai nama kelas di sistem)',
+            'guru' => 'Nama Guru (Persis sesuai di sistem)',
+            'mata_pelajaran' => 'Nama Mapel',
+            'hari' => '1 (1=Senin, 2=Selasa, ... 6=Sabtu)',
+            'jam_mulai' => '07:00',
+            'jam_selesai' => '09:00',
+        ]);
+
+        $writer->close();
+
+        return response()->download($tempPath, 'template-import-jadwal.xlsx')
             ->deleteFileAfterSend(true);
     }
 
@@ -105,7 +128,13 @@ class JadwalController extends Controller
             'hari' => ['required', 'integer', 'between:1,6'],
             'jam_mulai' => ['required', 'date_format:H:i'],
             'jam_selesai' => ['required', 'date_format:H:i', 'after:jam_mulai'],
+            'kelompok_blok' => ['nullable', 'in:reguler,kelompok_a,kelompok_b'],
         ]);
+
+        // Jika tidak diisi, ambil default dari mata pelajaran
+        if (empty($validated['kelompok_blok'])) {
+            $validated['kelompok_blok'] = MataPelajaran::find($validated['mata_pelajaran_id'])?->kelompok_blok ?? 'reguler';
+        }
 
         $this->validateNoConflict($validated);
 
@@ -134,7 +163,13 @@ class JadwalController extends Controller
             'hari' => ['required', 'integer', 'between:1,6'],
             'jam_mulai' => ['required', 'date_format:H:i'],
             'jam_selesai' => ['required', 'date_format:H:i', 'after:jam_mulai'],
+            'kelompok_blok' => ['nullable', 'in:reguler,kelompok_a,kelompok_b'],
         ]);
+
+        // Jika tidak diisi, ambil default dari mata pelajaran
+        if (empty($validated['kelompok_blok'])) {
+            $validated['kelompok_blok'] = MataPelajaran::find($validated['mata_pelajaran_id'])?->kelompok_blok ?? 'reguler';
+        }
 
         $this->validateNoConflict($validated, $jadwal->id);
 
@@ -152,8 +187,30 @@ class JadwalController extends Controller
         return redirect()->route('admin.jadwal.index')->with('success', 'Jadwal berhasil dihapus.');
     }
 
+    public function import(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:xlsx,xls'],
+        ]);
+
+        try {
+            Excel::import(new JadwalImport, $request->file('file'));
+
+            return redirect()->route('admin.jadwal.index')->with('success', 'Jadwal berhasil diimport.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal import: '.$e->getMessage());
+        }
+    }
+
     /**
-     * Validate that neither the teacher nor the class has an overlapping schedule on the given day.
+     * Validate that neither the teacher nor the class has an overlapping schedule.
+     *
+     * Aturan Bentrok Sistem Blok:
+     * - Jadwal kelompok_a vs kelompok_b pada KELAS yang sama → TIDAK bentrok
+     *   (karena tidak pernah aktif di minggu yang sama).
+     * - Jadwal split_harian: kelompok_a vs kelompok_b boleh jam sama karena
+     *   menggunakan ruangan berbeda (validasi kelas dilewati).
+     * - Bentrok GURU tetap berlaku lintas semua kelompok (guru tidak bisa ada di 2 tempat).
      *
      * @param  array<string, mixed>  $validated
      *
@@ -161,7 +218,11 @@ class JadwalController extends Controller
      */
     protected function validateNoConflict(array $validated, ?int $excludeJadwalId = null): void
     {
-        // 1. Check Guru Conflict
+        $kelompokBaru = $validated['kelompok_blok'] ?? 'reguler';
+        $kelas = Kelas::find($validated['kelas_id']);
+        $isModelSplitHarian = $kelas?->model_rotasi === 'split_harian';
+
+        // ─── 1. Cek Bentrok GURU (berlaku untuk semua kelompok) ──────────────────
         $guruConflict = JadwalPelajaran::with('kelas')
             ->where('hari', $validated['hari'])
             ->where('guru_id', $validated['guru_id'])
@@ -179,22 +240,45 @@ class JadwalController extends Controller
             ]);
         }
 
-        // 2. Check Kelas Conflict
-        $kelasConflict = JadwalPelajaran::with(['mataPelajaran', 'guru'])
+        // ─── 2. Cek Bentrok KELAS ────────────────────────────────────────────────
+        // Lewati pengecekan bentrok kelas jika model split_harian:
+        // kelompok A dan B boleh overlap jam karena di ruangan berbeda.
+        if ($isModelSplitHarian) {
+            return;
+        }
+
+        $kelasConflictQuery = JadwalPelajaran::with(['mataPelajaran', 'guru'])
             ->where('hari', $validated['hari'])
             ->where('kelas_id', $validated['kelas_id'])
             ->when($excludeJadwalId, fn ($q) => $q->where('id', '!=', $excludeJadwalId))
             ->where('jam_mulai', '<', $validated['jam_selesai'])
-            ->where('jam_selesai', '>', $validated['jam_mulai'])
-            ->first();
+            ->where('jam_selesai', '>', $validated['jam_mulai']);
+
+        // Jika jadwal baru adalah Kelompok A atau B, hanya bentrok dengan kelompok yang sama
+        // atau dengan jadwal reguler (yang selalu aktif). Tidak bentrok dengan kelompok lainnya.
+        if ($kelompokBaru === 'kelompok_a') {
+            // Bentrok dengan: reguler dan kelompok_a (tidak dengan kelompok_b)
+            $kelasConflictQuery->whereIn('kelompok_blok', ['reguler', 'kelompok_a']);
+        } elseif ($kelompokBaru === 'kelompok_b') {
+            // Bentrok dengan: reguler dan kelompok_b (tidak dengan kelompok_a)
+            $kelasConflictQuery->whereIn('kelompok_blok', ['reguler', 'kelompok_b']);
+        }
+        // Jika reguler: bentrok dengan semua (kelompok_a, kelompok_b, reguler)
+
+        $kelasConflict = $kelasConflictQuery->first();
 
         if ($kelasConflict) {
             $namaMapel = $kelasConflict->mataPelajaran?->nama ?? 'lain';
             $namaGuru = $kelasConflict->guru?->name ?? 'lain';
             $jam = substr($kelasConflict->jam_mulai, 0, 5).' - '.substr($kelasConflict->jam_selesai, 0, 5);
+            $kelompokLabel = match ($kelasConflict->kelompok_blok) {
+                'kelompok_a' => ' [Kelompok A]',
+                'kelompok_b' => ' [Kelompok B]',
+                default => '',
+            };
 
             throw ValidationException::withMessages([
-                'kelas_id' => "Kelas ini sudah memiliki jadwal pelajaran {$namaMapel} (Guru: {$namaGuru}) pada jam {$jam}.",
+                'kelas_id' => "Kelas ini sudah memiliki jadwal{$kelompokLabel} {$namaMapel} (Guru: {$namaGuru}) pada jam {$jam}.",
             ]);
         }
     }

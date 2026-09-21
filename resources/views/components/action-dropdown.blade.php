@@ -1,4 +1,4 @@
-@props(['editUrl' => null, 'deleteUrl' => null, 'deleteMessage' => 'Hapus data ini?'])
+@props(['editUrl' => null, 'detailUrl' => null, 'deleteUrl' => null, 'deleteMessage' => 'Hapus data ini?'])
 
 <div x-data="{ open: false }" class="relative inline-block text-left" @click.away="open = false">
     <button x-ref="button" @click="open = !open" type="button" class="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors" aria-haspopup="true" :aria-expanded="open">
@@ -17,6 +17,13 @@
              class="absolute z-[100] w-36 rounded-xl bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none" 
              role="menu" aria-orientation="vertical" tabindex="-1" style="display: none;">
         <div class="py-1" role="none">
+            @if($detailUrl)
+            <a href="{{ $detailUrl }}" class="group flex items-center px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-emerald-600" role="menuitem">
+                <svg class="mr-3 h-4 w-4 text-slate-400 group-hover:text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                Detail
+            </a>
+            @endif
+
             @if($editUrl)
             <a href="{{ $editUrl }}" class="group flex items-center px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-blue-600" role="menuitem">
                 <svg class="mr-3 h-4 w-4 text-slate-400 group-hover:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>

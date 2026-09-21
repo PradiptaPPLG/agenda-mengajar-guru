@@ -105,7 +105,7 @@
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             @foreach($pertemuan->fotoBuktis as $foto)
                             @php
-                                $imgSrc = str_starts_with($foto->foto_path, 'images/') ? asset($foto->foto_path) : Storage::url($foto->foto_path);
+                                $imgSrc = str_starts_with($foto->foto_path, 'images/') ? asset($foto->foto_path) : asset('storage/' . $foto->foto_path);
                             @endphp
                             <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 flex items-center gap-3 hover:border-blue-300 transition-all">
                                 <a href="{{ $imgSrc }}" target="_blank" title="Klik untuk memperbesar foto" class="w-16 h-16 rounded-lg overflow-hidden bg-slate-200 shrink-0 border border-slate-200 relative group">
@@ -201,22 +201,31 @@
                             @endif
                         </div>
                         {{-- Status dropdown --}}
-                        <select name="siswa[{{ $ks->siswa_id }}][status]"
-                                class="track-change text-xs font-medium border rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer
-                                       {{ match($ks->status) {
-                                           'hadir' => 'border-emerald-200 bg-emerald-50 text-emerald-800',
-                                           'sakit' => 'border-amber-200 bg-amber-50 text-amber-800',
-                                           'izin' => 'border-sky-200 bg-sky-50 text-sky-800',
-                                           'alpa' => 'border-red-200 bg-red-50 text-red-800',
-                                           'dispensasi' => 'border-purple-200 bg-purple-50 text-purple-800',
-                                           default => 'border-slate-200 bg-slate-50',
-                                       } }}">
-                            <option value="hadir" {{ $ks->status === 'hadir' ? 'selected' : '' }}>Hadir</option>
-                            <option value="sakit" {{ $ks->status === 'sakit' ? 'selected' : '' }}>Sakit</option>
-                            <option value="izin" {{ $ks->status === 'izin' ? 'selected' : '' }}>Izin</option>
-                            <option value="alpa" {{ $ks->status === 'alpa' ? 'selected' : '' }}>Alpa</option>
-                            <option value="dispensasi" {{ $ks->status === 'dispensasi' ? 'selected' : '' }}>Dispensasi</option>
-                        </select>
+                        <div class="flex flex-col gap-1 items-end">
+                            <select name="siswa[{{ $ks->siswa_id }}][status]"
+                                    onchange="toggleKeterangan(this, '{{ $ks->siswa_id }}')"
+                                    class="track-change text-xs font-medium border rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer
+                                           {{ match($ks->status) {
+                                               'hadir' => 'border-emerald-200 bg-emerald-50 text-emerald-800',
+                                               'sakit' => 'border-amber-200 bg-amber-50 text-amber-800',
+                                               'izin' => 'border-sky-200 bg-sky-50 text-sky-800',
+                                               'alpa' => 'border-red-200 bg-red-50 text-red-800',
+                                               'dispensasi' => 'border-purple-200 bg-purple-50 text-purple-800',
+                                               default => 'border-slate-200 bg-slate-50',
+                                           } }}">
+                                <option value="hadir" {{ $ks->status === 'hadir' ? 'selected' : '' }}>Hadir</option>
+                                <option value="sakit" {{ $ks->status === 'sakit' ? 'selected' : '' }}>Sakit</option>
+                                <option value="izin" {{ $ks->status === 'izin' ? 'selected' : '' }}>Izin</option>
+                                <option value="alpa" {{ $ks->status === 'alpa' ? 'selected' : '' }}>Alpa</option>
+                                <option value="dispensasi" {{ $ks->status === 'dispensasi' ? 'selected' : '' }}>Dispensasi</option>
+                            </select>
+                            
+                            <input type="text" name="siswa[{{ $ks->siswa_id }}][keterangan]" 
+                                   id="keterangan-{{ $ks->siswa_id }}"
+                                   value="{{ $ks->keterangan }}"
+                                   placeholder="Tulis keterangan..."
+                                   class="track-change text-[11px] border border-slate-200 rounded-lg px-2 py-1 focus:outline-none focus:border-blue-400 w-32 {{ in_array($ks->status, ['izin', 'sakit']) ? '' : 'hidden' }}">
+                        </div>
                     </div>
                     @endforeach
                     <div id="no-siswa-found" class="hidden p-6 text-center text-sm text-slate-400">
@@ -427,6 +436,36 @@
             if (noFound) {
                 noFound.classList.toggle('hidden', visibleCount > 0);
             }
+        }
+
+        function toggleKeterangan(selectEl, siswaId) {
+            const ketInput = document.getElementById('keterangan-' + siswaId);
+            if (!ketInput) return;
+            
+            // Remove previous color classes
+            selectEl.classList.remove('border-emerald-200', 'bg-emerald-50', 'text-emerald-800', 
+                                      'border-amber-200', 'bg-amber-50', 'text-amber-800',
+                                      'border-sky-200', 'bg-sky-50', 'text-sky-800',
+                                      'border-red-200', 'bg-red-50', 'text-red-800',
+                                      'border-purple-200', 'bg-purple-50', 'text-purple-800',
+                                      'border-slate-200', 'bg-slate-50');
+
+            const val = selectEl.value;
+            if (val === 'izin' || val === 'sakit') {
+                ketInput.classList.remove('hidden');
+                ketInput.required = true;
+            } else {
+                ketInput.classList.add('hidden');
+                ketInput.required = false;
+                ketInput.value = '';
+            }
+
+            // Update color
+            if (val === 'hadir') selectEl.classList.add('border-emerald-200', 'bg-emerald-50', 'text-emerald-800');
+            else if (val === 'sakit') selectEl.classList.add('border-amber-200', 'bg-amber-50', 'text-amber-800');
+            else if (val === 'izin') selectEl.classList.add('border-sky-200', 'bg-sky-50', 'text-sky-800');
+            else if (val === 'alpa') selectEl.classList.add('border-red-200', 'bg-red-50', 'text-red-800');
+            else if (val === 'dispensasi') selectEl.classList.add('border-purple-200', 'bg-purple-50', 'text-purple-800');
         }
     </script>
     @endpush

@@ -89,7 +89,7 @@
                                     <span class="font-bold text-slate-900">{{ $guruPiePct['terlambat'] }}%</span>
                                 </div>
                                 <div class="flex items-center justify-between text-[10px]">
-                                    <span class="flex items-center gap-1 truncate"><span class="w-2 h-2 rounded-full bg-red-400 shrink-0"></span>Absen</span>
+                                    <span class="flex items-center gap-1 truncate"><span class="w-2 h-2 rounded-full bg-red-400 shrink-0"></span>Alpa</span>
                                     <span class="font-bold text-slate-900">{{ $guruPiePct['tidak_hadir'] }}%</span>
                                 </div>
                             </div>
@@ -107,7 +107,7 @@
                                     <span class="font-bold text-slate-900">{{ $siswaPiePct['hadir'] }}%</span>
                                 </div>
                                 <div class="flex items-center justify-between text-[10px]">
-                                    <span class="flex items-center gap-1 truncate"><span class="w-2 h-2 rounded-full bg-amber-400 shrink-0"></span>Skt/Izn</span>
+                                    <span class="flex items-center gap-1 truncate"><span class="w-2 h-2 rounded-full bg-amber-400 shrink-0"></span>Sakit / Izin</span>
                                     <span class="font-bold text-slate-900">{{ $siswaPiePct['sakit'] + $siswaPiePct['izin'] }}%</span>
                                 </div>
                                 <div class="flex items-center justify-between text-[10px]">

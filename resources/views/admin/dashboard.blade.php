@@ -1,6 +1,8 @@
 <x-layouts.admin>
     <x-slot:title>Dashboard Admin</x-slot:title>
 
+
+
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
         @foreach([
             ['label' => 'Total Guru', 'value' => $stats['total_guru'], 'color' => 'blue', 'icon' => 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z'],
@@ -21,6 +23,12 @@
         </div>
         @endforeach
     </div>
+
+    @if ($mingguAktif)
+        <div class="mt-6">
+            <x-blok-aktif-banner :mingguAktif="$mingguAktif" :kelasList="$kelasSistemBlok" />
+        </div>
+    @endif
 
     <div class="mt-6 mb-6">
         <div class="bg-white rounded-2xl border border-slate-200 p-5">
@@ -55,7 +63,53 @@
             </div>
         </div>
     </div>
-
+    <div class="mt-6 mb-6">
+        <div class="bg-white rounded-2xl border border-slate-200 p-5">
+            <h3 class="font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                Top 5 Guru Terajin (Berdasarkan Persentase Kehadiran)
+            </h3>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm text-slate-600">
+                    <thead class="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-500">
+                        <tr>
+                            <th class="px-4 py-3 font-semibold rounded-tl-lg">Peringkat</th>
+                            <th class="px-4 py-3 font-semibold">Nama Guru</th>
+                            <th class="px-4 py-3 font-semibold text-center">Total Sesi Mapel</th>
+                            <th class="px-4 py-3 font-semibold text-center">Hadir</th>
+                            <th class="px-4 py-3 font-semibold text-right rounded-tr-lg">Persentase</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        @forelse($topGurus as $index => $tg)
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-4 py-3 font-medium text-slate-900">
+                                @if($index == 0) <span class="text-amber-500">🥇</span> @endif
+                                @if($index == 1) <span class="text-slate-400">🥈</span> @endif
+                                @if($index == 2) <span class="text-amber-700">🥉</span> @endif
+                                #{{ $index + 1 }}
+                            </td>
+                            <td class="px-4 py-3">
+                                <div class="font-medium text-slate-900">{{ $tg->guru->name ?? 'User Dihapus' }}</div>
+                            </td>
+                            <td class="px-4 py-3 text-center">{{ $tg->total_sesi }}</td>
+                            <td class="px-4 py-3 text-center text-emerald-600 font-medium">{{ $tg->total_hadir }}</td>
+                            <td class="px-4 py-3 text-right">
+                                <span class="px-2 py-1 rounded bg-blue-50 text-blue-700 font-bold text-xs">
+                                    {{ number_format($tg->persentase, 1) }}%
+                                </span>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="5" class="px-4 py-8 text-center text-slate-400">Belum ada data kehadiran</td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
     @push('scripts')
     <script>
         // Chart Kehadiran Guru

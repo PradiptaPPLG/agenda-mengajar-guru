@@ -22,6 +22,10 @@ class DatabaseSeeder extends Seeder
         Setting::set('school_year', '2025/2026');
         Setting::set('semester', '1');
         Setting::set('phone', '(0265) 771204');
+        Setting::set('toleransi_keterlambatan_menit', '5'); // Default toleransi 5 menit
+
+        // ── Master Jam Pelajaran ─────────────────────────────────────────────
+        $this->call(MasterJamPelajaranSeeder::class);
 
         // ── Mata Pelajaran ────────────────────────────────────────────────────
         $mapels = [

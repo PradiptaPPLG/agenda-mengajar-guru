@@ -40,5 +40,9 @@ Dokumen ini mencatat peta jalan implementasi perbaikan alur bisnis, pencegahan b
   - [x] Monitoring Card Grid Kepala Sekolah: Layout card grid per jam pelajaran dengan visual status dinamis (Hijau, Oranye, Merah), filter status & tingkat, serta auto-refresh 60 detik.
   - [x] Export Jadwal Admin: Fitur ekspor jadwal pelajaran ke file Excel (`.xlsx`) dan PDF.
   - [x] Pagination Admin: Penambahan paginasi standar pada daftar kelas admin.
-  - [x] Feature Test & Code Styling: Pengujian menyeluruh dengan `PiketAndAttendanceWorkflowTest` (7 skenario pengujian, total suite 28 lulus) & pemformatan Laravel Pint.
+   - [x] Feature Test & Code Styling: Pengujian menyeluruh dengan `PiketAndAttendanceWorkflowTest` (7 skenario pengujian, total suite 28 lulus) & pemformatan Laravel Pint.
 
+---
+
+## 🚀 Roadmap Lanjutan (Fase 5+ & Sistem Blok SMK)
+Checklist tugas komprehensif untuk pengembangan lanjutan (16 poin kebutuhan baru, sistem blok produktif/umum, dan multi-role dashboard) telah disusun secara terperinci di [TASK.md](file:///c:/laragon/www/agenda-mengajar-guru/TASK.md).

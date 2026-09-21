@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\JadwalPelajaran;
 use App\Models\KehadiranGuru;
 use App\Models\KehadiranSiswa;
+use App\Models\MasterJamPelajaran;
 use App\Models\Pertemuan;
 use App\Models\User;
 use Carbon\Carbon;
@@ -35,20 +36,20 @@ class DashboardController extends Controller
             ->orderBy('jam_mulai')
             ->get();
 
-        // Identifikasi slot waktu jam pelajaran
-        $timeSlots = $allJadwals->map(function ($j) {
+        // Ambil standar jam pelajaran dari master
+        $masterJam = MasterJamPelajaran::orderBy('jam_ke')->get();
+
+        $timeSlots = $masterJam->map(function ($jam) {
+            $mulai = substr($jam->jam_mulai, 0, 5);
+            $selesai = substr($jam->jam_selesai, 0, 5);
+
             return [
-                'jam_mulai' => substr($j->jam_mulai, 0, 5),
-                'jam_selesai' => substr($j->jam_selesai, 0, 5),
-                'label' => substr($j->jam_mulai, 0, 5).' - '.substr($j->jam_selesai, 0, 5),
+                'jam_ke' => $jam->jam_ke,
+                'jam_mulai' => $mulai,
+                'jam_selesai' => $selesai,
+                'label' => $mulai.' - '.$selesai,
+                'title' => 'Jam Ke-'.$jam->jam_ke.' ('.$mulai.' - '.$selesai.')',
             ];
-        })->unique('label')->values();
-
-        $timeSlots = $timeSlots->map(function ($slot, $idx) {
-            $slot['jam_ke'] = $idx + 1;
-            $slot['title'] = 'Jam Ke-'.($idx + 1).' ('.$slot['label'].')';
-
-            return $slot;
         });
 
         // Deteksi slot jam yang aktif sekarang

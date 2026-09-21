@@ -4,6 +4,9 @@ namespace App\Http\Controllers\Piket;
 
 use App\Http\Controllers\Controller;
 use App\Models\JadwalPelajaran;
+use App\Models\KalenderBlokMinggu;
+use App\Models\Kelas;
+use App\Models\MasterJamPelajaran;
 use App\Models\Pertemuan;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -24,21 +27,20 @@ class DashboardController extends Controller
             ->orderBy('jam_mulai')
             ->get();
 
-        // Cari slot waktu unik hari ini dan beri nomor jam ke-1, ke-2, dst.
-        $timeSlots = $allJadwals->map(function ($j) {
+        // Ambil standar jam pelajaran dari master
+        $masterJam = MasterJamPelajaran::orderBy('jam_ke')->get();
+
+        $timeSlots = $masterJam->map(function ($jam) {
+            $mulai = substr($jam->jam_mulai, 0, 5);
+            $selesai = substr($jam->jam_selesai, 0, 5);
+
             return [
-                'jam_mulai' => substr($j->jam_mulai, 0, 5),
-                'jam_selesai' => substr($j->jam_selesai, 0, 5),
-                'label' => substr($j->jam_mulai, 0, 5).' - '.substr($j->jam_selesai, 0, 5),
+                'jam_ke' => $jam->jam_ke,
+                'jam_mulai' => $mulai,
+                'jam_selesai' => $selesai,
+                'label' => $mulai.' - '.$selesai,
+                'title' => 'Jam Ke-'.$jam->jam_ke.' ('.$mulai.' - '.$selesai.')',
             ];
-        })->unique('label')->values();
-
-        // Tambahkan label Jam ke-N
-        $timeSlots = $timeSlots->map(function ($slot, $idx) {
-            $slot['jam_ke'] = $idx + 1;
-            $slot['title'] = 'Jam Ke-'.($idx + 1).' ('.$slot['label'].')';
-
-            return $slot;
         });
 
         // Deteksi slot jam yang sedang berjalan sekarang
@@ -107,6 +109,8 @@ class DashboardController extends Controller
 
             return [
                 'jadwal' => $jadwal,
+                'jadwal_id' => $jadwal->id,
+                'guru_id' => $jadwal->guru_id,
                 'pertemuan' => $pertemuan,
                 'jam_ke' => $jamKe,
                 'slot_index' => $slotKey,
@@ -161,6 +165,10 @@ class DashboardController extends Controller
             'belum_hadir' => $filteredItems->where('status', 'belum_hadir')->count(),
         ];
 
+        // Ambil data blok aktif untuk banner sistem blok
+        $mingguAktif = KalenderBlokMinggu::aktif($today)->first();
+        $kelasSistemBlok = Kelas::where('is_sistem_blok', true)->orderBy('nama')->get();
+
         return view('piket.dashboard', compact(
             'filteredItems',
             'timeSlots',
@@ -170,7 +178,9 @@ class DashboardController extends Controller
             'selectedStatus',
             'stats',
             'today',
-            'nowTime'
+            'nowTime',
+            'mingguAktif',
+            'kelasSistemBlok'
         ));
     }
 }

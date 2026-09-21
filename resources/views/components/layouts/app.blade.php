@@ -30,38 +30,42 @@
              x-transition:leave="ease-in duration-200" 
              x-transition:leave-start="opacity-100" 
              x-transition:leave-end="opacity-0" 
-             class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity"></div>
+             class="fixed inset-0 bg-slate-950/60 backdrop-blur-md transition-opacity"></div>
 
         <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
-            <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+            <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
                 <div x-show="showGlobalLogoutModal" 
                      @click.away="showGlobalLogoutModal = false"
                      x-transition:enter="ease-out duration-300" 
-                     x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" 
-                     x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100" 
+                     x-transition:enter-start="opacity-0 scale-90 translate-y-4" 
+                     x-transition:enter-end="opacity-100 scale-100 translate-y-0" 
                      x-transition:leave="ease-in duration-200" 
-                     x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100" 
-                     x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" 
-                     class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-sm">
-                    
-                    <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
-                        <div class="sm:flex sm:items-start">
-                            <div class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
-                                <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                     x-transition:leave-start="opacity-100 scale-100 translate-y-0" 
+                     x-transition:leave-end="opacity-0 scale-90 translate-y-4" 
+                     class="relative transform overflow-hidden rounded-3xl bg-white text-left shadow-2xl shadow-rose-950/20 border border-slate-100 transition-all sm:my-8 sm:w-full sm:max-w-md">
+
+                    <div class="p-6 sm:p-7">
+                        <div class="flex items-center gap-4">
+                            <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-rose-50 text-red-600 ring-8 ring-rose-500/10 shadow-inner">
+                                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
                                 </svg>
                             </div>
-                            <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
-                                <h3 class="text-base font-semibold leading-6 text-slate-900" id="modal-title">Konfirmasi Keluar</h3>
-                                <div class="mt-2">
-                                    <p class="text-sm text-slate-500">Apakah Anda yakin ingin keluar dari akun ini? Anda harus masuk kembali untuk mengakses sistem.</p>
-                                </div>
+                            <div>
+                                <h3 class="text-lg font-bold tracking-tight text-slate-900" id="modal-title">Konfirmasi Keluar</h3>
+                                <p class="mt-1 text-sm text-slate-500 leading-relaxed">Apakah Anda yakin ingin keluar dari akun ini? Anda harus masuk kembali untuk mengakses sistem.</p>
                             </div>
                         </div>
-                    </div>
-                    <div class="bg-slate-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 gap-2">
-                        <button type="button" @click="if(logoutForm) logoutForm.submit()" class="inline-flex w-full justify-center rounded-xl bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:w-auto transition-colors">Ya, Keluar</button>
-                        <button type="button" @click="showGlobalLogoutModal = false" class="mt-3 inline-flex w-full justify-center rounded-xl bg-white px-3 py-2 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 sm:mt-0 sm:w-auto transition-colors">Batal</button>
+
+                        <div class="mt-7 flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5">
+                            <button type="button" @click="showGlobalLogoutModal = false" class="inline-flex w-full sm:w-auto items-center justify-center rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 active:scale-98 transition-all cursor-pointer">
+                                Batal
+                            </button>
+                            <button type="button" @click="if(logoutForm) logoutForm.submit()" class="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-red-500/25 hover:from-red-500 hover:to-rose-500 active:scale-98 transition-all cursor-pointer">
+                                <span>Ya, Keluar</span>
+                                <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -100,40 +104,42 @@
              x-transition:leave="ease-in duration-200" 
              x-transition:leave-start="opacity-100" 
              x-transition:leave-end="opacity-0"
-             class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity"></div>
+             class="fixed inset-0 bg-slate-950/60 backdrop-blur-md transition-opacity"></div>
              
         <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
-            <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+            <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
                 <div x-show="show"
                      @click.away="show = false"
                      x-transition:enter="ease-out duration-300" 
-                     x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" 
-                     x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100" 
+                     x-transition:enter-start="opacity-0 scale-90 translate-y-4" 
+                     x-transition:enter-end="opacity-100 scale-100 translate-y-0" 
                      x-transition:leave="ease-in duration-200" 
-                     x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100" 
-                     x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                     class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-md">
-                    <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
-                        <div class="sm:flex sm:items-start">
-                            <div class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
-                                <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                     x-transition:leave-start="opacity-100 scale-100 translate-y-0" 
+                     x-transition:leave-end="opacity-0 scale-90 translate-y-4"
+                     class="relative transform overflow-hidden rounded-3xl bg-white text-left shadow-2xl shadow-red-950/20 border border-slate-100 transition-all sm:my-8 sm:w-full sm:max-w-md">
+
+                    <div class="p-6 sm:p-7">
+                        <div class="flex items-center gap-4">
+                            <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-red-50 text-red-600 ring-8 ring-red-500/10 shadow-inner">
+                                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                 </svg>
                             </div>
-                            <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
-                                <h3 class="text-base font-semibold leading-6 text-slate-900" id="modal-title">Konfirmasi Penghapusan</h3>
-                                <div class="mt-2">
-                                    <p class="text-sm text-slate-500">Apakah kamu yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.</p>
-                                </div>
+                            <div>
+                                <h3 class="text-lg font-bold tracking-tight text-slate-900" id="modal-title">Konfirmasi Penghapusan</h3>
+                                <p class="mt-1 text-sm text-slate-500 leading-relaxed">Apakah kamu yakin ingin menghapus data ini? Tindakan ini <strong class="text-red-600 font-semibold">permanen</strong> dan tidak dapat dibatalkan.</p>
                             </div>
                         </div>
-                    </div>
-                    <div class="bg-slate-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 gap-2">
-                        <button type="button" @click="confirmDelete" :disabled="countdown > 0" :class="countdown > 0 ? 'opacity-50 cursor-not-allowed bg-red-400' : 'bg-red-600 hover:bg-red-500'" class="inline-flex w-full justify-center rounded-xl px-3 py-2 text-sm font-semibold text-white shadow-sm sm:w-auto transition-colors">
-                            <span x-show="countdown > 0" x-text="'Hapus (' + countdown + 's)'"></span>
-                            <span x-show="countdown <= 0">Ya, Hapus Data</span>
-                        </button>
-                        <button type="button" @click="show = false" class="mt-3 inline-flex w-full justify-center rounded-xl bg-white px-3 py-2 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 sm:mt-0 sm:w-auto transition-colors">Batal</button>
+
+                        <div class="mt-7 flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5">
+                            <button type="button" @click="show = false" class="inline-flex w-full sm:w-auto items-center justify-center rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 active:scale-98 transition-all cursor-pointer">
+                                Batal
+                            </button>
+                            <button type="button" @click="confirmDelete" :disabled="countdown > 0" :class="countdown > 0 ? 'opacity-60 cursor-not-allowed bg-red-400' : 'bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 shadow-lg shadow-red-500/25 active:scale-98'" class="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition-all cursor-pointer">
+                                <span x-show="countdown > 0" x-text="'Menunggu (' + countdown + 's)'"></span>
+                                <span x-show="countdown <= 0">Ya, Hapus Data</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

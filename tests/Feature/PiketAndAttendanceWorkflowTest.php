@@ -265,8 +265,8 @@ class PiketAndAttendanceWorkflowTest extends TestCase
     {
         $response = $this->actingAs($this->kepsek)->get(route('kepala-sekolah.dashboard'));
         $response->assertStatus(200);
-        $response->assertSee('Monitoring Kehadiran Guru Real-Time');
-        $response->assertSee('Pilih Jam Pelajaran');
+        $response->assertSee('Monitoring Kehadiran Real-Time');
+        $response->assertSee('Jam Pelajaran');
         $response->assertSee('Tingkat Kelas');
         $response->assertSee('10-PPLG-1');
         $response->assertSee('Guru Penguji');

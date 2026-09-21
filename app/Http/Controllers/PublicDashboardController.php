@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\JadwalPelajaran;
 use App\Models\KehadiranGuru;
 use App\Models\KehadiranSiswa;
+use App\Models\MasterJamPelajaran;
 use App\Models\Pertemuan;
 use App\Models\User;
 use Carbon\Carbon;
@@ -26,6 +27,12 @@ class PublicDashboardController extends Controller
             'guru_tidak_hadir_hari_ini' => KehadiranGuru::whereDate('created_at', $today)->whereIn('status', ['tidak_hadir', 'sakit', 'alpa', 'dispensasi'])->count(),
             'total_guru' => User::where('role', 'guru')->count(),
             'pertemuan_hari_ini' => Pertemuan::whereDate('tanggal', $today)->count(),
+
+            // Siswa Stats Hari Ini (berdasarkan sesi mapel)
+            'siswa_hadir_hari_ini' => KehadiranSiswa::whereDate('created_at', $today)->where('status', 'hadir')->count(),
+            'siswa_terlambat_hari_ini' => KehadiranSiswa::whereDate('created_at', $today)->where('status', 'terlambat')->count(),
+            'siswa_tidak_hadir_hari_ini' => KehadiranSiswa::whereDate('created_at', $today)->whereIn('status', ['sakit', 'izin', 'alpa', 'dispensasi'])->count(),
+            'total_siswa' => User::where('role', 'siswa')->count(),
         ];
 
         // Real-Time Monitoring KBM Hari Ini
@@ -34,20 +41,20 @@ class PublicDashboardController extends Controller
             ->orderBy('jam_mulai')
             ->get();
 
-        // Identifikasi slot waktu jam pelajaran
-        $timeSlots = $allJadwals->map(function ($j) {
+        // Ambil standar jam pelajaran dari master
+        $masterJam = MasterJamPelajaran::orderBy('jam_ke')->get();
+
+        $timeSlots = $masterJam->map(function ($jam) {
+            $mulai = substr($jam->jam_mulai, 0, 5);
+            $selesai = substr($jam->jam_selesai, 0, 5);
+
             return [
-                'jam_mulai' => substr($j->jam_mulai, 0, 5),
-                'jam_selesai' => substr($j->jam_selesai, 0, 5),
-                'label' => substr($j->jam_mulai, 0, 5).' - '.substr($j->jam_selesai, 0, 5),
+                'jam_ke' => $jam->jam_ke,
+                'jam_mulai' => $mulai,
+                'jam_selesai' => $selesai,
+                'label' => $mulai.' - '.$selesai,
+                'title' => 'Jam Ke-'.$jam->jam_ke.' ('.$mulai.' - '.$selesai.')',
             ];
-        })->unique('label')->values();
-
-        $timeSlots = $timeSlots->map(function ($slot, $idx) {
-            $slot['jam_ke'] = $idx + 1;
-            $slot['title'] = 'Jam Ke-'.($idx + 1).' ('.$slot['label'].')';
-
-            return $slot;
         });
 
         // Deteksi slot jam aktif

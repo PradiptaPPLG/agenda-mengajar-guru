@@ -18,20 +18,26 @@
                 </div>
                 
                 <div x-data="{ jenis: '{{ old('jenis', $mataPelajaran->jenis) }}' }">
-                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Jenis <span class="text-red-500">*</span></label>
-                    <div class="flex gap-4">
-                        <label class="flex items-center gap-2 text-sm">
-                            <input type="radio" name="jenis" value="normatif" x-model="jenis" class="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500">
-                            Normatif (Umum)
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Kategori Pelajaran <span class="text-red-500">*</span></label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <label class="flex items-center gap-2 p-3 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors">
+                            <input type="radio" name="jenis" value="umum" x-model="jenis" class="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500">
+                            <div>
+                                <span class="block text-xs font-bold text-slate-800">Umum</span>
+                                <span class="block text-[11px] text-slate-500">Normatif & Adaptif</span>
+                            </div>
                         </label>
-                        <label class="flex items-center gap-2 text-sm">
-                            <input type="radio" name="jenis" value="adaptif" x-model="jenis" class="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500">
-                            Adaptif (Kejuruan)
+                        <label class="flex items-center gap-2 p-3 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors">
+                            <input type="radio" name="jenis" value="produktif" x-model="jenis" class="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500">
+                            <div>
+                                <span class="block text-xs font-bold text-slate-800">Kejuruan</span>
+                                <span class="block text-[11px] text-slate-500">Produktif</span>
+                            </div>
                         </label>
                     </div>
                     @error('jenis')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
 
-                    <div x-show="jenis === 'adaptif'" class="mt-4 p-4 bg-slate-50 border border-slate-200 rounded-xl" style="display: none;">
+                    <div x-show="jenis === 'produktif' || jenis === 'adaptif'" class="mt-4 p-4 bg-slate-50 border border-slate-200 rounded-xl" style="display: none;">
                         <label class="block text-sm font-medium text-slate-700 mb-2">Pilih Kelas yang Mendapatkan Pelajaran Ini</label>
                         <div class="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-2">
                             @php
