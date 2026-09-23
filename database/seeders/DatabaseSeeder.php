@@ -121,8 +121,8 @@ class DatabaseSeeder extends Seeder
         }
 
         // ── Panggil StudentSeeder & AttendanceSeeder ─────────────────────────
-        $this->call(StudentSeeder::class);
-        $this->call(AttendanceSeeder::class);
+       //  $this->call(StudentSeeder::class); 
+       //  $this->call(AttendanceSeeder::class); 
 
         // ── Summary ───────────────────────────────────────────────────────────
         $this->command->info('');

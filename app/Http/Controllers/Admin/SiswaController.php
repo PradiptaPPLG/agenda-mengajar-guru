@@ -33,9 +33,52 @@ class SiswaController extends Controller
         return back()->with('success', 'Seluruh akun siswa berhasil dinonaktifkan.');
     }
 
+    public function bulkDestroy(Request $request)
+    {
+        if ($request->boolean('delete_all')) {
+            $query = User::where('role', 'siswa');
+            
+            if ($request->filled('search')) {
+                $search = $request->search;
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhereHas('siswaProfile', function ($sq) use ($search) {
+                          $sq->where('nis', 'like', "%{$search}%");
+                      });
+                });
+            }
+
+            if ($request->filled('kelas_id')) {
+                if ($request->kelas_id === 'null') {
+                    $query->whereHas('siswaProfile', function ($sq) {
+                        $sq->whereNull('kelas_id');
+                    });
+                } else {
+                    $query->whereHas('siswaProfile', function ($sq) use ($request) {
+                        $sq->where('kelas_id', $request->kelas_id);
+                    });
+                }
+            }
+
+            $count = $query->count();
+            $query->delete();
+
+            return redirect()->route('admin.siswa.index')->with('success', "Seluruh {$count} siswa berhasil dihapus.");
+        }
+
+        $request->validate([
+            'ids' => ['required', 'array'],
+            'ids.*' => ['exists:users,id'],
+        ]);
+
+        User::whereIn('id', $request->input('ids'))->where('role', 'siswa')->delete();
+
+        return redirect()->route('admin.siswa.index')->with('success', count($request->input('ids')) . ' siswa berhasil dihapus.');
+    }
+
     public function index(Request $request)
     {
-        $query = SiswaProfile::with(['user', 'kelas']);
+        $query = SiswaProfile::with(['user', 'kelas'])->whereHas('user');
 
         if ($request->filled('search')) {
             $search = $request->search;

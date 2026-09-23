@@ -86,8 +86,9 @@ Route::middleware(['auth', 'role:siswa'])->prefix('siswa')->name('siswa.')->grou
 Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
 
-    Route::resource('users', AdminUserController::class)->except(['show']);
     Route::post('users/import', [AdminUserController::class, 'import'])->name('users.import');
+    Route::post('users/bulk-destroy', [AdminUserController::class, 'bulkDestroy'])->name('users.bulk-destroy');
+    Route::resource('users', AdminUserController::class)->except(['show']);
 
     // Manajemen Semua Pengguna (Role & Spatie Role)
     Route::resource('pengguna', PenggunaController::class)->only(['index', 'edit', 'update']);
@@ -98,6 +99,7 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
     Route::resource('permissions', PermissionController::class)->except(['show']);
 
     // Kelas Management
+    Route::post('/kelas/bulk-destroy', [AdminKelasController::class, 'bulkDestroy'])->name('kelas.bulk-destroy');
     Route::resource('kelas', AdminKelasController::class)
         ->parameters(['kelas' => 'kelas']);
     Route::post('/kelas/{kelas}/sync-siswa', [KelasSiswaController::class, 'sync'])->name('kelas.siswa.sync');
@@ -105,6 +107,7 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
     Route::post('/kelas/{kelas}/import-siswa', [KelasSiswaController::class, 'import'])->name('kelas.siswa.import');
 
     // Siswa Management
+    Route::post('siswa/bulk-destroy', [SiswaController::class, 'bulkDestroy'])->name('siswa.bulk-destroy');
     Route::get('siswa', [SiswaController::class, 'index'])->name('siswa.index');
     Route::post('siswa/import', [SiswaController::class, 'import'])->name('siswa.import');
     Route::post('siswa/deactivate-all', [SiswaController::class, 'deactivateAll'])->name('siswa.deactivate-all');

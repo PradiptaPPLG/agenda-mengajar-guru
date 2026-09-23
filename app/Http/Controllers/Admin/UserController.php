@@ -226,6 +226,47 @@ class UserController extends Controller
         return redirect()->route('admin.users.index')->with('success', 'Pengguna berhasil dihapus.');
     }
 
+    public function bulkDestroy(Request $request): RedirectResponse
+    {
+        if ($request->boolean('delete_all')) {
+            $query = User::whereIn('role', ['guru', 'piket', 'tu']);
+            
+            if ($request->filled('search')) {
+                $search = $request->search;
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")->orWhere('email', 'like', "%{$search}%");
+                });
+            }
+
+            // Mencegah menghapus akun sendiri
+            $query->where('id', '!=', auth()->id());
+            
+            $count = $query->count();
+            $query->delete();
+
+            return redirect()->route('admin.users.index')->with('success', "Seluruh {$count} pengguna berhasil dihapus.");
+        }
+
+        $request->validate([
+            'ids' => ['required', 'array'],
+            'ids.*' => ['exists:users,id'],
+        ]);
+
+        $ids = $request->input('ids');
+        
+        // Prevent deleting self
+        if (in_array(auth()->id(), $ids)) {
+            $ids = array_diff($ids, [auth()->id()]);
+            if (empty($ids)) {
+                return redirect()->back()->with('error', 'Anda tidak dapat menghapus akun sendiri. Tidak ada akun lain yang dipilih.');
+            }
+        }
+
+        User::whereIn('id', $ids)->delete();
+
+        return redirect()->route('admin.users.index')->with('success', count($ids) . ' pengguna berhasil dihapus.');
+    }
+
     public function import(Request $request): RedirectResponse
     {
         $request->validate([

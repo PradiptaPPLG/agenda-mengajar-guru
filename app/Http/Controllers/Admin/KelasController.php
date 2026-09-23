@@ -109,6 +109,26 @@ class KelasController extends Controller
         return redirect()->route('admin.kelas.index')->with('success', 'Kelas berhasil dihapus.');
     }
 
+    public function bulkDestroy(Request $request): RedirectResponse
+    {
+        if ($request->boolean('delete_all')) {
+            $query = Kelas::query();
+            // Handle any filters here if added in the future (none currently for kelas index)
+            $count = $query->count();
+            $query->delete();
+            return redirect()->route('admin.kelas.index')->with('success', "Seluruh {$count} kelas berhasil dihapus.");
+        }
+
+        $request->validate([
+            'ids' => ['required', 'array'],
+            'ids.*' => ['exists:kelas,id'],
+        ]);
+
+        Kelas::whereIn('id', $request->input('ids'))->delete();
+
+        return redirect()->route('admin.kelas.index')->with('success', count($request->input('ids')) . ' kelas berhasil dihapus.');
+    }
+
     /**
      * Toggle aktif/non-aktif sistem blok untuk kelas tertentu.
      */
