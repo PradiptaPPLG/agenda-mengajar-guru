@@ -54,9 +54,25 @@ class JadwalImport implements ToCollection, WithHeadingRow
                     $jam_selesai = trim($row->get('jam_selesai', ''));
                 }
 
-                // Normalize waktu from 07.30 to 07:30
+                // Normalize waktu: 07.30 → 07:30, then ensure HH:MM:SS format for consistent DB storage
                 $jam_mulai = str_replace('.', ':', $jam_mulai);
                 $jam_selesai = str_replace('.', ':', $jam_selesai);
+
+                // Pad to HH:MM:SS so "7:10" and "07:10:00" map to the same DB value
+                if ($jam_mulai && preg_match('/^\d{1,2}:\d{2}$/', $jam_mulai)) {
+                    $jam_mulai .= ':00';
+                }
+                if ($jam_selesai && preg_match('/^\d{1,2}:\d{2}$/', $jam_selesai)) {
+                    $jam_selesai .= ':00';
+                }
+
+                // Zero-pad hour: "7:10:00" → "07:10:00"
+                if ($jam_mulai && preg_match('/^\d:\d{2}:\d{2}$/', $jam_mulai)) {
+                    $jam_mulai = '0'.$jam_mulai;
+                }
+                if ($jam_selesai && preg_match('/^\d:\d{2}:\d{2}$/', $jam_selesai)) {
+                    $jam_selesai = '0'.$jam_selesai;
+                }
 
                 // Find or Create Kelas with flexible name matching (e.g. 11 AK1 matches 11AK1)
                 $kelasKey = Kelas::cleanKey($kelasName);

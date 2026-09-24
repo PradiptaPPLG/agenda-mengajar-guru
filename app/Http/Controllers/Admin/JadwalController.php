@@ -198,9 +198,18 @@ class JadwalController extends Controller
         ini_set('memory_limit', '512M');
 
         try {
+            // Hapus semua jadwal yang ada terlebih dahulu jika diminta
+            if ($request->boolean('clear_before_import')) {
+                DB::table('jadwal_pelajarans')->delete();
+            }
+
             Excel::import(new JadwalImport, $request->file('file'));
 
-            return redirect()->route('admin.jadwal.index')->with('success', 'Jadwal berhasil diimport.');
+            $message = $request->boolean('clear_before_import')
+                ? 'Semua jadwal lama berhasil dihapus dan jadwal baru berhasil diimport.'
+                : 'Jadwal berhasil diimport.';
+
+            return redirect()->route('admin.jadwal.index')->with('success', $message);
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Gagal import: '.$e->getMessage());
         }
