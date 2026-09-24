@@ -119,7 +119,7 @@ class SiswaController extends Controller
         $defaultPassword = Hash::make('password');
         set_time_limit(300); // Allow up to 5 minutes for large files
 
-        $processRow = function (array $rowProperties, &$headerFound, &$nameIndex, &$emailIndex, &$nisIndex, &$kelasIndex) use (&$imported, $defaultPassword) {
+        $processRow = function (array $rowProperties, &$headerFound, &$nameIndex, &$emailIndex, &$nisIndex, &$nisnIndex, &$kelasIndex) use (&$imported, $defaultPassword) {
             if (! $headerFound) {
                 foreach ($rowProperties as $index => $value) {
                     if (is_string($value)) {
@@ -130,6 +130,8 @@ class SiswaController extends Controller
                             $emailIndex = $index;
                         } elseif (in_array($lowerVal, ['nis'])) {
                             $nisIndex = $index;
+                        } elseif (in_array($lowerVal, ['nisn'])) {
+                            $nisnIndex = $index;
                         } elseif (in_array($lowerVal, ['kelas'])) {
                             $kelasIndex = $index;
                         }
@@ -148,7 +150,13 @@ class SiswaController extends Controller
                 return;
             }
 
-            $nis = ($nisIndex !== -1 && isset($rowProperties[$nisIndex])) ? trim($rowProperties[$nisIndex]) : null;
+            $nis = null;
+            if ($nisIndex !== -1 && ! empty($rowProperties[$nisIndex])) {
+                $nis = trim($rowProperties[$nisIndex]);
+            } elseif ($nisnIndex !== -1 && ! empty($rowProperties[$nisnIndex])) {
+                $nis = trim($rowProperties[$nisnIndex]);
+            }
+
             $providedEmail = ($emailIndex !== -1 && ! empty($rowProperties[$emailIndex])) ? trim($rowProperties[$emailIndex]) : null;
             $kelasName = ($kelasIndex !== -1 && ! empty($rowProperties[$kelasIndex])) ? trim($rowProperties[$kelasIndex]) : null;
 
@@ -230,13 +238,14 @@ class SiswaController extends Controller
                 $nameIndex = -1;
                 $emailIndex = -1;
                 $nisIndex = -1;
+                $nisnIndex = -1;
                 $kelasIndex = -1;
                 foreach ($sheet->getRowIterator() as $row) {
                     $rowProperties = [];
                     foreach ($row->getCells() as $cell) {
                         $rowProperties[] = $cell->getValue();
                     }
-                    $processRow($rowProperties, $headerFound, $nameIndex, $emailIndex, $nisIndex, $kelasIndex);
+                    $processRow($rowProperties, $headerFound, $nameIndex, $emailIndex, $nisIndex, $nisnIndex, $kelasIndex);
                 }
             }
             $spoutReader->close();
@@ -246,9 +255,10 @@ class SiswaController extends Controller
             $nameIndex = -1;
             $emailIndex = -1;
             $nisIndex = -1;
+            $nisnIndex = -1;
             $kelasIndex = -1;
-            $reader->noHeaderRow()->getRows()->each(function (array $rowProperties) use ($processRow, &$headerFound, &$nameIndex, &$emailIndex, &$nisIndex, &$kelasIndex) {
-                $processRow($rowProperties, $headerFound, $nameIndex, $emailIndex, $nisIndex, $kelasIndex);
+            $reader->noHeaderRow()->getRows()->each(function (array $rowProperties) use ($processRow, &$headerFound, &$nameIndex, &$emailIndex, &$nisIndex, &$nisnIndex, &$kelasIndex) {
+                $processRow($rowProperties, $headerFound, $nameIndex, $emailIndex, $nisIndex, $nisnIndex, $kelasIndex);
             });
         }
 
