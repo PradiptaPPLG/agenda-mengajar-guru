@@ -60,7 +60,8 @@
                         </button>
                     </div>
 
-                    <form x-show="!isSubmitting" action="{{ route('admin.jadwal.import') }}" method="POST" enctype="multipart/form-data" class="p-6" @submit="isSubmitting = true">
+                    <form x-show="!isSubmitting" action="{{ route('admin.jadwal.import') }}" method="POST" enctype="multipart/form-data" class="p-6" @submit="isSubmitting = true"
+                          x-data="{ clearFirst: false }">
                         @csrf
                         <div class="mb-5">
                             <label class="flex justify-between items-center text-sm font-semibold text-slate-700 mb-2">
@@ -73,11 +74,36 @@
                             <input type="file" name="file" accept=".xlsx,.xls" required 
                                    class="w-full text-sm text-slate-500 border border-slate-200 rounded-2xl p-1.5 cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-all">
                         </div>
+
+                        {{-- Option: Hapus semua jadwal sebelum import --}}
+                        <div class="mb-4">
+                            <label class="flex items-start gap-3 cursor-pointer group">
+                                <div class="relative mt-0.5 flex-shrink-0">
+                                    <input type="checkbox" name="clear_before_import" value="1" x-model="clearFirst"
+                                           id="clear_before_import"
+                                           class="peer w-4 h-4 rounded border-slate-300 text-red-600 focus:ring-red-500 cursor-pointer">
+                                </div>
+                                <div>
+                                    <span class="text-sm font-semibold text-slate-700 group-hover:text-slate-900 transition-colors">Hapus semua jadwal sebelum import</span>
+                                    <p class="text-xs text-slate-500 mt-0.5">Centang ini jika kamu ingin <strong>mengganti total</strong> jadwal yang ada. Cocok untuk upload ulang jadwal baru agar tidak terjadi data ganda.</p>
+                                </div>
+                            </label>
+                        </div>
+
+                        {{-- Warning jika clear_first dicentang --}}
+                        <div x-show="clearFirst" x-cloak class="mb-4 rounded-xl bg-red-50 border border-red-200 p-3 flex items-start gap-2.5">
+                            <svg class="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+                            <p class="text-xs text-red-700 font-medium leading-snug"><strong>Peringatan:</strong> Seluruh data jadwal pelajaran yang ada akan <strong>dihapus permanen</strong> sebelum file baru diproses. Pastikan file yang diunggah sudah lengkap dan benar.</p>
+                        </div>
+
                         <div class="flex items-center justify-end gap-3 pt-2">
                             <button type="button" @click="importOpen = false" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-sm font-semibold hover:bg-slate-50 transition-colors cursor-pointer">Batal</button>
-                            <button type="submit" class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-sm font-semibold shadow-lg shadow-blue-600/25 active:scale-98 transition-all cursor-pointer flex items-center gap-2">
+                            <button type="submit"
+                                    :class="clearFirst
+                                        ? 'px-5 py-2.5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white rounded-xl text-sm font-semibold shadow-lg shadow-red-600/25 active:scale-98 transition-all cursor-pointer flex items-center gap-2'
+                                        : 'px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-sm font-semibold shadow-lg shadow-blue-600/25 active:scale-98 transition-all cursor-pointer flex items-center gap-2'">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                                Import Jadwal
+                                <span x-text="clearFirst ? 'Hapus & Import Ulang' : 'Import Jadwal'"></span>
                             </button>
                         </div>
                     </form>
