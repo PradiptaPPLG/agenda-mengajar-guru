@@ -173,7 +173,7 @@ class PublicDashboardController extends Controller
         $chartTidakHadir = [];
         for ($i = 6; $i >= 0; $i--) {
             $date = $today->copy()->subDays($i);
-            $dayQuery = KehadiranGuru::whereDate('created_at', $date);
+            $dayQuery = KehadiranGuru::whereHas('pertemuan', fn ($q) => $q->whereDate('tanggal', $date));
             $chartHadir[] = (clone $dayQuery)->where('status', 'hadir')->count();
             $chartTerlambat[] = (clone $dayQuery)->where('status', 'terlambat')->count();
             $chartTidakHadir[] = (clone $dayQuery)->whereIn('status', ['tidak_hadir', 'sakit', 'alpa', 'dispensasi'])->count();
@@ -190,7 +190,7 @@ class PublicDashboardController extends Controller
             'tidak_hadir' => round($guruPie['tidak_hadir'] / $guruPieTotal * 100, 1),
         ];
 
-        $siswaQuery7 = KehadiranSiswa::whereDate('created_at', '>=', $today->copy()->subDays(7));
+        $siswaQuery7 = KehadiranSiswa::whereHas('pertemuan', fn ($q) => $q->whereDate('tanggal', '>=', $today->copy()->subDays(7)->toDateString()));
         $siswaPie = [
             'hadir' => (clone $siswaQuery7)->where('status', 'hadir')->count(),
             'sakit' => (clone $siswaQuery7)->where('status', 'sakit')->count(),

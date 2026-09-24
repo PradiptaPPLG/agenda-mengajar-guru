@@ -3,12 +3,13 @@
 namespace App\Http\Controllers\KepalaSekolah;
 
 use App\Http\Controllers\Controller;
-use App\Models\JadwalPelajaran;
 use App\Models\KehadiranGuru;
 use App\Models\KehadiranSiswa;
+use App\Models\Kelas;
 use App\Models\MasterJamPelajaran;
 use App\Models\Pertemuan;
 use App\Models\User;
+use App\Services\JadwalBlokResolverService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -21,20 +22,21 @@ class DashboardController extends Controller
         $hari = $today->dayOfWeekIso;
         $nowTime = Carbon::now()->format('H:i');
 
-        // Statistik agregat hari ini
+        // Statistik agregat hari ini (berdasarkan tanggal pertemuan, bukan created_at)
         $stats = [
-            'guru_hadir_hari_ini' => KehadiranGuru::whereDate('created_at', $today)->where('status', 'hadir')->count(),
-            'guru_terlambat_hari_ini' => KehadiranGuru::whereDate('created_at', $today)->where('status', 'terlambat')->count(),
-            'guru_tidak_hadir_hari_ini' => KehadiranGuru::whereDate('created_at', $today)->whereIn('status', ['tidak_hadir', 'sakit', 'alpa', 'dispensasi'])->count(),
+            'guru_hadir_hari_ini' => KehadiranGuru::whereHas('pertemuan', fn ($q) => $q->whereDate('tanggal', $today))->where('status', 'hadir')->count(),
+            'guru_terlambat_hari_ini' => KehadiranGuru::whereHas('pertemuan', fn ($q) => $q->whereDate('tanggal', $today))->where('status', 'terlambat')->count(),
+            'guru_tidak_hadir_hari_ini' => KehadiranGuru::whereHas('pertemuan', fn ($q) => $q->whereDate('tanggal', $today))->whereIn('status', ['tidak_hadir', 'sakit', 'alpa', 'dispensasi'])->count(),
             'total_guru' => User::where('role', 'guru')->count(),
             'pertemuan_hari_ini' => Pertemuan::whereDate('tanggal', $today)->count(),
         ];
 
-        // ── Real-Time Monitoring KBM Hari Ini Berbasis Kartu & Jam Berjalan ──
-        $allJadwals = JadwalPelajaran::with(['kelas', 'guru', 'mataPelajaran'])
-            ->where('hari', $hari)
-            ->orderBy('jam_mulai')
-            ->get();
+        // ── Real-Time Monitoring KBM Hari Ini Berbasis Kartu & Jam Berjalan (sistem blok aware) ──
+        $kelasList = Kelas::orderBy('nama')->get();
+        $allJadwals = app(JadwalBlokResolverService::class)
+            ->resolveJadwalBanyakKelas($kelasList, $today, (string) $hari)
+            ->load(['kelas', 'guru', 'mataPelajaran'])
+            ->sortBy(['jam_mulai', 'kelas.nama']);
 
         // Ambil standar jam pelajaran dari master
         $masterJam = MasterJamPelajaran::orderBy('jam_ke')->get();
@@ -181,7 +183,7 @@ class DashboardController extends Controller
         for ($i = 6; $i >= 0; $i--) {
             $date = $today->copy()->subDays($i);
             $chartLabels[] = $date->translatedFormat('D, d M');
-            $dayQuery = KehadiranGuru::whereDate('created_at', $date);
+            $dayQuery = KehadiranGuru::whereHas('pertemuan', fn ($q) => $q->whereDate('tanggal', $date));
             $chartHadir[] = (clone $dayQuery)->where('status', 'hadir')->count();
             $chartTerlambat[] = (clone $dayQuery)->where('status', 'terlambat')->count();
             $chartTidakHadir[] = (clone $dayQuery)->whereIn('status', ['tidak_hadir', 'sakit', 'alpa', 'dispensasi'])->count();
@@ -213,7 +215,7 @@ class DashboardController extends Controller
         for ($i = 6; $i >= 0; $i--) {
             $date = $today->copy()->subDays($i);
             $siswaChartLabels[] = $date->translatedFormat('D, d M');
-            $dayQ = KehadiranSiswa::whereDate('created_at', $date);
+            $dayQ = KehadiranSiswa::whereHas('pertemuan', fn ($q) => $q->whereDate('tanggal', $date));
             $siswaChartHadir[] = (clone $dayQ)->where('status', 'hadir')->count();
             $siswaChartTidakHadir[] = (clone $dayQ)->whereIn('status', ['sakit', 'izin', 'alpa', 'dispensasi'])->count();
         }
@@ -224,7 +226,7 @@ class DashboardController extends Controller
         ];
 
         // ── Pie chart siswa: total 7 hari ──
-        $siswaQuery7 = KehadiranSiswa::whereDate('created_at', '>=', $today->copy()->subDays(7));
+        $siswaQuery7 = KehadiranSiswa::whereHas('pertemuan', fn ($q) => $q->whereDate('tanggal', '>=', $today->copy()->subDays(7)->toDateString()));
         $siswaPie = [
             'hadir' => (clone $siswaQuery7)->where('status', 'hadir')->count(),
             'sakit' => (clone $siswaQuery7)->where('status', 'sakit')->count(),
