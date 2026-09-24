@@ -37,14 +37,14 @@ class SiswaController extends Controller
     {
         if ($request->boolean('delete_all')) {
             $query = User::where('role', 'siswa');
-            
+
             if ($request->filled('search')) {
                 $search = $request->search;
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
-                      ->orWhereHas('siswaProfile', function ($sq) use ($search) {
-                          $sq->where('nis', 'like', "%{$search}%");
-                      });
+                        ->orWhereHas('siswaProfile', function ($sq) use ($search) {
+                            $sq->where('nis', 'like', "%{$search}%");
+                        });
                 });
             }
 
@@ -73,7 +73,7 @@ class SiswaController extends Controller
 
         User::whereIn('id', $request->input('ids'))->where('role', 'siswa')->delete();
 
-        return redirect()->route('admin.siswa.index')->with('success', count($request->input('ids')) . ' siswa berhasil dihapus.');
+        return redirect()->route('admin.siswa.index')->with('success', count($request->input('ids')).' siswa berhasil dihapus.');
     }
 
     public function index(Request $request)

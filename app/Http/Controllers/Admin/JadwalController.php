@@ -202,6 +202,35 @@ class JadwalController extends Controller
         }
     }
 
+    public function bulkDestroy(Request $request): RedirectResponse
+    {
+        if ($request->boolean('delete_all')) {
+            $query = JadwalPelajaran::query()
+                ->when($request->input('kelas_id'), fn ($q, $id) => $q->where('kelas_id', $id))
+                ->when($request->input('guru_id'), fn ($q, $id) => $q->where('guru_id', $id));
+
+            $count = $query->count();
+            DB::transaction(function () use ($query) {
+                $query->delete();
+            });
+
+            return redirect()->route('admin.jadwal.index')
+                ->with('success', $count.' jadwal berhasil dihapus.');
+        }
+
+        $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['exists:jadwal_pelajarans,id'],
+        ]);
+
+        DB::transaction(function () use ($request) {
+            JadwalPelajaran::whereIn('id', $request->ids)->delete();
+        });
+
+        return redirect()->route('admin.jadwal.index')
+            ->with('success', count($request->ids).' jadwal berhasil dihapus.');
+    }
+
     /**
      * Validate that neither the teacher nor the class has an overlapping schedule.
      *
