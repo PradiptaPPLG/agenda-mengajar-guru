@@ -272,7 +272,16 @@
                     <p class="text-sm text-slate-600">Unggah file Excel (.xlsx / .csv) untuk membuat data murid baru dan otomatis memasukkan mereka ke kelas ini.</p>
                     
                     <div class="bg-blue-50 text-blue-700 p-4 rounded-xl text-xs space-y-2">
-                        <p class="font-semibold">Ketentuan Kolom Excel:</p>
+                        <div class="flex items-center justify-between">
+                            <p class="font-semibold text-blue-950 flex items-center gap-2">
+                                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                Ketentuan Kolom Excel:
+                            </p>
+                            <a href="{{ route('admin.kelas.siswa.template', $kelas) }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-blue-200 text-blue-700 hover:bg-blue-50 text-xs font-semibold rounded-lg transition-colors">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                Unduh Template
+                            </a>
+                        </div>
                         <ul class="list-disc pl-4 space-y-1">
                             <li>Harus ada kolom <strong>Nama Lengkap</strong> atau <strong>Nama</strong>.</li>
                             <li>Kolom <strong>Alamat Email</strong> opsional. Jika kosong, akan dibuatkan email otomatis.</li>

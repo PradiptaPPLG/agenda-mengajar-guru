@@ -13,6 +13,8 @@ use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Spatie\Permission\Models\Role;
 use Spatie\SimpleExcel\SimpleExcelReader;
+use Spatie\SimpleExcel\SimpleExcelWriter;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class UserController extends Controller
 {
@@ -314,6 +316,22 @@ class UserController extends Controller
 
         return redirect()->route('admin.users.index')
             ->with('success', "Import selesai. {$successCount} guru berhasil diimport, {$errorCount} gagal.");
+    }
+
+    public function downloadTemplate(): BinaryFileResponse
+    {
+        $tempPath = tempnam(sys_get_temp_dir(), 'template_guru_').'.xlsx';
+        $writer = SimpleExcelWriter::create($tempPath);
+
+        $writer->addRow([
+            'Nama' => 'Budi Santoso',
+            'NIP' => '198001012010011001',
+            'Email' => 'budi@sekolah.sch.id',
+        ]);
+
+        $writer->close();
+
+        return response()->download($tempPath, 'template-import-guru.xlsx')->deleteFileAfterSend(true);
     }
 
     private function getDaftarJurusan(): array
