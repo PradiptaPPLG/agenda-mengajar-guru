@@ -41,11 +41,15 @@ class PertemuanController extends Controller
             ['status' => 'menunggu']
         );
 
-        // Auto-create kehadiran_siswa rows for all active students in the class
-        $siswaIds = $jadwal->kelas->siswaProfiles()
-            ->whereHas('user', fn ($q) => $q->whereNull('deleted_at'))
-            ->pluck('user_id')
-            ->filter();
+        // Auto-create kehadiran_siswa rows for active students in the class (scoped to block group for split classes)
+        $siswaQuery = $jadwal->kelas->siswaProfiles()
+            ->whereHas('user', fn ($q) => $q->whereNull('deleted_at'));
+
+        if ($jadwal->kelas->is_sistem_blok && $jadwal->kelas->model_rotasi === 'split_harian' && in_array($jadwal->kelompok_blok, ['kelompok_a', 'kelompok_b'])) {
+            $siswaQuery->where('kelompok_blok', $jadwal->kelompok_blok);
+        }
+
+        $siswaIds = $siswaQuery->pluck('user_id')->filter();
 
         foreach ($siswaIds as $siswaId) {
             KehadiranSiswa::firstOrCreate(

@@ -28,6 +28,14 @@ class DashboardController extends Controller
             ? app(JadwalBlokResolverService::class)->resolveJadwal($kelas, $today, (string) $hariAngka)
             : collect();
 
+        // Jika kelas split_harian dan siswa memiliki kelompok blok (A atau B), filter hanya kelompoknya + reguler
+        if ($kelas && $kelas->is_sistem_blok && $kelas->model_rotasi === 'split_harian' && $user->siswaProfile?->kelompok_blok) {
+            $kelompokSiswa = $user->siswaProfile->kelompok_blok;
+            $jadwals = $jadwals->filter(function (JadwalPelajaran $j) use ($kelompokSiswa) {
+                return $j->kelompok_blok === 'reguler' || $j->kelompok_blok === $kelompokSiswa || empty($j->kelompok_blok);
+            });
+        }
+
         // For each jadwal, calculate whether lesson start time has been reached
         $jadwalsWithStatus = $jadwals->map(function (JadwalPelajaran $jadwal) use ($today, $user, $nowTime) {
             $pertemuan = Pertemuan::with(['fotoBuktis' => function ($q) use ($user) {

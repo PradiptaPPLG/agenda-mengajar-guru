@@ -38,6 +38,13 @@ class CaptureController extends Controller
             if (! $activeJadwals->pluck('id')->contains($jadwal->id)) {
                 return redirect()->route('siswa.dashboard')->with('error', 'Mata pelajaran ini tidak aktif untuk kelas Anda pada tanggal tersebut.');
             }
+
+            if ($kelas->model_rotasi === 'split_harian' && $user->siswaProfile?->kelompok_blok) {
+                $kelompokSiswa = $user->siswaProfile->kelompok_blok;
+                if ($jadwal->kelompok_blok && $jadwal->kelompok_blok !== 'reguler' && $jadwal->kelompok_blok !== $kelompokSiswa) {
+                    return redirect()->route('siswa.dashboard')->with('error', 'Mata pelajaran ini bukan untuk kelompok Anda.');
+                }
+            }
         }
 
         if ($tanggalCarbon->gt(now()->endOfDay())) {
@@ -86,6 +93,13 @@ class CaptureController extends Controller
             $activeJadwals = app(JadwalBlokResolverService::class)->resolveJadwal($kelas, $tanggalCarbon, (string) $jadwal->hari);
             if (! $activeJadwals->pluck('id')->contains($jadwal->id)) {
                 return redirect()->route('siswa.dashboard')->with('error', 'Mata pelajaran ini tidak aktif untuk kelas Anda pada tanggal tersebut.');
+            }
+
+            if ($kelas->model_rotasi === 'split_harian' && $user->siswaProfile?->kelompok_blok) {
+                $kelompokSiswa = $user->siswaProfile->kelompok_blok;
+                if ($jadwal->kelompok_blok && $jadwal->kelompok_blok !== 'reguler' && $jadwal->kelompok_blok !== $kelompokSiswa) {
+                    return redirect()->route('siswa.dashboard')->with('error', 'Mata pelajaran ini bukan untuk kelompok Anda.');
+                }
             }
         }
 
