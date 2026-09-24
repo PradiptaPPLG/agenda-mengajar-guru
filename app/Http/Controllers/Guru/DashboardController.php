@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Guru;
 use App\Http\Controllers\Controller;
 use App\Models\HariLibur;
 use App\Models\JadwalPelajaran;
+use App\Models\KehadiranGuru;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -59,6 +60,27 @@ class DashboardController extends Controller
             ];
         }
 
+        // Attendance statistics for the logged-in teacher
+        $kehadiranStats = KehadiranGuru::where('guru_id', $user->id)
+            ->selectRaw('status, count(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
+        $totalKehadiran = $kehadiranStats->sum();
+        $totalHadir = $kehadiranStats->get('hadir', 0) + $kehadiranStats->get('terlambat', 0);
+        $persentaseHadir = $totalKehadiran > 0
+            ? round(($totalHadir / $totalKehadiran) * 100, 1)
+            : 0;
+
+        $stats = [
+            'total' => $totalKehadiran,
+            'hadir' => $totalHadir,
+            'sakit' => $kehadiranStats->get('sakit', 0),
+            'izin' => KehadiranGuru::where('guru_id', $user->id)->where('alasan_tidak_hadir', 'izin')->count(),
+            'alpa' => $kehadiranStats->get('alpa', 0) + $kehadiranStats->get('tidak_hadir', 0),
+            'persentase' => $persentaseHadir,
+        ];
+
         return view('guru.dashboard', [
             'mingguIni' => $mingguIni,
             'hariList' => $hariList,
@@ -67,6 +89,7 @@ class DashboardController extends Controller
             'prevWeek' => $weekStart->copy()->subWeek()->toDateString(),
             'nextWeek' => $weekStart->copy()->addWeek()->toDateString(),
             'today' => Carbon::today(),
+            'stats' => $stats,
         ]);
     }
 }

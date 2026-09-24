@@ -42,6 +42,40 @@
             </div>
         </div>
 
+        {{-- Attendance Stats --}}
+        <div class="mb-4 bg-white border border-slate-200 rounded-2xl p-4">
+            <h3 class="text-sm font-bold text-slate-800 mb-3">Statistik Kehadiran Saya</h3>
+            <div class="grid grid-cols-2 gap-3 mb-3">
+                <div class="bg-green-50 rounded-xl p-3 border border-green-100 flex flex-col justify-center">
+                    <p class="text-xs text-green-600 font-medium">Hadir & Terlambat</p>
+                    <p class="text-xl font-bold text-green-900">{{ $stats['hadir'] }}</p>
+                </div>
+                <div class="bg-rose-50 rounded-xl p-3 border border-rose-100 flex flex-col justify-center">
+                    <p class="text-xs text-rose-600 font-medium">Alpa / Tanpa Ket.</p>
+                    <p class="text-xl font-bold text-rose-900">{{ $stats['alpa'] }}</p>
+                </div>
+                <div class="bg-amber-50 rounded-xl p-3 border border-amber-100 flex flex-col justify-center">
+                    <p class="text-xs text-amber-600 font-medium">Sakit</p>
+                    <p class="text-xl font-bold text-amber-900">{{ $stats['sakit'] }}</p>
+                </div>
+                <div class="bg-purple-50 rounded-xl p-3 border border-purple-100 flex flex-col justify-center">
+                    <p class="text-xs text-purple-600 font-medium">Izin</p>
+                    <p class="text-xl font-bold text-purple-900">{{ $stats['izin'] }}</p>
+                </div>
+            </div>
+            
+            <div class="mt-4">
+                <div class="flex justify-between text-xs mb-1.5">
+                    <span class="font-medium text-slate-600">Persentase Kehadiran</span>
+                    <span class="font-bold {{ $stats['persentase'] < 80 ? 'text-rose-600' : 'text-green-600' }}">{{ $stats['persentase'] }}%</span>
+                </div>
+                <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                    <div class="h-2.5 rounded-full {{ $stats['persentase'] < 80 ? 'bg-rose-500' : 'bg-green-500' }} transition-all duration-500" style="width: {{ $stats['persentase'] }}%"></div>
+                </div>
+                <p class="text-[11px] text-slate-400 mt-2 text-center">Berdasarkan total {{ $stats['total'] }} jadwal mengajar yang sudah direkap</p>
+            </div>
+        </div>
+
         {{-- Schedule by day --}}
         @forelse($mingguIni as $hariAngka => $dayData)
         @php
