@@ -5,7 +5,7 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     @endpush
 
-    <div x-data="{ showImport: false }">
+    <div x-data="{ showImport: false, isSubmitting: false }">
         <!-- Header & Actions -->
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
@@ -185,7 +185,7 @@
 
         <!-- Import Modal -->
         <div x-show="showImport" style="display: none;" class="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/60 backdrop-blur-md p-4 transition-all duration-300">
-            <div @click.outside="showImport = false" 
+            <div @click.outside="!isSubmitting && (showImport = false)" 
                  x-transition:enter="ease-out duration-300"
                  x-transition:enter-start="opacity-0 scale-90 translate-y-4"
                  x-transition:enter-end="opacity-100 scale-100 translate-y-0"
@@ -204,11 +204,12 @@
                             <p class="text-xs text-slate-500">Unggah berkas spreadsheet (.xlsx / .csv)</p>
                         </div>
                     </div>
-                    <button @click="showImport = false" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-400 hover:text-slate-600 flex items-center justify-center transition-colors cursor-pointer">
+                    <button x-show="!isSubmitting" @click="showImport = false" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-400 hover:text-slate-600 flex items-center justify-center transition-colors cursor-pointer">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
                 </div>
-                <div class="p-6">
+
+                <div class="p-6" x-show="!isSubmitting">
                     <div class="bg-gradient-to-br from-blue-50 to-indigo-50/50 text-blue-900 p-4 rounded-2xl text-sm mb-6 border border-blue-100 space-y-2">
                         <div class="flex items-center justify-between">
                             <p class="font-semibold text-blue-950 flex items-center gap-2">
@@ -229,7 +230,7 @@
                         </ul>
                     </div>
 
-                    <form action="{{ route('admin.users.import') }}" method="POST" enctype="multipart/form-data">
+                    <form action="{{ route('admin.users.import') }}" method="POST" enctype="multipart/form-data" @submit="isSubmitting = true">
                         @csrf
                         <div class="mb-6">
                             <label class="block text-sm font-semibold text-slate-700 mb-2">File Excel / CSV <span class="text-red-500">*</span></label>
@@ -238,9 +239,38 @@
                         </div>
                         <div class="flex items-center justify-end gap-3 pt-2">
                             <button type="button" @click="showImport = false" class="px-4 py-2.5 border border-slate-200 text-slate-700 text-sm font-semibold rounded-xl hover:bg-slate-50 transition-colors cursor-pointer">Batal</button>
-                            <button type="submit" class="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-sm font-semibold rounded-xl shadow-lg shadow-emerald-600/25 active:scale-98 transition-all cursor-pointer">Mulai Import</button>
+                            <button type="submit" class="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-sm font-semibold rounded-xl shadow-lg shadow-emerald-600/25 active:scale-98 transition-all cursor-pointer flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                                Mulai Import
+                            </button>
                         </div>
                     </form>
+                </div>
+
+                {{-- Loading State --}}
+                <div x-show="isSubmitting" style="display: none;" class="p-8 text-center flex flex-col items-center justify-center">
+                    <div class="relative w-20 h-20 mb-5 flex items-center justify-center">
+                        <div class="absolute inset-0 rounded-full border-4 border-emerald-100 border-t-emerald-600 animate-spin"></div>
+                        <div class="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 shadow-inner">
+                            <svg class="w-6 h-6 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                            </svg>
+                        </div>
+                    </div>
+                    
+                    <h4 class="text-lg font-bold text-slate-900 mb-1.5">Sedang Mengimpor Data Guru...</h4>
+                    <p class="text-xs text-slate-500 max-w-xs leading-relaxed mb-6">
+                        Mohon tunggu sebentar, sistem sedang memproses akun, mapel, dan kelas guru. <strong class="text-slate-800">Jangan menutup halaman atau klik tombol kembali</strong> agar data tersimpan sempurna.
+                    </p>
+
+                    <!-- Bar Animasi Bergerak -->
+                    <div class="w-full max-w-xs bg-slate-100 rounded-full h-2 overflow-hidden relative shadow-inner">
+                        <div class="h-full bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 rounded-full animate-pulse w-full"></div>
+                    </div>
+                    <span class="text-[11px] text-emerald-600 font-semibold mt-3 flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-emerald-600 animate-ping"></span>
+                        Proses import sedang berjalan...
+                    </span>
                 </div>
             </div>
         </div>

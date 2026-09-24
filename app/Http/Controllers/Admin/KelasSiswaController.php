@@ -9,7 +9,6 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use Spatie\SimpleExcel\SimpleExcelReader;
 use Spatie\SimpleExcel\SimpleExcelWriter;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -64,15 +63,13 @@ class KelasSiswaController extends Controller
         $defaultPassword = Hash::make('password');
         set_time_limit(300); // Allow up to 5 minutes for large files
 
-        $processRow = function (array $rowProperties, &$headerFound, &$nameIndex, &$emailIndex, &$nisIndex) use ($kelas, &$importedCount, $defaultPassword) {
+        $processRow = function (array $rowProperties, &$headerFound, &$nameIndex, &$nisIndex) use ($kelas, &$importedCount, $defaultPassword) {
             if (! $headerFound) {
                 foreach ($rowProperties as $index => $value) {
                     if (is_string($value)) {
                         $lowerVal = strtolower(trim($value));
                         if (in_array($lowerVal, ['nama lengkap', 'nama', 'name'])) {
                             $nameIndex = $index;
-                        } elseif (in_array($lowerVal, ['alamat email', 'email'])) {
-                            $emailIndex = $index;
                         } elseif (in_array($lowerVal, ['nis'])) {
                             $nisIndex = $index;
                         }
@@ -92,40 +89,65 @@ class KelasSiswaController extends Controller
             }
 
             $nis = ($nisIndex !== -1 && isset($rowProperties[$nisIndex])) ? trim($rowProperties[$nisIndex]) : null;
-            $providedEmail = ($emailIndex !== -1 && ! empty($rowProperties[$emailIndex])) ? trim($rowProperties[$emailIndex]) : null;
 
-            DB::transaction(function () use ($nis, $providedEmail, $name, $defaultPassword, $kelas, &$importedCount) {
+            DB::transaction(function () use ($nis, $name, $defaultPassword, $kelas, &$importedCount) {
                 $user = null;
 
+                // 1. Cari berdasarkan NIS via SiswaProfile (termasuk trashed)
                 if ($nis) {
                     $profile = SiswaProfile::where('nis', $nis)->first();
                     if ($profile) {
-                        $user = $profile->user;
+                        $user = User::withTrashed()->find($profile->user_id);
+                        if ($user) {
+                            if ($user->trashed()) {
+                                $user->restore();
+                            }
+                        } else {
+                            $profile->delete();
+                        }
                     }
                 }
 
-                if (! $user && $providedEmail) {
-                    $user = User::where('email', $providedEmail)->first();
-                }
-
+                // 2. Jika belum ketemu, cari via nama & role siswa (termasuk trashed)
                 if (! $user) {
-                    $email = $providedEmail;
-                    if (! $email) {
-                        $cleanName = Str::slug($name, '');
-                        $email = "{$cleanName}.".($nis ?: Str::random(4)).'@smkn1ciamis.id';
-                    }
+                    $candidateUser = User::withTrashed()
+                        ->where('role', 'siswa')
+                        ->whereRaw('LOWER(TRIM(name)) = ?', [strtolower(trim($name))])
+                        ->first();
 
-                    $existingEmail = User::where('email', $email)->first();
-                    if ($existingEmail) {
-                        $email = "{$cleanName}.".Str::random(5).'@smkn1ciamis.id';
+                    if ($candidateUser) {
+                        $user = $candidateUser;
+                        if ($user->trashed()) {
+                            $user->restore();
+                        }
                     }
+                }
 
+                if ($user) {
+                    $user->update([
+                        'name' => $name,
+                        'email' => null, // Siswa tidak menggunakan email
+                    ]);
+                } else {
                     $user = User::create([
                         'name' => $name,
-                        'email' => $email,
+                        'email' => null, // Siswa tidak menggunakan email
                         'password' => $defaultPassword,
                         'role' => 'siswa',
                     ]);
+                }
+
+                // Bersihkan konflik NIS di SiswaProfile jika ada profile lain yang memakai NIS ini
+                if ($nis) {
+                    $conflictingProfile = SiswaProfile::where('nis', $nis)->where('user_id', '!=', $user->id)->first();
+                    if ($conflictingProfile) {
+                        $conflictingUser = User::withTrashed()->find($conflictingProfile->user_id);
+                        if (! $conflictingUser || $conflictingUser->trashed()) {
+                            $conflictingProfile->delete();
+                        } else {
+                            $conflictingProfile->update(['nis' => null]);
+                        }
+                    }
                 }
 
                 $profile = SiswaProfile::firstOrCreate(
@@ -147,14 +169,13 @@ class KelasSiswaController extends Controller
             foreach ($spoutReader->getSheetIterator() as $sheet) {
                 $headerFound = false;
                 $nameIndex = -1;
-                $emailIndex = -1;
                 $nisIndex = -1;
                 foreach ($sheet->getRowIterator() as $row) {
                     $rowProperties = [];
                     foreach ($row->getCells() as $cell) {
                         $rowProperties[] = $cell->getValue();
                     }
-                    $processRow($rowProperties, $headerFound, $nameIndex, $emailIndex, $nisIndex);
+                    $processRow($rowProperties, $headerFound, $nameIndex, $nisIndex);
                 }
             }
             $spoutReader->close();
@@ -162,10 +183,9 @@ class KelasSiswaController extends Controller
             // For CSV
             $headerFound = false;
             $nameIndex = -1;
-            $emailIndex = -1;
             $nisIndex = -1;
-            $reader->noHeaderRow()->getRows()->each(function (array $rowProperties) use ($processRow, &$headerFound, &$nameIndex, &$emailIndex, &$nisIndex) {
-                $processRow($rowProperties, $headerFound, $nameIndex, $emailIndex, $nisIndex);
+            $reader->noHeaderRow()->getRows()->each(function (array $rowProperties) use ($processRow, &$headerFound, &$nameIndex, &$nisIndex) {
+                $processRow($rowProperties, $headerFound, $nameIndex, $nisIndex);
             });
         }
 
@@ -180,12 +200,10 @@ class KelasSiswaController extends Controller
         $writer->addRow([
             'Nama Lengkap' => 'Ahmad Budi',
             'NIS' => '21221001',
-            'Email' => 'ahmad@siswa.sch.id',
         ]);
         $writer->addRow([
             'Nama Lengkap' => 'Siti Aisyah',
             'NIS' => '21221002',
-            'Email' => 'siti@siswa.sch.id',
         ]);
 
         $writer->close();
