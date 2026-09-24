@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Spatie\SimpleExcel\SimpleExcelReader;
+use Spatie\SimpleExcel\SimpleExcelWriter;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class SiswaController extends Controller
 {
@@ -263,5 +265,30 @@ class SiswaController extends Controller
         }
 
         return redirect()->route('admin.siswa.index')->with('success', "Berhasil mengimpor $imported siswa.");
+    }
+
+    public function downloadTemplate(): BinaryFileResponse
+    {
+        $tempPath = tempnam(sys_get_temp_dir(), 'template_siswa_').'.xlsx';
+        $writer = SimpleExcelWriter::create($tempPath);
+
+        $writer->addRow([
+            'Nama Lengkap' => 'Ahmad Budi',
+            'NISN' => '0051234567',
+            'NIS' => '21221001',
+            'Kelas' => '10 PPLG 1',
+            'Email' => 'ahmad@siswa.sch.id',
+        ]);
+        $writer->addRow([
+            'Nama Lengkap' => 'Siti Aisyah',
+            'NISN' => '0067654321',
+            'NIS' => '21221002',
+            'Kelas' => '10 PPLG 1',
+            'Email' => 'siti@siswa.sch.id',
+        ]);
+
+        $writer->close();
+
+        return response()->download($tempPath, 'template-import-siswa.xlsx')->deleteFileAfterSend(true);
     }
 }

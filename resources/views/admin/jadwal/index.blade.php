@@ -114,7 +114,6 @@
                     <th class="text-left px-4 py-3 font-semibold text-slate-600">Hari</th>
                     <th class="text-left px-4 py-3 font-semibold text-slate-600">Waktu</th>
                     <th class="text-left px-4 py-3 font-semibold text-slate-600">Mata Pelajaran</th>
-                    <th class="text-left px-4 py-3 font-semibold text-slate-600 hidden sm:table-cell">Kelompok</th>
                     <th class="text-left px-4 py-3 font-semibold text-slate-600 hidden md:table-cell">Kelas</th>
                     <th class="text-left px-4 py-3 font-semibold text-slate-600 hidden lg:table-cell">Guru</th>
                     <th class="text-right px-4 py-3 font-semibold text-slate-600">Aksi</th>
@@ -134,19 +133,6 @@
                         {{ \Carbon\Carbon::parse($j->jam_mulai)->format('H:i') }} - {{ \Carbon\Carbon::parse($j->jam_selesai)->format('H:i') }}
                     </td>
                     <td class="px-4 py-3 font-medium text-slate-900">{{ $j->mataPelajaran->nama }}</td>
-                    <td class="px-4 py-3 hidden sm:table-cell">
-                        @if($j->kelompok_blok === 'kelompok_a')
-                            <span class="inline-flex items-center gap-1 text-xs font-semibold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
-                                📘 Kel. A
-                            </span>
-                        @elseif($j->kelompok_blok === 'kelompok_b')
-                            <span class="inline-flex items-center gap-1 text-xs font-semibold bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">
-                                🔧 Kel. B
-                            </span>
-                        @else
-                            <span class="text-xs text-slate-400">—</span>
-                        @endif
-                    </td>
                     <td class="px-4 py-3 text-slate-500 hidden md:table-cell">{{ $j->kelas?->nama ?? '-' }}</td>
                     <td class="px-4 py-3 text-slate-500 hidden lg:table-cell">{{ $j->guru?->name ?? '-' }}</td>
                     <td class="px-4 py-3">

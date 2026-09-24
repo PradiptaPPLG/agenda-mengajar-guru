@@ -86,6 +86,7 @@ Route::middleware(['auth', 'role:siswa'])->prefix('siswa')->name('siswa.')->grou
 Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
 
+    Route::get('users/template', [AdminUserController::class, 'downloadTemplate'])->name('users.template');
     Route::post('users/import', [AdminUserController::class, 'import'])->name('users.import');
     Route::post('users/bulk-destroy', [AdminUserController::class, 'bulkDestroy'])->name('users.bulk-destroy');
     Route::resource('users', AdminUserController::class)->except(['show']);
@@ -104,11 +105,13 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
         ->parameters(['kelas' => 'kelas']);
     Route::post('/kelas/{kelas}/sync-siswa', [KelasSiswaController::class, 'sync'])->name('kelas.siswa.sync');
     Route::delete('/kelas/{kelas}/remove-siswa/{siswa}', [KelasSiswaController::class, 'remove'])->name('kelas.siswa.remove');
+    Route::get('/kelas/{kelas}/siswa/template', [KelasSiswaController::class, 'downloadTemplate'])->name('kelas.siswa.template');
     Route::post('/kelas/{kelas}/import-siswa', [KelasSiswaController::class, 'import'])->name('kelas.siswa.import');
 
     // Siswa Management
     Route::post('siswa/bulk-destroy', [SiswaController::class, 'bulkDestroy'])->name('siswa.bulk-destroy');
     Route::get('siswa', [SiswaController::class, 'index'])->name('siswa.index');
+    Route::get('siswa/template', [SiswaController::class, 'downloadTemplate'])->name('siswa.template');
     Route::post('siswa/import', [SiswaController::class, 'import'])->name('siswa.import');
     Route::post('siswa/deactivate-all', [SiswaController::class, 'deactivateAll'])->name('siswa.deactivate-all');
     Route::post('siswa/{user}/toggle-active', [SiswaController::class, 'toggleActive'])->name('siswa.toggle-active');
