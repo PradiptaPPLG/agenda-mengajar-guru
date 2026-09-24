@@ -15,12 +15,12 @@ class JadwalImport implements ToCollection, WithHeadingRow
     public function collection(Collection $rows): void
     {
         foreach ($rows as $row) {
-            $kelasName = trim($row['kelas'] ?? '');
-            $guruName = trim($row['guru'] ?? '');
-            $mapelName = trim($row['mata_pelajaran'] ?? $row['mapel'] ?? '');
+            $kelasName = trim($row->get('kelas', ''));
+            $guruName = trim($row->get('guru', ''));
+            $mapelName = trim($row->get('mata_pelajaran', $row->get('mapel', '')));
             
             // Parsing Hari
-            $hariVal = $row['hari'] ?? '';
+            $hariVal = $row->get('hari', '');
             if (is_numeric($hariVal)) {
                 $hari = (int) $hariVal;
             } else {
@@ -31,18 +31,47 @@ class JadwalImport implements ToCollection, WithHeadingRow
             }
 
             // Parsing Waktu
-            $waktu = trim($row['waktu'] ?? '');
+            $waktu = trim($row->get('waktu', ''));
             if ($waktu && strpos($waktu, '-') !== false) {
                 [$jam_mulai, $jam_selesai] = array_map('trim', explode('-', $waktu));
             } else {
-                $jam_mulai = trim($row['jam_mulai'] ?? '');
-                $jam_selesai = trim($row['jam_selesai'] ?? '');
+                $jam_mulai = trim($row->get('jam_mulai', ''));
+                $jam_selesai = trim($row->get('jam_selesai', ''));
+            }
+            
+            // Normalize waktu from 07.30 to 07:30
+            $jam_mulai = str_replace('.', ':', $jam_mulai);
+            $jam_selesai = str_replace('.', ':', $jam_selesai);
+
+            // Find or Create relations by name
+            $kelas = Kelas::where('nama', $kelasName)->first();
+            if (!$kelas && $kelasName) {
+                $tingkat = '10';
+                if (preg_match('/^12|xii/i', $kelasName)) $tingkat = '12';
+                elseif (preg_match('/^11|xi/i', $kelasName)) $tingkat = '11';
+                $kelas = Kelas::create(['nama' => $kelasName, 'tingkat' => $tingkat, 'tahun_ajaran' => date('Y').'/'.(date('Y') + 1)]);
             }
 
-            // Find relations by name
-            $kelas = Kelas::where('nama', $kelasName)->first();
             $guru = User::where('role', 'guru')->where('name', $guruName)->first();
+            if (!$guru && $guruName) {
+                $guru = User::create([
+                    'name' => $guruName, 
+                    'email' => \Illuminate\Support\Str::slug($guruName) . rand(100,999) . '@guru.com', 
+                    'password' => \Illuminate\Support\Facades\Hash::make('password'), 
+                    'role' => 'guru', 
+                    'is_active' => true
+                ]);
+            }
+
             $mapel = MataPelajaran::where('nama', $mapelName)->first();
+            if (!$mapel && $mapelName) {
+                $mapel = MataPelajaran::create([
+                    'nama' => $mapelName,
+                    'kode' => substr(strtoupper(preg_replace('/[^a-zA-Z]/', '', $mapelName)), 0, 3) . rand(10,99),
+                    'jenis' => 'umum',
+                    'kelompok_blok' => 'reguler',
+                ]);
+            }
 
             if ($kelas && $guru && $mapel && $jam_mulai && $jam_selesai) {
                 JadwalPelajaran::updateOrCreate(
@@ -57,6 +86,15 @@ class JadwalImport implements ToCollection, WithHeadingRow
                         'mata_pelajaran_id' => $mapel->id,
                     ]
                 );
+            } else {
+                \Log::warning('JadwalImport skipped row', [
+                    'row' => $row->toArray(),
+                    'kelas_found' => (bool)$kelas,
+                    'guru_found' => (bool)$guru,
+                    'mapel_found' => (bool)$mapel,
+                    'jam_mulai_parsed' => $jam_mulai,
+                    'jam_selesai_parsed' => $jam_selesai,
+                ]);
             }
         }
     }
