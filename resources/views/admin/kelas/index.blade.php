@@ -9,7 +9,7 @@
                 </svg>
                 Kalender Blok
             </a>
-            <button type="submit" form="bulk-delete-form" id="btn-bulk-delete" class="hidden inline-flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-xl transition-colors" onclick="return confirm('Yakin ingin menghapus kelas terpilih? Data siswa dan jadwal di kelas ini akan ikut terhapus.')">
+            <button type="submit" form="bulk-delete-form" id="btn-bulk-delete" class="hidden inline-flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-xl transition-colors">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                 Hapus Terpilih (<span id="selected-count">0</span>)
             </button>
@@ -49,29 +49,9 @@
                     <th class="text-left px-4 py-3 font-semibold text-slate-600 hidden lg:table-cell">Wali Kelas</th>
                     <th class="text-left px-4 py-3 font-semibold text-slate-600 hidden lg:table-cell">Guru BK</th>
                     <th class="text-left px-4 py-3 font-semibold text-slate-600">Siswa</th>
-                    <th class="text-right px-4 py-3 font-semibold text-slate-600">Aksi</th>
+                    <td class="text-right px-4 py-3 font-semibold text-slate-600">Aksi</td>
                 </tr>
             </thead>
-            <tbody id="select-all-banner" class="hidden">
-                <tr>
-                    <td colspan="8" class="bg-blue-50/80 text-blue-700 text-sm px-4 py-2.5 text-center border-b border-blue-100">
-                        Semua <span id="current-page-count" class="font-bold">0</span> data di halaman ini terpilih. 
-                        <button type="button" id="btn-select-all-pages" class="font-bold underline hover:text-blue-900 ml-1 transition-colors">
-                            Pilih seluruh {{ $kelas->total() }} data
-                        </button>
-                    </td>
-                </tr>
-            </tbody>
-            <tbody id="all-selected-banner" class="hidden">
-                <tr>
-                    <td colspan="8" class="bg-blue-100 text-blue-800 text-sm px-4 py-2.5 text-center border-b border-blue-200 font-medium">
-                        Seluruh <span class="font-bold">{{ $kelas->total() }}</span> data terpilih.
-                        <button type="button" id="btn-clear-selection" class="font-bold underline hover:text-blue-900 ml-2 transition-colors">
-                            Batalkan pilihan
-                        </button>
-                    </td>
-                </tr>
-            </tbody>
             <tbody class="divide-y divide-slate-100">
                 @forelse($kelas as $k)
                 <tr class="hover:bg-slate-50">
@@ -153,91 +133,65 @@
             const rowCheckboxes = document.querySelectorAll('.row-checkbox');
             const btnBulkDelete = document.getElementById('btn-bulk-delete');
             const selectedCount = document.getElementById('selected-count');
-            
-            const selectAllBanner = document.getElementById('select-all-banner');
-            const allSelectedBanner = document.getElementById('all-selected-banner');
-            const btnSelectAllPages = document.getElementById('btn-select-all-pages');
-            const btnClearSelection = document.getElementById('btn-clear-selection');
             const deleteAllInput = document.getElementById('delete-all-input');
-            const currentPageCount = document.getElementById('current-page-count');
-            
             const totalDataCount = {{ $kelas->total() }};
-            let isAllPagesSelected = false;
 
             function updateBulkDeleteButton() {
                 const checkedCount = document.querySelectorAll('.row-checkbox:checked').length;
                 
-                if (isAllPagesSelected) {
-                    selectedCount.textContent = totalDataCount;
-                    btnBulkDelete.classList.remove('hidden');
+                if (deleteAllInput.value === '1') {
+                    selectedCount.textContent = `Semua ${totalDataCount}`;
                 } else {
                     selectedCount.textContent = checkedCount;
-                    if (checkedCount > 0) {
-                        btnBulkDelete.classList.remove('hidden');
-                    } else {
-                        btnBulkDelete.classList.add('hidden');
-                    }
+                }
+                
+                if (checkedCount > 0) {
+                    btnBulkDelete.classList.remove('hidden');
+                } else {
+                    btnBulkDelete.classList.add('hidden');
                 }
             }
 
-            selectAll.addEventListener('change', function() {
-                const isChecked = this.checked;
-                rowCheckboxes.forEach(cb => cb.checked = isChecked);
-                
-                isAllPagesSelected = false;
-                deleteAllInput.value = '0';
-                
-                if (isChecked && totalDataCount > rowCheckboxes.length) {
-                    selectAllBanner.classList.remove('hidden');
-                    allSelectedBanner.classList.add('hidden');
-                    currentPageCount.textContent = rowCheckboxes.length;
-                } else {
-                    selectAllBanner.classList.add('hidden');
-                    allSelectedBanner.classList.add('hidden');
-                }
-                
-                updateBulkDeleteButton();
-            });
+            if (selectAll) {
+                selectAll.addEventListener('change', function() {
+                    const isChecked = this.checked;
+                    rowCheckboxes.forEach(cb => cb.checked = isChecked);
+                    
+                    if (isChecked && totalDataCount > rowCheckboxes.length) {
+                        deleteAllInput.value = '1';
+                    } else {
+                        deleteAllInput.value = '0';
+                    }
+                    
+                    updateBulkDeleteButton();
+                });
+            }
 
             rowCheckboxes.forEach(cb => {
                 cb.addEventListener('change', function() {
                     const allChecked = document.querySelectorAll('.row-checkbox:checked').length === rowCheckboxes.length;
                     selectAll.checked = allChecked && rowCheckboxes.length > 0;
                     
-                    isAllPagesSelected = false;
-                    deleteAllInput.value = '0';
-                    allSelectedBanner.classList.add('hidden');
-                    
-                    if (selectAll.checked && totalDataCount > rowCheckboxes.length) {
-                        selectAllBanner.classList.remove('hidden');
-                        currentPageCount.textContent = rowCheckboxes.length;
-                    } else {
-                        selectAllBanner.classList.add('hidden');
+                    if (!this.checked) {
+                        deleteAllInput.value = '0';
+                    } else if (selectAll.checked && totalDataCount > rowCheckboxes.length) {
+                        deleteAllInput.value = '1';
                     }
                     
                     updateBulkDeleteButton();
                 });
             });
-            
-            if (btnSelectAllPages) {
-                btnSelectAllPages.addEventListener('click', function() {
-                    isAllPagesSelected = true;
-                    deleteAllInput.value = '1';
-                    selectAllBanner.classList.add('hidden');
-                    allSelectedBanner.classList.remove('hidden');
-                    updateBulkDeleteButton();
-                });
-            }
-            
-            if (btnClearSelection) {
-                btnClearSelection.addEventListener('click', function() {
-                    isAllPagesSelected = false;
-                    deleteAllInput.value = '0';
-                    selectAll.checked = false;
-                    rowCheckboxes.forEach(cb => cb.checked = false);
-                    selectAllBanner.classList.add('hidden');
-                    allSelectedBanner.classList.add('hidden');
-                    updateBulkDeleteButton();
+
+            const bulkDeleteForm = document.getElementById('bulk-delete-form');
+            if (bulkDeleteForm) {
+                bulkDeleteForm.addEventListener('submit', function(e) {
+                    const msg = deleteAllInput.value === '1' 
+                        ? `PERHATIAN: Anda akan menghapus SELURUH ${totalDataCount} kelas (termasuk di halaman lain). Data siswa dan jadwal di dalamnya akan TERHAPUS. Yakin?` 
+                        : 'Yakin ingin menghapus kelas yang Anda centang? Data siswa dan jadwal di dalamnya akan TERHAPUS.';
+                        
+                    if (!confirm(msg)) {
+                        e.preventDefault();
+                    }
                 });
             }
         });

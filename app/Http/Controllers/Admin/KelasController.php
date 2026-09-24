@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\KalenderBlokMinggu;
 use App\Models\Kelas;
 use App\Models\SiswaProfile;
 use App\Models\User;
@@ -15,7 +16,7 @@ class KelasController extends Controller
     public function index(): View
     {
         $kelas = Kelas::with(['waliKelas', 'guruBk'])->withCount('siswaProfiles')->orderBy('nama')->paginate(15)->withQueryString();
-        $hasKalender = \App\Models\KalenderBlokMinggu::exists();
+        $hasKalender = KalenderBlokMinggu::exists();
 
         return view('admin.kelas.index', compact('kelas', 'hasKalender'));
     }
@@ -116,6 +117,7 @@ class KelasController extends Controller
             // Handle any filters here if added in the future (none currently for kelas index)
             $count = $query->count();
             $query->delete();
+
             return redirect()->route('admin.kelas.index')->with('success', "Seluruh {$count} kelas berhasil dihapus.");
         }
 
@@ -126,7 +128,7 @@ class KelasController extends Controller
 
         Kelas::whereIn('id', $request->input('ids'))->delete();
 
-        return redirect()->route('admin.kelas.index')->with('success', count($request->input('ids')) . ' kelas berhasil dihapus.');
+        return redirect()->route('admin.kelas.index')->with('success', count($request->input('ids')).' kelas berhasil dihapus.');
     }
 
     /**

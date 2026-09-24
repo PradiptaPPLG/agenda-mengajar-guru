@@ -7,6 +7,7 @@ use App\Models\Kelas;
 use App\Models\MataPelajaran;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -105,5 +106,48 @@ class MataPelajaranController extends Controller
         $mataPelajaran->delete();
 
         return redirect()->route('admin.mata-pelajaran.index')->with('success', 'Mata pelajaran berhasil dihapus.');
+    }
+
+    public function bulkDestroy(Request $request): RedirectResponse
+    {
+        if ($request->boolean('delete_all')) {
+            $query = MataPelajaran::query();
+
+            if ($request->filled('search')) {
+                $search = $request->search;
+                $query->where(function ($q) use ($search) {
+                    $q->where('nama', 'like', '%'.$search.'%')
+                        ->orWhere('kode', 'like', '%'.$search.'%');
+                });
+            }
+
+            if ($request->filled('jenis')) {
+                if ($request->jenis === 'umum') {
+                    $query->whereIn('jenis', ['umum', 'normatif']);
+                } elseif ($request->jenis === 'produktif') {
+                    $query->whereIn('jenis', ['produktif', 'adaptif', 'kejuruan']);
+                }
+            }
+
+            $count = $query->count();
+            DB::transaction(function () use ($query) {
+                $query->delete();
+            });
+
+            return redirect()->route('admin.mata-pelajaran.index')
+                ->with('success', $count.' mata pelajaran berhasil dihapus.');
+        }
+
+        $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['exists:mata_pelajarans,id'],
+        ]);
+
+        DB::transaction(function () use ($request) {
+            MataPelajaran::whereIn('id', $request->ids)->delete();
+        });
+
+        return redirect()->route('admin.mata-pelajaran.index')
+            ->with('success', count($request->ids).' mata pelajaran berhasil dihapus.');
     }
 }

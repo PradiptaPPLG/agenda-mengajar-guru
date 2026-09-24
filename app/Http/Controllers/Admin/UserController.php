@@ -230,7 +230,7 @@ class UserController extends Controller
     {
         if ($request->boolean('delete_all')) {
             $query = User::whereIn('role', ['guru', 'piket', 'tu']);
-            
+
             if ($request->filled('search')) {
                 $search = $request->search;
                 $query->where(function ($q) use ($search) {
@@ -240,7 +240,7 @@ class UserController extends Controller
 
             // Mencegah menghapus akun sendiri
             $query->where('id', '!=', auth()->id());
-            
+
             $count = $query->count();
             $query->delete();
 
@@ -253,7 +253,7 @@ class UserController extends Controller
         ]);
 
         $ids = $request->input('ids');
-        
+
         // Prevent deleting self
         if (in_array(auth()->id(), $ids)) {
             $ids = array_diff($ids, [auth()->id()]);
@@ -264,7 +264,7 @@ class UserController extends Controller
 
         User::whereIn('id', $ids)->delete();
 
-        return redirect()->route('admin.users.index')->with('success', count($ids) . ' pengguna berhasil dihapus.');
+        return redirect()->route('admin.users.index')->with('success', count($ids).' pengguna berhasil dihapus.');
     }
 
     public function import(Request $request): RedirectResponse
