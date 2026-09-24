@@ -32,7 +32,8 @@ class KalenderBlokMinggu extends Model
         $tanggal ??= Carbon::today();
 
         return $query->where('tanggal_mulai', '<=', $tanggal)
-            ->where('tanggal_selesai', '>=', $tanggal);
+            ->where('tanggal_selesai', '>=', $tanggal)
+            ->orderBy('nomor_minggu');
     }
 
     /**

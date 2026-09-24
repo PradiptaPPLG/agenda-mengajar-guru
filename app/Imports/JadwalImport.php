@@ -138,6 +138,7 @@ class JadwalImport implements ToCollection, WithHeadingRow
                         [
                             'guru_id' => $guru->id,
                             'mata_pelajaran_id' => $mapel->id,
+                            'kelompok_blok' => $mapel->kelompok_blok ?? 'reguler',
                         ]
                     );
                 } else {
