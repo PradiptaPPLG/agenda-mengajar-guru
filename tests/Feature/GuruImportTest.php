@@ -48,7 +48,7 @@ class GuruImportTest extends TestCase
         $this->assertNotNull($user->guruProfile);
         $this->assertNull($user->guruProfile->nip);
         $this->assertEquals(1, $user->mapels()->count());
-        $this->assertEquals(1, $user->jadwalPelajarans()->count());
+        $this->assertEquals(0, $user->jadwalPelajarans()->count()); // Upload guru tidak membuat jadwal palsu lagi
 
         // 2. Second Import: File WITH NIP to update existing teacher
         $tempPath2 = tempnam(sys_get_temp_dir(), 'test_guru_2_').'.xlsx';
@@ -107,5 +107,32 @@ class GuruImportTest extends TestCase
         foreach ($gurus as $guru) {
             $this->assertNotNull($guru->guruProfile, "Guru {$guru->name} should have a guruProfile");
         }
+    }
+
+    public function test_can_import_real_guru_dengan_nip_xlsx_file(): void
+    {
+        $realFile = base_path('guru_dengan_nip.xlsx');
+        if (! file_exists($realFile)) {
+            $this->markTestSkipped('guru_dengan_nip.xlsx does not exist');
+        }
+
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $uploadedFile = new UploadedFile($realFile, 'guru_dengan_nip.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true);
+
+        $response = $this->actingAs($admin)
+            ->post(route('admin.users.import'), [
+                'excel_file' => $uploadedFile,
+            ]);
+
+        $response->assertRedirect(route('admin.users.index'));
+        $response->assertSessionHas('success');
+
+        $gurus = User::where('role', 'guru')->get();
+        $this->assertCount(97, $gurus);
+
+        // In guru_dengan_nip.xlsx, exactly 9 distinct unique NIPs exist (the rest are duplicate/placeholder copy-paste)
+        $gurusWithNip = $gurus->filter(fn ($g) => ! empty($g->guruProfile?->nip));
+        $this->assertEquals(9, $gurusWithNip->count(), 'All distinct NIPs from file should be populated');
     }
 }

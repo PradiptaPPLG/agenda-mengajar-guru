@@ -22,6 +22,23 @@ class Kelas extends Model
         'is_sistem_blok' => 'boolean',
     ];
 
+    public static function cleanKey(string $name): string
+    {
+        return strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $name));
+    }
+
+    public static function findByNameFlexible(string $name, bool $withTrashed = false): ?self
+    {
+        $clean = self::cleanKey($name);
+        if ($clean === '') {
+            return null;
+        }
+
+        $query = $withTrashed ? self::withTrashed() : self::query();
+
+        return $query->whereRaw("LOWER(REPLACE(REPLACE(nama, ' ', ''), '-', '')) = ?", [$clean])->first();
+    }
+
     /**
      * Tentukan kelompok blok aktif untuk kelas ini pada tanggal tertentu.
      * Mengembalikan 'kelompok_a', 'kelompok_b', atau null jika tidak sistem blok.
