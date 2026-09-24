@@ -221,9 +221,11 @@
                             </a>
                         </div>
                         <ul class="list-disc pl-5 text-xs text-blue-800/90 space-y-1.5">
-                            <li>Harus ada kolom <strong>Nama</strong> atau <strong>Nama Lengkap</strong>.</li>
-                            <li>Kolom <strong>NIP</strong> opsional namun direkomendasikan.</li>
-                            <li>Kolom <strong>Email</strong> opsional. Jika kosong, akan dibuatkan email otomatis.</li>
+                            <li>Kolom <strong>Nama Guru</strong> / <strong>Nama Lengkap</strong>: Wajib ada.</li>
+                            <li>Kolom <strong>NIP</strong>: Opsional. Jika sekarang belum ada NIP, Anda bisa mengimpor kembali file data yang sudah ada NIP nanti, dan sistem akan otomatis memperbarui NIP di bawah nama guru yang bersangkutan secara akurat tanpa membuat data ganda.</li>
+                            <li>Kolom <strong>Mapel yang diampu</strong> / <strong>Mapel</strong>: Opsional. Pisahkan dengan koma jika lebih dari satu (contoh: "MAT, INGG" atau "KKAKL-11, KKAKL-12").</li>
+                            <li>Kolom <strong>Kelas yang diajar</strong> / <strong>Kelas</strong>: Opsional. Pisahkan dengan koma jika lebih dari satu (contoh: "11 AK1, 12 AK2" atau "10 PPLG, 11 RPL").</li>
+                            <li>Kolom <strong>Email</strong>: Opsional. Jika kosong, email akan digenerate otomatis.</li>
                         </ul>
                     </div>
 

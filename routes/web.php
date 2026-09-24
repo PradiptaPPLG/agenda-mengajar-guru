@@ -116,6 +116,8 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
     Route::post('siswa/deactivate-all', [SiswaController::class, 'deactivateAll'])->name('siswa.deactivate-all');
     Route::post('siswa/{user}/toggle-active', [SiswaController::class, 'toggleActive'])->name('siswa.toggle-active');
 
+    Route::get('mata-pelajaran/template', [AdminMataPelajaranController::class, 'downloadTemplate'])->name('mata-pelajaran.template');
+    Route::post('mata-pelajaran/import', [AdminMataPelajaranController::class, 'import'])->name('mata-pelajaran.import');
     Route::post('mata-pelajaran/bulk-destroy', [AdminMataPelajaranController::class, 'bulkDestroy'])->name('mata-pelajaran.bulk-destroy');
     Route::resource('mata-pelajaran', AdminMataPelajaranController::class)
         ->parameters(['mata-pelajaran' => 'mataPelajaran'])

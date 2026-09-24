@@ -10,6 +10,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Spatie\SimpleExcel\SimpleExcelReader;
+use Spatie\SimpleExcel\SimpleExcelWriter;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class MataPelajaranController extends Controller
 {
@@ -149,5 +152,80 @@ class MataPelajaranController extends Controller
 
         return redirect()->route('admin.mata-pelajaran.index')
             ->with('success', count($request->ids).' mata pelajaran berhasil dihapus.');
+    }
+
+    public function import(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:5120'],
+        ]);
+
+        $file = $request->file('file');
+        $filePath = $file->getRealPath();
+
+        $reader = SimpleExcelReader::create($filePath, $file->getClientOriginalExtension());
+        $rows = $reader->getRows();
+
+        $successCount = 0;
+        $errorCount = 0;
+
+        foreach ($rows as $row) {
+            try {
+                $nama = $row['nama'] ?? $row['Nama'] ?? $row['mata_pelajaran'] ?? $row['Mata pelajaran'] ?? null;
+                $kode = $row['kode'] ?? $row['Kode'] ?? null;
+                $jenis = $row['jenis'] ?? $row['Jenis'] ?? $row['kategori'] ?? $row['Kategori'] ?? 'umum';
+
+                if (! $nama) {
+                    $errorCount++;
+
+                    continue;
+                }
+
+                if (! $kode) {
+                    $kode = strtoupper(substr(preg_replace('/[^a-zA-Z0-9]/', '', $nama), 0, 5)).'-'.rand(100, 999);
+                }
+
+                MataPelajaran::updateOrCreate(
+                    ['kode' => $kode],
+                    [
+                        'nama' => $nama,
+                        'jenis' => in_array(strtolower($jenis), ['umum', 'produktif', 'normatif', 'adaptif', 'kejuruan']) ? strtolower($jenis) : 'umum',
+                    ]
+                );
+
+                $successCount++;
+            } catch (\Exception $e) {
+                $errorCount++;
+            }
+        }
+
+        $message = "Import selesai. {$successCount} mata pelajaran berhasil diimport.";
+        if ($errorCount > 0) {
+            $message .= " {$errorCount} baris gagal (mungkin data tidak valid).";
+        }
+
+        return redirect()->route('admin.mata-pelajaran.index')->with('success', $message);
+    }
+
+    public function downloadTemplate(): BinaryFileResponse
+    {
+        $tempPath = tempnam(sys_get_temp_dir(), 'template_mapel_').'.xlsx';
+        $writer = SimpleExcelWriter::create($tempPath);
+
+        $writer->addRow([
+            'Nama' => 'Matematika',
+            'Kode' => 'MTK',
+            'Jenis' => 'umum',
+        ]);
+
+        $writer->addRow([
+            'Nama' => 'Rekayasa Perangkat Lunak',
+            'Kode' => 'RPL-01',
+            'Jenis' => 'produktif',
+        ]);
+
+        $writer->close();
+
+        return response()->download($tempPath, 'template_mata_pelajaran.xlsx')->deleteFileAfterSend(true);
     }
 }
