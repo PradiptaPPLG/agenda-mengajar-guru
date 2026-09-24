@@ -55,7 +55,7 @@ class PemetaanBlokController extends Controller
             } elseif (in_array($kelas->id, $split)) {
                 $kelas->update([
                     'is_sistem_blok' => true,
-                    'blok_awal' => 'split',
+                    'blok_awal' => null, // split_harian tidak memiliki kelompok awal (A & B berjalan bersamaan)
                     'model_rotasi' => 'split_harian',
                 ]);
 
