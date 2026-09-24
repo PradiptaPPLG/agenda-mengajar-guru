@@ -20,7 +20,7 @@ class JadwalImport implements ToCollection, WithHeadingRow
         set_time_limit(300);
 
         // Preload in-memory caches to avoid N+1 queries for each row
-        $kelasCache = Kelas::all()->keyBy(fn ($k) => strtolower(trim($k->nama)));
+        $kelasCache = Kelas::withTrashed()->get()->keyBy(fn ($k) => Kelas::cleanKey($k->nama));
         $guruCache = User::withTrashed()->where('role', 'guru')->get()->keyBy(fn ($u) => strtolower(trim($u->name)));
         $mapelCache = MataPelajaran::withTrashed()->get()->keyBy(fn ($m) => strtolower(trim($m->nama)));
 
@@ -58,9 +58,12 @@ class JadwalImport implements ToCollection, WithHeadingRow
                 $jam_mulai = str_replace('.', ':', $jam_mulai);
                 $jam_selesai = str_replace('.', ':', $jam_selesai);
 
-                // Find or Create Kelas
-                $kelasKey = strtolower($kelasName);
+                // Find or Create Kelas with flexible name matching (e.g. 11 AK1 matches 11AK1)
+                $kelasKey = Kelas::cleanKey($kelasName);
                 $kelas = $kelasCache->get($kelasKey);
+                if ($kelas && $kelas->trashed()) {
+                    $kelas->restore();
+                }
                 if (! $kelas && $kelasName) {
                     $tingkat = '10';
                     if (preg_match('/^12|xii/i', $kelasName)) {
@@ -76,9 +79,15 @@ class JadwalImport implements ToCollection, WithHeadingRow
                     $kelasCache->put($kelasKey, $kelas);
                 }
 
-                // Find or Create Guru
-                $guruKey = strtolower($guruName);
+                // Find or Create Guru using smart matching (handles titles Dra./S.Pd./etc. and reuses account with NIP)
+                $guruKey = strtolower(trim($guruName));
                 $guru = $guruCache->get($guruKey);
+                if (! $guru && $guruName) {
+                    $guru = User::findMatchingGuru($guruName);
+                    if ($guru) {
+                        $guruCache->put($guruKey, $guru);
+                    }
+                }
                 if ($guru && $guru->trashed()) {
                     $guru->restore();
                 }

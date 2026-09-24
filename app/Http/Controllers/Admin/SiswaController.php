@@ -209,7 +209,10 @@ class SiswaController extends Controller
                 // Cari ID kelas jika ada di Excel
                 $kelasId = null;
                 if ($kelasName) {
-                    $kelasObj = Kelas::where('nama', 'LIKE', $kelasName)->first();
+                    $kelasObj = Kelas::findByNameFlexible($kelasName, true);
+                    if ($kelasObj && $kelasObj->trashed()) {
+                        $kelasObj->restore();
+                    }
 
                     // Otomatis buat kelas jika belum ada di database
                     if (! $kelasObj) {
