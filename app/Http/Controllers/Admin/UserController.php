@@ -181,19 +181,25 @@ class UserController extends Controller
 
             $user->mapels()->sync($validated['mapel_ids'] ?? []);
 
-            $hasWaliRole = collect($validated['spatie_roles'] ?? [])->contains(fn ($r) => str_contains(strtolower($r), 'wali'));
-            $hasBkRole = collect($validated['spatie_roles'] ?? [])->contains(fn ($r) => str_contains(strtolower($r), 'bk'));
+            $hasWaliRole = collect($validated['spatie_roles'] ?? [])->contains(fn ($r) => str_contains(strtolower($r), 'wali'))
+                || $user->hasAnyRole(['Wali Kelas', 'wali_kelas', 'wali-kelas', 'Wali']);
+            $hasBkRole = collect($validated['spatie_roles'] ?? [])->contains(fn ($r) => str_contains(strtolower($r), 'bk'))
+                || $user->hasAnyRole(['Guru BK', 'BK', 'guru_bk', 'guru-bk']);
 
             // Sync Wali Kelas
-            Kelas::where('wali_kelas_id', $user->id)->update(['wali_kelas_id' => null]);
-            if ($hasWaliRole && ! empty($validated['wali_kelas_id'])) {
+            if (! empty($validated['wali_kelas_id'])) {
+                Kelas::where('wali_kelas_id', $user->id)->update(['wali_kelas_id' => null]);
                 Kelas::where('id', $validated['wali_kelas_id'])->update(['wali_kelas_id' => $user->id]);
+            } elseif (! $hasWaliRole) {
+                Kelas::where('wali_kelas_id', $user->id)->update(['wali_kelas_id' => null]);
             }
 
             // Sync BK
-            Kelas::where('bk_id', $user->id)->update(['bk_id' => null]);
-            if ($hasBkRole && ! empty($validated['bk_kelas_ids'])) {
+            if (! empty($validated['bk_kelas_ids'])) {
+                Kelas::where('bk_id', $user->id)->update(['bk_id' => null]);
                 Kelas::whereIn('id', $validated['bk_kelas_ids'])->update(['bk_id' => $user->id]);
+            } elseif (! $hasBkRole) {
+                Kelas::where('bk_id', $user->id)->update(['bk_id' => null]);
             }
         } elseif ($user->guruProfile) {
             $user->guruProfile()->delete();

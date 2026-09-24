@@ -18,12 +18,7 @@ class WaliKelasController extends Controller
         $kelasBinaan = Kelas::where('wali_kelas_id', $userId)->get();
 
         if ($kelasBinaan->isEmpty()) {
-            $hasWaliAccess = $user->can('walikelas.view_rekap')
-                || $user->hasAnyRole(['Wali Kelas', 'wali_kelas', 'wali-kelas', 'Wali'])
-                || $user->roles->contains(fn ($r) => str_contains(strtolower($r->name), 'wali'))
-                || in_array($user->role, ['admin', 'super_admin']);
-
-            if ($hasWaliAccess) {
+            if (in_array($user->role, ['admin', 'super_admin'])) {
                 $kelasBinaan = Kelas::orderBy('tingkat')->orderBy('nama')->get();
             } else {
                 return redirect()->route('guru.dashboard')->with('error', 'Anda belum ditugaskan sebagai Wali Kelas.');

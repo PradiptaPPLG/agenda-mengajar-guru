@@ -41,8 +41,12 @@ class PertemuanController extends Controller
             ['status' => 'menunggu']
         );
 
-        // Auto-create kehadiran_siswa rows for all students in the class
-        $siswaIds = $jadwal->kelas->siswaProfiles->pluck('user_id');
+        // Auto-create kehadiran_siswa rows for all active students in the class
+        $siswaIds = $jadwal->kelas->siswaProfiles()
+            ->whereHas('user', fn ($q) => $q->whereNull('deleted_at'))
+            ->pluck('user_id')
+            ->filter();
+
         foreach ($siswaIds as $siswaId) {
             KehadiranSiswa::firstOrCreate(
                 ['pertemuan_id' => $pertemuan->id, 'siswa_id' => $siswaId],

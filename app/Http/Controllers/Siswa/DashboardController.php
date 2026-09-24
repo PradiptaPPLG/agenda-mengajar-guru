@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\HariLibur;
 use App\Models\JadwalPelajaran;
 use App\Models\Pertemuan;
+use App\Services\JadwalBlokResolverService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
@@ -20,15 +21,11 @@ class DashboardController extends Controller
         $nowTime = Carbon::now()->format('H:i');
 
         // Get student's class
-        $kelasId = $user->siswaProfile?->kelas_id;
+        $kelas = $user->siswaProfile?->kelas;
 
-        // Get today's jadwal for student's class
-        $jadwals = $kelasId
-            ? JadwalPelajaran::with(['guru', 'mataPelajaran'])
-                ->where('kelas_id', $kelasId)
-                ->where('hari', $hariAngka)
-                ->orderBy('jam_mulai')
-                ->get()
+        // Get today's active jadwal for student's class (respecting sistem blok)
+        $jadwals = $kelas
+            ? app(JadwalBlokResolverService::class)->resolveJadwal($kelas, $today, (string) $hariAngka)
             : collect();
 
         // For each jadwal, calculate whether lesson start time has been reached
