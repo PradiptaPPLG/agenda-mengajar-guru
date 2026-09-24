@@ -17,7 +17,7 @@ return new class extends Migration
         });
 
         Schema::table('kelas', function (Blueprint $table) {
-            // Ubah tipe data menjadi string agar lebih fleksibel menampung 'split' 
+            // Ubah tipe data menjadi string agar lebih fleksibel menampung 'split'
             // tanpa masalah constraint enum di beberapa database
             $table->string('blok_awal', 30)->nullable()->change();
         });

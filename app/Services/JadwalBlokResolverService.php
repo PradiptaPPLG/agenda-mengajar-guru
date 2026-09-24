@@ -120,7 +120,7 @@ class JadwalBlokResolverService
         $labelMap = [
             'kelompok_a' => '📘 Kelompok A (Umum)',
             'kelompok_b' => '🔧 Kelompok B (Produktif)',
-            'split'      => '🔄 Split (A & B Paralel)',
+            'split' => '🔄 Split (A & B Paralel)',
         ];
 
         return [
