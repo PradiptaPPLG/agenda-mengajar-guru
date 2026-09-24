@@ -60,6 +60,7 @@
                             <th class="px-6 py-4 font-semibold">Nama Siswa</th>
                             <th class="px-6 py-4 font-semibold">NIS</th>
                             <th class="px-6 py-4 font-semibold">Kelas Saat Ini</th>
+                            <th class="px-6 py-4 font-semibold">Status</th>
                             <th class="px-6 py-4 font-semibold text-right">Aksi</th>
                         </tr>
                     </thead>
@@ -92,20 +93,22 @@
                                 @endif
                             </td>
                             <td class="px-6 py-4">
+                                <form action="{{ route('admin.siswa.toggle-active', $s->user) }}" method="POST">
+                                    @csrf
+                                    <button type="submit" 
+                                            class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition-colors {{ $s->user->is_active ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100' : 'bg-red-50 text-red-700 border border-red-200 hover:bg-red-100' }}">
+                                        @if($s->user->is_active)
+                                            <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                            Aktif
+                                        @else
+                                            <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+                                            Nonaktif
+                                        @endif
+                                    </button>
+                                </form>
+                            </td>
+                            <td class="px-6 py-4">
                                 <div class="flex items-center justify-end gap-2">
-                                    <form action="{{ route('admin.siswa.toggle-active', $s->user) }}" method="POST">
-                                        @csrf
-                                        <button type="submit" 
-                                                class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition-colors {{ $s->user->is_active ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100' : 'bg-red-50 text-red-700 border border-red-200 hover:bg-red-100' }}">
-                                            @if($s->user->is_active)
-                                                <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                                                Aktif
-                                            @else
-                                                <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
-                                                Nonaktif
-                                            @endif
-                                        </button>
-                                    </form>
                                     <x-action-dropdown 
                                         :editUrl="route('admin.users.edit', $s->user)" 
                                         :deleteUrl="route('admin.users.destroy', $s->user)" 

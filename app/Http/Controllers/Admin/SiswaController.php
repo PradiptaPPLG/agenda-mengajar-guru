@@ -130,11 +130,11 @@ class SiswaController extends Controller
                             $nameIndex = $index;
                         } elseif (in_array($lowerVal, ['alamat email', 'email'])) {
                             $emailIndex = $index;
-                        } elseif (in_array($lowerVal, ['nis'])) {
+                        } elseif (in_array($lowerVal, ['nis', 'nipd', 'no. induk'])) {
                             $nisIndex = $index;
                         } elseif (in_array($lowerVal, ['nisn'])) {
                             $nisnIndex = $index;
-                        } elseif (in_array($lowerVal, ['kelas'])) {
+                        } elseif (in_array($lowerVal, ['kelas', 'rombel saat ini', 'rombel'])) {
                             $kelasIndex = $index;
                         }
                     }
@@ -159,8 +159,8 @@ class SiswaController extends Controller
                 $nis = trim($rowProperties[$nisnIndex]);
             }
 
-            $providedEmail = ($emailIndex !== -1 && ! empty($rowProperties[$emailIndex])) ? trim($rowProperties[$emailIndex]) : null;
-            $kelasName = ($kelasIndex !== -1 && ! empty($rowProperties[$kelasIndex])) ? trim($rowProperties[$kelasIndex]) : null;
+            $providedEmail = ($emailIndex !== -1 && ! empty($rowProperties[$emailIndex])) ? trim((string) $rowProperties[$emailIndex]) : null;
+            $kelasName = ($kelasIndex !== -1 && ! empty($rowProperties[$kelasIndex])) ? trim((string) $rowProperties[$kelasIndex]) : null;
 
             DB::transaction(function () use ($nis, $providedEmail, $nama, $defaultPassword, $kelasName, &$imported) {
                 $user = null;
@@ -169,6 +169,9 @@ class SiswaController extends Controller
                     $profile = SiswaProfile::where('nis', $nis)->first();
                     if ($profile) {
                         $user = $profile->user;
+                        if (! $user) {
+                            $profile->delete();
+                        }
                     }
                 }
 

@@ -6,6 +6,10 @@
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                 Hapus Terpilih (<span id="selected-count">0</span>)
             </button>
+            <button onclick="document.getElementById('importModal').classList.remove('hidden')" class="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl transition-colors shadow-xs">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                Import Excel
+            </button>
             <a href="{{ route('admin.mata-pelajaran.create') }}"
                class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
@@ -95,6 +99,47 @@
         <div class="px-4 py-3 border-t border-slate-100">{{ $mataPelajarans->links() }}</div>
         @endif
         </form>
+    </div>
+    
+    <!-- Import Modal -->
+    <div id="importModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center">
+        <div class="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl relative">
+            <button onclick="document.getElementById('importModal').classList.add('hidden')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+            
+            <h3 class="text-xl font-bold text-slate-800 mb-2">Import Data Mata Pelajaran</h3>
+            <p class="text-slate-500 text-sm mb-6">Sistem pintar kami akan otomatis mendeteksi kolom yang sesuai, meskipun struktur file Anda sedikit berbeda!</p>
+            
+            <div class="mb-6 p-4 bg-blue-50 border border-blue-100 rounded-xl">
+                <h4 class="text-sm font-semibold text-blue-800 mb-2 flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    Cara Penggunaan
+                </h4>
+                <ul class="text-sm text-blue-700 space-y-1 list-disc list-inside">
+                    <li>Sistem membaca kolom <b>Nama/Mata Pelajaran</b>, <b>Kode</b>, <b>Jenis</b>.</li>
+                    <li>Download dan gunakan <a href="{{ route('admin.mata-pelajaran.template') }}" class="font-bold underline text-blue-800">Template</a> untuk hasil terbaik.</li>
+                </ul>
+            </div>
+
+            <form action="{{ route('admin.mata-pelajaran.import') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Pilih File Excel/CSV</label>
+                    <input type="file" name="file" accept=".xlsx,.xls,.csv" required
+                           class="w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border border-slate-200 rounded-xl cursor-pointer">
+                </div>
+                
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="document.getElementById('importModal').classList.add('hidden')" 
+                            class="px-4 py-2 text-slate-600 bg-slate-100 hover:bg-slate-200 text-sm font-semibold rounded-xl transition-colors">Batal</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                        Upload & Import
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
     
     @push('scripts')
