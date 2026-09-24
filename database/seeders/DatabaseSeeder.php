@@ -50,6 +50,12 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Petugas Piket', 'password' => Hash::make('password'), 'role' => 'piket', 'is_active' => true]
         );
 
+        // ── Tata Usaha (TU) ───────────────────────────────────────────────────
+        User::firstOrCreate(
+            ['email' => 'tu@sekolah.sch.id'],
+            ['name' => 'Staf Tata Usaha', 'password' => Hash::make('password'), 'role' => 'tu', 'is_active' => true]
+        );
+
         // ── Panggil StudentSeeder & AttendanceSeeder ─────────────────────────
         //  $this->call(StudentSeeder::class);
         //  $this->call(AttendanceSeeder::class);

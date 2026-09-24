@@ -6,6 +6,7 @@ use App\Models\JadwalPelajaran;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
 use App\Models\User;
+use Database\Seeders\KelompokBlokMataPelajaranSeeder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -134,11 +135,12 @@ class JadwalImport implements ToCollection, WithHeadingRow
                     while (MataPelajaran::withTrashed()->where('kode', $kode)->exists()) {
                         $kode = $prefix.'-'.strtoupper(Str::random(5));
                     }
+                    $kelompokBlok = (new KelompokBlokMataPelajaranSeeder)->classify($mapelName, $kode);
                     $mapel = MataPelajaran::create([
                         'nama' => $mapelName,
                         'kode' => $kode,
-                        'jenis' => 'umum',
-                        'kelompok_blok' => 'reguler',
+                        'jenis' => $kelompokBlok === 'kelompok_b' ? 'kejuruan' : 'umum',
+                        'kelompok_blok' => $kelompokBlok,
                     ]);
                     $mapelCache->put($mapelKey, $mapel);
                 }
