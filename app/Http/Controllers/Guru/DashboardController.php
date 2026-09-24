@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\HariLibur;
 use App\Models\JadwalPelajaran;
 use App\Models\KehadiranGuru;
+use App\Models\Kelas;
+use App\Services\JadwalBlokResolverService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -24,14 +26,24 @@ class DashboardController extends Controller
 
         $weekEnd = $weekStart->copy()->endOfWeek(Carbon::SATURDAY);
 
-        // Build a 6-day (Mon–Sat) x slots matrix
-        $jadwals = JadwalPelajaran::with(['kelas', 'mataPelajaran'])
-            ->where('guru_id', $user->id)
-            ->orderBy('jam_mulai')
-            ->get();
+        // Build a 6-day (Mon–Sat) x slots matrix, respecting sistem blok.
+        // Strategy: for each class the guru teaches, resolve the active jadwal
+        // for the selected week (using any day of the week as the date reference).
+        // Then filter to only this guru's slots.
+        $kelasIds = JadwalPelajaran::where('guru_id', $user->id)
+            ->distinct('kelas_id')
+            ->pluck('kelas_id');
 
-        // Group jadwal by hari (1-6)
-        $jadwalByHari = $jadwals->groupBy('hari');
+        $kelasList = Kelas::whereIn('id', $kelasIds)->get();
+        $resolver = app(JadwalBlokResolverService::class);
+
+        // resolveJadwalBanyakKelas without hari filter returns ALL days for the week's blok
+        $activeJadwals = $resolver->resolveJadwalBanyakKelas($kelasList, $weekStart)
+            ->load(['kelas', 'mataPelajaran'])
+            ->where('guru_id', $user->id);
+
+        // Group active jadwal (blok-filtered) by hari (1-6)
+        $jadwalByHari = $activeJadwals->groupBy('hari');
 
         $hariList = [
             1 => 'Senin',
