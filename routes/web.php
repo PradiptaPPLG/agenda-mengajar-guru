@@ -6,8 +6,8 @@ use App\Http\Controllers\Admin\JadwalController as AdminJadwalController;
 use App\Http\Controllers\Admin\KalenderBlokController as AdminKalenderBlokController;
 use App\Http\Controllers\Admin\KelasController as AdminKelasController;
 use App\Http\Controllers\Admin\KelasSiswaController;
-use App\Http\Controllers\Admin\PemetaanBlokController;
 use App\Http\Controllers\Admin\MataPelajaranController as AdminMataPelajaranController;
+use App\Http\Controllers\Admin\PemetaanBlokController;
 use App\Http\Controllers\Admin\PenggunaController;
 use App\Http\Controllers\Admin\PermissionCategoryController;
 use App\Http\Controllers\Admin\PermissionController;
@@ -113,6 +113,7 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
     Route::post('siswa/deactivate-all', [SiswaController::class, 'deactivateAll'])->name('siswa.deactivate-all');
     Route::post('siswa/{user}/toggle-active', [SiswaController::class, 'toggleActive'])->name('siswa.toggle-active');
 
+    Route::post('mata-pelajaran/bulk-destroy', [AdminMataPelajaranController::class, 'bulkDestroy'])->name('mata-pelajaran.bulk-destroy');
     Route::resource('mata-pelajaran', AdminMataPelajaranController::class)
         ->parameters(['mata-pelajaran' => 'mataPelajaran'])
         ->except(['show']);
@@ -120,6 +121,7 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
     Route::get('jadwal/export/pdf', [AdminJadwalController::class, 'exportPdf'])->name('jadwal.export.pdf');
     Route::get('jadwal/template', [AdminJadwalController::class, 'downloadTemplate'])->name('jadwal.template');
     Route::post('jadwal/import', [AdminJadwalController::class, 'import'])->name('jadwal.import');
+    Route::post('jadwal/bulk-destroy', [AdminJadwalController::class, 'bulkDestroy'])->name('jadwal.bulk-destroy');
     Route::resource('jadwal', AdminJadwalController::class)->except(['show']);
     Route::resource('hari-libur', AdminHariLiburController::class)->only(['index', 'store', 'destroy']);
 
