@@ -193,6 +193,10 @@ class JadwalController extends Controller
             'file' => ['required', 'file', 'mimes:xlsx,xls'],
         ]);
 
+        set_time_limit(300);
+        ini_set('max_execution_time', '300');
+        ini_set('memory_limit', '512M');
+
         try {
             Excel::import(new JadwalImport, $request->file('file'));
 
