@@ -82,7 +82,7 @@
                 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     @foreach($kelas as $k)
                     <label class="flex items-center gap-3 p-3 rounded-lg border border-slate-100 bg-slate-50 hover:bg-white cursor-pointer transition-colors chk-wrapper-split-{{$k->id}}">
-                        <input type="checkbox" name="split[]" value="{{$k->id}}" class="chk-kelas chk-split w-4 h-4 text-purple-600 border-slate-300 rounded focus:ring-purple-500" data-id="{{$k->id}}" {{ $k->blok_awal == 'split' && $k->is_sistem_blok ? 'checked' : '' }}>
+                        <input type="checkbox" name="split[]" value="{{$k->id}}" class="chk-kelas chk-split w-4 h-4 text-purple-600 border-slate-300 rounded focus:ring-purple-500" data-id="{{$k->id}}" {{ ($k->model_rotasi === 'split_harian' || $k->blok_awal === 'split') && $k->is_sistem_blok ? 'checked' : '' }}>
                         <div class="font-medium text-slate-900 text-sm">{{ $k->nama }}</div>
                     </label>
                     @endforeach

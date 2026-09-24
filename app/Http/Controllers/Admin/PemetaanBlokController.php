@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Kelas;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -78,5 +79,28 @@ class PemetaanBlokController extends Controller
         }
 
         return redirect()->route('admin.pemetaan-blok.index')->with('success', 'Pemetaan blok berhasil disimpan.');
+    }
+
+    public function getSiswa(Kelas $kelas): JsonResponse
+    {
+        return response()->json(
+            $kelas->siswaProfiles()->with('user')->get()
+        );
+    }
+
+    public function updateSiswa(Request $request, Kelas $kelas): RedirectResponse
+    {
+        $validated = $request->validate([
+            'siswa' => ['required', 'array'],
+            'siswa.*' => ['in:kelompok_a,kelompok_b'],
+        ]);
+
+        foreach ($kelas->siswaProfiles as $siswa) {
+            if (isset($validated['siswa'][$siswa->id])) {
+                $siswa->update(['kelompok_blok' => $validated['siswa'][$siswa->id]]);
+            }
+        }
+
+        return back()->with('success', 'Kelompok blok siswa berhasil diperbarui.');
     }
 }
