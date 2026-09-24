@@ -335,9 +335,14 @@
                     <div class="flex flex-1">
                         <div class="w-1 flex-shrink-0 {{ $theme['top'] }}"></div>
                         <div class="flex-1 p-3 flex flex-col gap-2 min-w-0">
-                            <span class="px-2.5 py-1 rounded-md bg-slate-100 text-slate-800 text-xs font-extrabold tracking-wide self-start">
-                                {{ $card['kelas_nama'] }}
-                            </span>
+                            <div class="flex items-center justify-between gap-1">
+                                <span class="px-2 py-0.5 rounded-md bg-slate-800 text-white text-xs font-extrabold tracking-wide shrink-0">
+                                    {{ $card['kelas_nama'] }}
+                                </span>
+                                <span class="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-bold shrink-0" title="{{ $card['slot_label'] }}">
+                                    Jam {{ $card['jam_ke'] }}
+                                </span>
+                            </div>
 
                             <div class="min-w-0">
                                 <h3 class="font-semibold text-slate-900 text-xs leading-snug truncate">{{ $card['mapel_nama'] }}</h3>

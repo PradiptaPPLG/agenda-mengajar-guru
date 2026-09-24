@@ -2,12 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\JadwalPelajaran;
 use App\Models\KehadiranGuru;
 use App\Models\KehadiranSiswa;
+use App\Models\Kelas;
 use App\Models\MasterJamPelajaran;
 use App\Models\Pertemuan;
 use App\Models\User;
+use App\Services\JadwalBlokResolverService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -35,11 +36,12 @@ class PublicDashboardController extends Controller
             'total_siswa' => User::where('role', 'siswa')->count(),
         ];
 
-        // Real-Time Monitoring KBM Hari Ini
-        $allJadwals = JadwalPelajaran::with(['kelas', 'guru', 'mataPelajaran'])
-            ->where('hari', $hari)
-            ->orderBy('jam_mulai')
-            ->get();
+        // Real-Time Monitoring KBM Hari Ini (menggunakan resolver sistem blok)
+        $kelasList = Kelas::orderBy('nama')->get();
+        $allJadwals = app(JadwalBlokResolverService::class)
+            ->resolveJadwalBanyakKelas($kelasList, $today, (string) $hari)
+            ->load(['kelas', 'guru', 'mataPelajaran'])
+            ->sortBy(['jam_mulai', 'kelas.nama']);
 
         // Ambil standar jam pelajaran dari master
         $masterJam = MasterJamPelajaran::orderBy('jam_ke')->get();

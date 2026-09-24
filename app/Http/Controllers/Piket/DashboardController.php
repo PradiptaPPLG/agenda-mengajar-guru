@@ -3,11 +3,11 @@
 namespace App\Http\Controllers\Piket;
 
 use App\Http\Controllers\Controller;
-use App\Models\JadwalPelajaran;
 use App\Models\KalenderBlokMinggu;
 use App\Models\Kelas;
 use App\Models\MasterJamPelajaran;
 use App\Models\Pertemuan;
+use App\Services\JadwalBlokResolverService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -22,10 +22,11 @@ class DashboardController extends Controller
         $nowTime = Carbon::now()->format('H:i');
 
         // Ambil semua jadwal pelajaran hari ini untuk seluruh tingkatan (10, 11, 12 / X, XI, XII)
-        $allJadwals = JadwalPelajaran::with(['kelas', 'guru', 'mataPelajaran'])
-            ->where('hari', $hari)
-            ->orderBy('jam_mulai')
-            ->get();
+        $kelasList = Kelas::orderBy('nama')->get();
+        $allJadwals = app(JadwalBlokResolverService::class)
+            ->resolveJadwalBanyakKelas($kelasList, $today, (string) $hari)
+            ->load(['kelas', 'guru', 'mataPelajaran'])
+            ->sortBy(['jam_mulai', 'kelas.nama']);
 
         // Ambil standar jam pelajaran dari master
         $masterJam = MasterJamPelajaran::orderBy('jam_ke')->get();
