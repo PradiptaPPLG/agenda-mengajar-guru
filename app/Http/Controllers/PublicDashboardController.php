@@ -20,18 +20,18 @@ class PublicDashboardController extends Controller
         $hari = $today->dayOfWeekIso;
         $nowTime = Carbon::now()->format('H:i');
 
-        // Aggregate Stats Hari Ini
+        // Aggregate Stats Hari Ini (berdasarkan tanggal pertemuan)
         $stats = [
-            'guru_hadir_hari_ini' => KehadiranGuru::whereDate('created_at', $today)->where('status', 'hadir')->count(),
-            'guru_terlambat_hari_ini' => KehadiranGuru::whereDate('created_at', $today)->where('status', 'terlambat')->count(),
-            'guru_tidak_hadir_hari_ini' => KehadiranGuru::whereDate('created_at', $today)->whereIn('status', ['tidak_hadir', 'sakit', 'alpa', 'dispensasi'])->count(),
+            'guru_hadir_hari_ini' => KehadiranGuru::whereHas('pertemuan', fn ($q) => $q->whereDate('tanggal', $today))->where('status', 'hadir')->count(),
+            'guru_terlambat_hari_ini' => KehadiranGuru::whereHas('pertemuan', fn ($q) => $q->whereDate('tanggal', $today))->where('status', 'terlambat')->count(),
+            'guru_tidak_hadir_hari_ini' => KehadiranGuru::whereHas('pertemuan', fn ($q) => $q->whereDate('tanggal', $today))->whereIn('status', ['tidak_hadir', 'sakit', 'alpa', 'dispensasi'])->count(),
             'total_guru' => User::where('role', 'guru')->count(),
             'pertemuan_hari_ini' => Pertemuan::whereDate('tanggal', $today)->count(),
 
-            // Siswa Stats Hari Ini (berdasarkan sesi mapel)
-            'siswa_hadir_hari_ini' => KehadiranSiswa::whereDate('created_at', $today)->where('status', 'hadir')->count(),
-            'siswa_terlambat_hari_ini' => KehadiranSiswa::whereDate('created_at', $today)->where('status', 'terlambat')->count(),
-            'siswa_tidak_hadir_hari_ini' => KehadiranSiswa::whereDate('created_at', $today)->whereIn('status', ['sakit', 'izin', 'alpa', 'dispensasi'])->count(),
+            // Siswa Stats Hari Ini (berdasarkan sesi mapel pertemuan)
+            'siswa_hadir_hari_ini' => KehadiranSiswa::whereHas('pertemuan', fn ($q) => $q->whereDate('tanggal', $today))->where('status', 'hadir')->count(),
+            'siswa_terlambat_hari_ini' => KehadiranSiswa::whereHas('pertemuan', fn ($q) => $q->whereDate('tanggal', $today))->where('status', 'terlambat')->count(),
+            'siswa_tidak_hadir_hari_ini' => KehadiranSiswa::whereHas('pertemuan', fn ($q) => $q->whereDate('tanggal', $today))->whereIn('status', ['sakit', 'izin', 'alpa', 'dispensasi'])->count(),
             'total_siswa' => User::where('role', 'siswa')->count(),
         ];
 

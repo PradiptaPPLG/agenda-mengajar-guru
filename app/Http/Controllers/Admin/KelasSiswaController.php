@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Spatie\SimpleExcel\SimpleExcelReader;
 use Spatie\SimpleExcel\SimpleExcelWriter;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -18,8 +19,12 @@ class KelasSiswaController extends Controller
     public function sync(Request $request, Kelas $kelas)
     {
         $request->validate([
-            'siswa_ids' => 'array',
-            'siswa_ids.*' => 'exists:siswa_profiles,id',
+            'siswa_ids' => ['nullable', 'array'],
+            'siswa_ids.*' => [
+                Rule::exists('siswa_profiles', 'id')->where(function ($q) {
+                    $q->whereHas('user', fn ($uq) => $uq->whereNull('deleted_at')->where('role', 'siswa'));
+                }),
+            ],
         ]);
 
         $siswaIds = $request->input('siswa_ids', []);

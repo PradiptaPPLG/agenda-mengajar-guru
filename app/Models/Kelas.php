@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use Carbon\Carbon;
 use Database\Factories\KelasFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -37,25 +36,6 @@ class Kelas extends Model
         $query = $withTrashed ? self::withTrashed() : self::query();
 
         return $query->whereRaw("LOWER(REPLACE(REPLACE(nama, ' ', ''), '-', '')) = ?", [$clean])->first();
-    }
-
-    /**
-     * Tentukan kelompok blok aktif untuk kelas ini pada tanggal tertentu.
-     * Mengembalikan 'kelompok_a', 'kelompok_b', atau null jika tidak sistem blok.
-     */
-    public function kelompokAktifHariIni(?Carbon $tanggal = null): ?string
-    {
-        if (! $this->is_sistem_blok) {
-            return null;
-        }
-
-        $minggu = KalenderBlokMinggu::aktif($tanggal)->first();
-
-        if (! $minggu) {
-            return null;
-        }
-
-        return $minggu->kelompokAktifUntukKelas($this);
     }
 
     public function waliKelas(): BelongsTo

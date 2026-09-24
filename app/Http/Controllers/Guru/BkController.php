@@ -18,12 +18,12 @@ class BkController extends Controller
         // Ambil kelas binaan spesifik jika ada
         $kelasBinaan = Kelas::where('bk_id', $userId)->get();
 
-        if ($kelasBinaan->isEmpty()) {
-            $hasBkAccess = $user->can('bk.view_rekap')
-                || $user->hasAnyRole(['Guru BK', 'BK', 'guru_bk', 'guru-bk'])
-                || $user->roles->contains(fn ($r) => str_contains(strtolower($r->name), 'bk'))
-                || in_array($user->role, ['admin', 'super_admin']);
+        $hasBkAccess = $user->can('bk.view_rekap')
+            || $user->hasAnyRole(['Guru BK', 'BK', 'guru_bk', 'guru-bk'])
+            || $user->roles->contains(fn ($r) => str_contains(strtolower($r->name), 'bk'))
+            || in_array($user->role, ['admin', 'super_admin']);
 
+        if ($kelasBinaan->isEmpty()) {
             if ($hasBkAccess) {
                 $kelasBinaan = Kelas::orderBy('tingkat')->orderBy('nama')->get();
             } else {

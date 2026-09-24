@@ -9,6 +9,7 @@ use App\Models\KehadiranGuru;
 use App\Models\Pertemuan;
 use App\Models\Setting;
 use App\Services\ImageCompressor;
+use App\Services\JadwalBlokResolverService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,12 +25,20 @@ class CaptureController extends Controller
         $user = Auth::user();
 
         // Check student is in this class
-        $kelasId = $user->siswaProfile?->kelas_id;
+        $kelas = $user->siswaProfile?->kelas;
 
         $jadwal = JadwalPelajaran::findOrFail($jadwalId);
-        abort_unless($jadwal->kelas_id === $kelasId, 403);
+        abort_unless($jadwal->kelas_id === $kelas?->id, 403);
 
         $tanggalCarbon = Carbon::parse($tanggal);
+
+        // Check if schedule is active for this class on this date in block system
+        if ($kelas && $kelas->is_sistem_blok) {
+            $activeJadwals = app(JadwalBlokResolverService::class)->resolveJadwal($kelas, $tanggalCarbon, (string) $jadwal->hari);
+            if (! $activeJadwals->pluck('id')->contains($jadwal->id)) {
+                return redirect()->route('siswa.dashboard')->with('error', 'Mata pelajaran ini tidak aktif untuk kelas Anda pada tanggal tersebut.');
+            }
+        }
 
         if ($tanggalCarbon->gt(now()->endOfDay())) {
             return redirect()->route('siswa.dashboard')->with('error', 'Laporan kehadiran untuk tanggal mendatang belum dapat diakses.');
@@ -65,12 +74,20 @@ class CaptureController extends Controller
     public function store(Request $request, int $jadwalId, string $tanggal): RedirectResponse
     {
         $user = Auth::user();
-        $kelasId = $user->siswaProfile?->kelas_id;
+        $kelas = $user->siswaProfile?->kelas;
 
         $jadwal = JadwalPelajaran::findOrFail($jadwalId);
-        abort_unless($jadwal->kelas_id === $kelasId, 403);
+        abort_unless($jadwal->kelas_id === $kelas?->id, 403);
 
         $tanggalCarbon = Carbon::parse($tanggal);
+
+        // Check if schedule is active for this class on this date in block system
+        if ($kelas && $kelas->is_sistem_blok) {
+            $activeJadwals = app(JadwalBlokResolverService::class)->resolveJadwal($kelas, $tanggalCarbon, (string) $jadwal->hari);
+            if (! $activeJadwals->pluck('id')->contains($jadwal->id)) {
+                return redirect()->route('siswa.dashboard')->with('error', 'Mata pelajaran ini tidak aktif untuk kelas Anda pada tanggal tersebut.');
+            }
+        }
 
         if ($tanggalCarbon->gt(now()->endOfDay()) || $tanggalCarbon->lt(now()->subDays(7)->startOfDay())) {
             return redirect()->route('siswa.dashboard')->with('error', 'Waktu pengiriman laporan untuk tanggal ini sudah ditutup (maksimal 7 hari ke belakang).');

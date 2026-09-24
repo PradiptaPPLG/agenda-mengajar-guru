@@ -40,6 +40,7 @@ class PiketAndAttendanceWorkflowTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        Carbon::setTestNow(Carbon::today()->setTime(7, 30));
         Storage::fake('public');
 
         $this->piket = User::create([

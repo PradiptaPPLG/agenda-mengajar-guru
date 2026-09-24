@@ -9,6 +9,7 @@ use App\Models\SiswaProfile;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class KelasController extends Controller
@@ -49,12 +50,14 @@ class KelasController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        $guruRule = Rule::exists('users', 'id')->where(fn ($q) => $q->where('role', 'guru')->whereNull('deleted_at'));
+
         $validated = $request->validate([
             'nama' => ['required', 'string', 'max:100'],
             'tingkat' => ['required', 'string', 'max:20'],
             'tahun_ajaran' => ['required', 'string', 'max:20'],
-            'wali_kelas_id' => ['nullable', 'exists:users,id'],
-            'bk_id' => ['nullable', 'exists:users,id'],
+            'wali_kelas_id' => ['nullable', $guruRule],
+            'bk_id' => ['nullable', $guruRule],
             'is_sistem_blok' => ['nullable', 'boolean'],
             'model_rotasi' => ['nullable', 'in:rotasi_minggu,split_harian'],
             'blok_awal' => ['nullable', 'in:kelompok_a,kelompok_b'],
@@ -81,12 +84,14 @@ class KelasController extends Controller
 
     public function update(Request $request, Kelas $kelas): RedirectResponse
     {
+        $guruRule = Rule::exists('users', 'id')->where(fn ($q) => $q->where('role', 'guru')->whereNull('deleted_at'));
+
         $validated = $request->validate([
             'nama' => ['required', 'string', 'max:100'],
             'tingkat' => ['required', 'string', 'max:20'],
             'tahun_ajaran' => ['required', 'string', 'max:20'],
-            'wali_kelas_id' => ['nullable', 'exists:users,id'],
-            'bk_id' => ['nullable', 'exists:users,id'],
+            'wali_kelas_id' => ['nullable', $guruRule],
+            'bk_id' => ['nullable', $guruRule],
             'is_sistem_blok' => ['nullable', 'boolean'],
             'model_rotasi' => ['nullable', 'in:rotasi_minggu,split_harian'],
             'blok_awal' => ['nullable', 'in:kelompok_a,kelompok_b'],
@@ -141,6 +146,10 @@ class KelasController extends Controller
         if ($newState) {
             $data['model_rotasi'] = $request->input('model_rotasi', $kelas->model_rotasi ?: 'rotasi_minggu');
             $data['blok_awal'] = $request->input('blok_awal', $kelas->blok_awal ?: 'kelompok_a');
+        } else {
+            // Reset agar tidak ada data kotor saat sistem blok dimatikan
+            $data['model_rotasi'] = null;
+            $data['blok_awal'] = null;
         }
 
         $kelas->update($data);
