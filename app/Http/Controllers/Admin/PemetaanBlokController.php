@@ -54,7 +54,7 @@ class PemetaanBlokController extends Controller
                 foreach ($siswaIds as $siswaId) {
                     if (isset($siswaSplit[$siswaId])) {
                         SiswaProfile::where('id', $siswaId)->update([
-                            'kelompok_blok' => $siswaSplit[$siswaId]
+                            'kelompok_blok' => $siswaSplit[$siswaId],
                         ]);
                     }
                 }

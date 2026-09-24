@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Permission;
 use App\Models\PermissionCategory;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
-use App\Models\Permission;
 use Spatie\Permission\Models\Role;
 
 class RoleController extends Controller

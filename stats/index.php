@@ -1,57 +1,55 @@
 <?php
-$yearmonth_text = "Jump to previous stats: ";
+
+$yearmonth_text = 'Jump to previous stats: ';
 $awstatsindex = 'awsindex.html';
 $script = "<script>function load_content(url){var iframe = document.getElementById(\"content\");iframe.src = url;}</script>\n";
 
-if ($handle = opendir('.'))
-{
-        while(false !== ($file = readdir($handle)))
-        {
-                if (substr($file,0,1) != "." && is_dir($file))
-                {
-                        $orderkey = substr($file,0,4).substr($file,5,2);
-                        if (substr($file,5,2) < 10 )
-                        {
-                                $orderkey = substr($file,0,4)."0".substr($file,5,2);
-                        }
-                        $awprev[$orderkey] = $file;
-                }
+if ($handle = opendir('.')) {
+    while (false !== ($file = readdir($handle))) {
+        if (substr($file, 0, 1) != '.' && is_dir($file)) {
+            $orderkey = substr($file, 0, 4).substr($file, 5, 2);
+            if (substr($file, 5, 2) < 10) {
+                $orderkey = substr($file, 0, 4).'0'.substr($file, 5, 2);
+            }
+            $awprev[$orderkey] = $file;
         }
+    }
 
-        $month = date("n");
-        $year = date("Y");
-		
-        if (date("d") == 1)
-        {
-                $month = date("m")-1;
-                if (date("m") == 1)
-                {
-                        $year = date("Y")-1;
-                        $month = "12";
-                }
+    $month = date('n');
+    $year = date('Y');
+
+    if (date('d') == 1) {
+        $month = date('m') - 1;
+        if (date('m') == 1) {
+            $year = date('Y') - 1;
+            $month = '12';
         }
+    }
 
-        $current = $year.$month;
-		if ( $month < 10 ) {
-			$current = $year."0".$month;
-		}
-		$awprev[$current] = $year."-".$month;
+    $current = $year.$month;
+    if ($month < 10) {
+        $current = $year.'0'.$month;
+    }
+    $awprev[$current] = $year.'-'.$month;
 
-		closedir($handle);
+    closedir($handle);
 }
 
 arsort($awprev);
 
-$options = "";
+$options = '';
 foreach ($awprev as $key => $value) {
-        // Define name for the index file
-        $awstatsindex = 'awsindex.html';
-        if(!file_exists($value.'/awsindex.html') && file_exists($value.'/goaindex.html')) {
-                $awstatsindex = 'goaindex.html';
-        }
-        // Set name for first entry in month list
-	if($key == $current) $options .= "<option selected=\"selected\" value=\"{$awstatsindex}\">{$value}</option>\n";
-	else $options .= "<option value=\"{$value}/{$awstatsindex}\">{$value}</option>\n";
+    // Define name for the index file
+    $awstatsindex = 'awsindex.html';
+    if (! file_exists($value.'/awsindex.html') && file_exists($value.'/goaindex.html')) {
+        $awstatsindex = 'goaindex.html';
+    }
+    // Set name for first entry in month list
+    if ($key == $current) {
+        $options .= "<option selected=\"selected\" value=\"{$awstatsindex}\">{$value}</option>\n";
+    } else {
+        $options .= "<option value=\"{$value}/{$awstatsindex}\">{$value}</option>\n";
+    }
 }
 
 $html = "<!DOCTYPE html>\n<html>\n<head>\n<title>Stats</title>\n";
@@ -63,6 +61,5 @@ $html .= "<div id=\"header\">{$yearmonth_text}\n";
 $html .= "<select name=\"awdate\" onchange=\"load_content(this.value)\">\n";
 $html .= $options;
 $html .= "</select>\n</div>\n<iframe src=\"awsindex.html\" id=\"content\"></iframe>\n";
-$html .= "</body></html>";
+$html .= '</body></html>';
 echo $html;
-?>

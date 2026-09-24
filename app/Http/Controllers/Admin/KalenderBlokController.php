@@ -72,6 +72,6 @@ class KalenderBlokController extends Controller
             ->delete();
 
         return redirect()->route('admin.kalender-blok.index')
-            ->with('success', "Semua kalender blok untuk Semester ".ucfirst($validated['semester'])." {$validated['tahun_ajaran']} berhasil dihapus.");
+            ->with('success', 'Semua kalender blok untuk Semester '.ucfirst($validated['semester'])." {$validated['tahun_ajaran']} berhasil dihapus.");
     }
 }
