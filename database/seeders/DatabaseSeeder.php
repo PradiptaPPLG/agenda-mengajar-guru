@@ -32,21 +32,21 @@ class DatabaseSeeder extends Seeder
 
         // ── Mata Pelajaran ────────────────────────────────────────────────────
         $mapels = [
-            ['nama' => 'Matematika',                  'kode' => 'MTK'],
-            ['nama' => 'Bahasa Indonesia',             'kode' => 'BIND'],
-            ['nama' => 'Bahasa Inggris',               'kode' => 'BING'],
-            ['nama' => 'Pendidikan Pancasila',         'kode' => 'PPK'],
-            ['nama' => 'Sejarah',                     'kode' => 'SEJ'],
-            ['nama' => 'Informatika',                  'kode' => 'INF'],
-            ['nama' => 'Rekayasa Perangkat Lunak',     'kode' => 'RPL'],
-            ['nama' => 'Basis Data',                   'kode' => 'BD'],
-            ['nama' => 'Pemrograman Web',              'kode' => 'PWB'],
-            ['nama' => 'Desain Komunikasi Visual',     'kode' => 'DKV'],
-            ['nama' => 'Akuntansi',                    'kode' => 'AKL'],
-            ['nama' => 'Pemasaran',                    'kode' => 'PM'],
-            ['nama' => 'Manajemen Perkantoran',        'kode' => 'MPLB'],
-            ['nama' => 'Perhotelan',                   'kode' => 'HTL'],
-            ['nama' => 'Kuliner',                      'kode' => 'KLN'],
+            ['nama' => 'Matematika', 'kode' => 'MTK'],
+            ['nama' => 'Bahasa Indonesia', 'kode' => 'BIND'],
+            ['nama' => 'Bahasa Inggris', 'kode' => 'BING'],
+            ['nama' => 'Pendidikan Pancasila', 'kode' => 'PPK'],
+            ['nama' => 'Sejarah', 'kode' => 'SEJ'],
+            ['nama' => 'Informatika', 'kode' => 'INF'],
+            ['nama' => 'Rekayasa Perangkat Lunak', 'kode' => 'RPL'],
+            ['nama' => 'Basis Data', 'kode' => 'BD'],
+            ['nama' => 'Pemrograman Web', 'kode' => 'PWB'],
+            ['nama' => 'Desain Komunikasi Visual', 'kode' => 'DKV'],
+            ['nama' => 'Akuntansi', 'kode' => 'AKL'],
+            ['nama' => 'Pemasaran', 'kode' => 'PM'],
+            ['nama' => 'Manajemen Perkantoran', 'kode' => 'MPLB'],
+            ['nama' => 'Perhotelan', 'kode' => 'HTL'],
+            ['nama' => 'Kuliner', 'kode' => 'KLN'],
         ];
 
         foreach ($mapels as $mapel) {
@@ -121,8 +121,8 @@ class DatabaseSeeder extends Seeder
         }
 
         // ── Panggil StudentSeeder & AttendanceSeeder ─────────────────────────
-       //  $this->call(StudentSeeder::class); 
-       //  $this->call(AttendanceSeeder::class); 
+        $this->call(StudentSeeder::class);
+        $this->call(AttendanceSeeder::class);
 
         // ── Summary ───────────────────────────────────────────────────────────
         $this->command->info('');
