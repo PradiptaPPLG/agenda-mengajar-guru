@@ -35,8 +35,8 @@
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1.5">Email <span class="text-red-500">*</span></label>
-                            <input type="email" name="email" value="{{ old('email') }}" required
+                            <label class="block text-sm font-medium text-slate-700 mb-1.5">Email <span id="email-required-mark" class="text-red-500">*</span> <span id="email-optional-hint" class="text-slate-400 font-normal hidden">(opsional untuk siswa)</span></label>
+                            <input type="email" id="email-input" name="email" value="{{ old('email') }}" required
                                    class="w-full px-3.5 py-2.5 border {{ $errors->has('email') ? 'border-red-400' : 'border-slate-200' }} rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                             @error('email')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                         </div>
@@ -256,10 +256,23 @@
             const nipField = document.getElementById('nip-field');
             const guruFields = document.getElementById('guru-fields');
             const siswaFields = document.getElementById('siswa-fields');
+            const emailInput = document.getElementById('email-input');
+            const emailMark = document.getElementById('email-required-mark');
+            const emailHint = document.getElementById('email-optional-hint');
 
             if (nipField) nipField.classList.toggle('hidden', val !== 'guru');
             if (guruFields) guruFields.classList.toggle('hidden', val !== 'guru');
             if (siswaFields) siswaFields.classList.toggle('hidden', val !== 'siswa');
+
+            if (val === 'siswa') {
+                if (emailInput) emailInput.removeAttribute('required');
+                if (emailMark) emailMark.classList.add('hidden');
+                if (emailHint) emailHint.classList.remove('hidden');
+            } else {
+                if (emailInput) emailInput.setAttribute('required', 'required');
+                if (emailMark) emailMark.classList.remove('hidden');
+                if (emailHint) emailHint.classList.add('hidden');
+            }
         }
 
         function syncRoleDependentFields() {

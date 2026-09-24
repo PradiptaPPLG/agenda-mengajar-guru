@@ -57,11 +57,18 @@ class JadwalImport implements ToCollection, WithHeadingRow
                 $kelas = Kelas::create(['nama' => $kelasName, 'tingkat' => $tingkat, 'tahun_ajaran' => date('Y').'/'.(date('Y') + 1)]);
             }
 
-            $guru = User::where('role', 'guru')->where('name', $guruName)->first();
+            $guru = User::withTrashed()->where('role', 'guru')->where('name', $guruName)->first();
+            if ($guru && $guru->trashed()) {
+                $guru->restore();
+            }
             if (! $guru && $guruName) {
+                $guruEmail = Str::slug($guruName).rand(100, 999).'@guru.com';
+                while (User::withTrashed()->where('email', $guruEmail)->exists()) {
+                    $guruEmail = Str::slug($guruName).rand(1000, 9999).'@guru.com';
+                }
                 $guru = User::create([
                     'name' => $guruName,
-                    'email' => Str::slug($guruName).rand(100, 999).'@guru.com',
+                    'email' => $guruEmail,
                     'password' => Hash::make('password'),
                     'role' => 'guru',
                     'is_active' => true,

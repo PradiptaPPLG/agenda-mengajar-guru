@@ -268,7 +268,7 @@
                 </div>
 
                 <!-- Tab: Excel -->
-                <div x-show="tab === 'excel'" class="space-y-4" style="display: none;">
+                <div x-show="tab === 'excel'" class="space-y-4" style="display: none;" x-data="{ isSubmitting: false }">
                     <p class="text-sm text-slate-600">Unggah file Excel (.xlsx / .csv) untuk membuat data murid baru dan otomatis memasukkan mereka ke kelas ini.</p>
                     
                     <div class="bg-blue-50 text-blue-700 p-4 rounded-xl text-xs space-y-2">
@@ -289,17 +289,38 @@
                         </ul>
                     </div>
 
-                    <form action="{{ route('admin.kelas.siswa.import', $kelas) }}" method="POST" enctype="multipart/form-data" class="space-y-4 border border-slate-200 p-4 rounded-xl">
-                        @csrf
-                        <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1.5">File Excel (.xlsx / .xls / .csv) <span class="text-red-500">*</span></label>
-                            <input type="file" name="excel_file" accept=".xlsx,.xls,.csv" required
-                                   class="w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                        <form x-show="!isSubmitting" action="{{ route('admin.kelas.siswa.import', $kelas) }}" method="POST" enctype="multipart/form-data" class="space-y-4 border border-slate-200 p-4 rounded-xl" @submit="isSubmitting = true">
+                            @csrf
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1.5">File Excel (.xlsx / .xls / .csv) <span class="text-red-500">*</span></label>
+                                <input type="file" name="excel_file" accept=".xlsx,.xls,.csv" required
+                                       class="w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                            </div>
+                            <button type="submit" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                                Mulai Import Data
+                            </button>
+                        </form>
+
+                        {{-- Loading State --}}
+                        <div x-show="isSubmitting" style="display: none;" class="p-6 text-center flex flex-col items-center justify-center border border-slate-200 rounded-xl bg-slate-50/50">
+                            <div class="relative w-16 h-16 mb-4 flex items-center justify-center">
+                                <div class="absolute inset-0 rounded-full border-4 border-emerald-100 border-t-emerald-600 animate-spin"></div>
+                                <div class="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 shadow-inner">
+                                    <svg class="w-5 h-5 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                                    </svg>
+                                </div>
+                            </div>
+                            <h4 class="text-base font-bold text-slate-900 mb-1">Sedang Mengimpor Siswa ke Kelas...</h4>
+                            <p class="text-xs text-slate-500 max-w-xs leading-relaxed mb-4">
+                                Mohon tunggu, sistem sedang mendaftarkan siswa. Jangan menutup halaman atau klik kembali.
+                            </p>
+                            <div class="w-full max-w-xs bg-slate-200 rounded-full h-1.5 overflow-hidden relative shadow-inner">
+                                <div class="h-full bg-gradient-to-r from-emerald-500 to-teal-600 rounded-full animate-pulse w-full"></div>
+                            </div>
                         </div>
-                        <button type="submit" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl transition-colors">
-                            Mulai Import Data
-                        </button>
-                    </form>
+                    </div>
                 </div>
 
             </div>
