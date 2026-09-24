@@ -45,7 +45,11 @@ class PdfController extends Controller
             $query->where('guru_id', $selectedGuruId);
         }
 
-        $kehadiran = $query->orderBy('created_at')->get();
+        $kehadiran = $query->orderBy(
+            Pertemuan::select('tanggal')
+                ->whereColumn('pertemuans.id', 'kehadiran_gurus.pertemuan_id')
+                ->limit(1)
+        )->get();
 
         $summary = $kehadiran->groupBy('guru_id')->map(function ($items) {
             return [
