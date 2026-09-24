@@ -157,51 +157,147 @@ class MataPelajaranController extends Controller
     public function import(Request $request): RedirectResponse
     {
         $request->validate([
-            'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:5120'],
+            'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:10240'],
         ]);
 
         $file = $request->file('file');
         $filePath = $file->getRealPath();
 
         $reader = SimpleExcelReader::create($filePath, $file->getClientOriginalExtension());
-        $rows = $reader->getRows();
+        $spoutReader = $reader->getReader();
 
         $successCount = 0;
+        $updatedCount = 0;
         $errorCount = 0;
 
-        foreach ($rows as $row) {
+        $processRow = function (array $rowProperties, &$headerFound, &$namaIndex, &$kodeIndex, &$jenisIndex) use (
+            &$successCount, &$updatedCount, &$errorCount
+        ) {
+            if (! $headerFound) {
+                foreach ($rowProperties as $index => $value) {
+                    if (is_string($value)) {
+                        $lowerVal = trim(preg_replace('/\s+/', ' ', strtolower($value)));
+                        if (in_array($lowerVal, ['nama mata pelajaran', 'mata pelajaran', 'nama mapel', 'mapel', 'nama'])) {
+                            $namaIndex = $index;
+                        } elseif (in_array($lowerVal, ['kode mata pelajaran', 'kode mapel', 'kode'])) {
+                            $kodeIndex = $index;
+                        } elseif (in_array($lowerVal, ['jenis mata pelajaran', 'jenis', 'kategori'])) {
+                            $jenisIndex = $index;
+                        }
+                    }
+                }
+
+                if ($namaIndex !== -1) {
+                    $headerFound = true;
+                }
+
+                return;
+            }
+
+            $nama = isset($rowProperties[$namaIndex]) ? trim((string) $rowProperties[$namaIndex]) : null;
+            if (! $nama || $nama === '-' || in_array(strtolower($nama), ['nama', 'mata pelajaran', 'nama mata pelajaran', 'mapel'])) {
+                return;
+            }
+
+            $kode = ($kodeIndex !== -1 && isset($rowProperties[$kodeIndex])) ? trim((string) $rowProperties[$kodeIndex]) : null;
+            if ($kode === '' || $kode === '-') {
+                $kode = null;
+            }
+
+            $rawJenis = ($jenisIndex !== -1 && isset($rowProperties[$jenisIndex])) ? trim((string) $rowProperties[$jenisIndex]) : 'umum';
+            $lowerJenis = strtolower($rawJenis);
+            $jenis = in_array($lowerJenis, ['umum', 'produktif', 'normatif', 'adaptif', 'kejuruan']) ? $lowerJenis : 'umum';
+
             try {
-                $nama = $row['nama'] ?? $row['Nama'] ?? $row['mata_pelajaran'] ?? $row['Mata pelajaran'] ?? null;
-                $kode = $row['kode'] ?? $row['Kode'] ?? null;
-                $jenis = $row['jenis'] ?? $row['Jenis'] ?? $row['kategori'] ?? $row['Kategori'] ?? 'umum';
+                $mapel = null;
 
-                if (! $nama) {
-                    $errorCount++;
+                if ($kode) {
+                    $mapel = MataPelajaran::withTrashed()->where('kode', $kode)->first();
+                }
 
+                if (! $mapel) {
+                    $mapel = MataPelajaran::withTrashed()->whereRaw('LOWER(TRIM(nama)) = ?', [strtolower(trim($nama))])->first();
+                }
+
+                if ($mapel) {
+                    $isRestored = false;
+                    if ($mapel->trashed()) {
+                        $mapel->restore();
+                        $isRestored = true;
+                    }
+                    $mapel->update([
+                        'nama' => $nama,
+                        'kode' => $kode ?: $mapel->kode,
+                        'jenis' => $jenis,
+                    ]);
+
+                    if ($isRestored) {
+                        $successCount++;
+                    } else {
+                        $updatedCount++;
+                    }
+                } else {
+                    if (! $kode) {
+                        $prefix = strtoupper(substr(preg_replace('/[^a-zA-Z0-9]/', '', $nama), 0, 5));
+                        $kode = ($prefix ?: 'MPL').'-'.rand(100, 999);
+                    }
+
+                    $counter = 1;
+                    $baseKode = $kode;
+                    while (MataPelajaran::withTrashed()->where('kode', $kode)->exists()) {
+                        $kode = "{$baseKode}-{$counter}";
+                        $counter++;
+                    }
+
+                    MataPelajaran::create([
+                        'nama' => $nama,
+                        'kode' => $kode,
+                        'jenis' => $jenis,
+                    ]);
+                    $successCount++;
+                }
+            } catch (\Throwable $e) {
+                $errorCount++;
+            }
+        };
+
+        if (method_exists($spoutReader, 'getSheetIterator')) {
+            $spoutReader->open($filePath);
+            foreach ($spoutReader->getSheetIterator() as $sheet) {
+                $sheetName = strtolower(trim($sheet->getName()));
+                // If there are multiple sheets, skip sheets that are clearly teachers or schedule
+                if (in_array($sheetName, ['available teachers', 'daftar guru', 'teachers', 'guru'])) {
                     continue;
                 }
 
-                if (! $kode) {
-                    $kode = strtoupper(substr(preg_replace('/[^a-zA-Z0-9]/', '', $nama), 0, 5)).'-'.rand(100, 999);
+                $headerFound = false;
+                $namaIndex = $kodeIndex = $jenisIndex = -1;
+
+                foreach ($sheet->getRowIterator() as $row) {
+                    $rowProperties = [];
+                    foreach ($row->getCells() as $cell) {
+                        $rowProperties[] = $cell->getValue();
+                    }
+                    $processRow($rowProperties, $headerFound, $namaIndex, $kodeIndex, $jenisIndex);
                 }
-
-                MataPelajaran::updateOrCreate(
-                    ['kode' => $kode],
-                    [
-                        'nama' => $nama,
-                        'jenis' => in_array(strtolower($jenis), ['umum', 'produktif', 'normatif', 'adaptif', 'kejuruan']) ? strtolower($jenis) : 'umum',
-                    ]
-                );
-
-                $successCount++;
-            } catch (\Exception $e) {
-                $errorCount++;
             }
+            $spoutReader->close();
+        } else {
+            // For CSV
+            $headerFound = false;
+            $namaIndex = $kodeIndex = $jenisIndex = -1;
+            $reader->noHeaderRow()->getRows()->each(function (array $rowProperties) use ($processRow, &$headerFound, &$namaIndex, &$kodeIndex, &$jenisIndex) {
+                $processRow($rowProperties, $headerFound, $namaIndex, $kodeIndex, $jenisIndex);
+            });
         }
 
-        $message = "Import selesai. {$successCount} mata pelajaran berhasil diimport.";
+        $message = "Import selesai. {$successCount} mata pelajaran berhasil diimport";
+        if ($updatedCount > 0) {
+            $message .= ", {$updatedCount} data mata pelajaran diperbarui";
+        }
+        $message .= '.';
         if ($errorCount > 0) {
-            $message .= " {$errorCount} baris gagal (mungkin data tidak valid).";
+            $message .= " ({$errorCount} baris tidak valid dilewati).";
         }
 
         return redirect()->route('admin.mata-pelajaran.index')->with('success', $message);
