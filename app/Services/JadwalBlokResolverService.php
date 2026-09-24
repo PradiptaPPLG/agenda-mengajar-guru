@@ -50,7 +50,7 @@ class JadwalBlokResolverService
             return $query->get();
         }
 
-        if ($kelas->model_rotasi === 'split_harian' || $kelas->blok_awal === 'split') {
+        if ($kelas->model_rotasi === 'split_harian') {
             // Model split: semua kelompok berjalan paralel dalam sehari atau dibagi per siswa
             // Tidak perlu filter kelompok untuk sisi jadwal, karena guru mengajar bersamaan, kembalikan semua
             return $query->get();

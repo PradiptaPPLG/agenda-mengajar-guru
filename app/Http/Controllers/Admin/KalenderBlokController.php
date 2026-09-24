@@ -40,6 +40,11 @@ class KalenderBlokController extends Controller
             $tanggalMulai = $tanggalMulai->next(Carbon::MONDAY);
         }
 
+        // Hapus data minggu lama untuk semester ini agar tidak ada ghost weeks saat jumlah minggu dikurangi
+        KalenderBlokMinggu::where('tahun_ajaran', $validated['tahun_ajaran'])
+            ->where('semester', $validated['semester'])
+            ->delete();
+
         KalenderBlokMinggu::generateSemester(
             tanggalMulai: $tanggalMulai,
             jumlahMinggu: (int) $validated['jumlah_minggu'],
