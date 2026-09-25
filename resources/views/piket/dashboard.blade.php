@@ -126,92 +126,193 @@
 
         {{-- Monitoring Cards Grid --}}
         @if($filteredItems->count() > 0)
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            @foreach($filteredItems as $item)
-            @php
-                $statusColor = match($item['status']) {
-                    'hadir' => 'emerald',
-                    'terlambat' => 'amber',
-                    'tidak_hadir' => 'red',
-                    default => 'rose',
-                };
-            @endphp
-            <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs hover:shadow-md transition-shadow relative overflow-hidden flex flex-col justify-between">
-                {{-- Status color bar on top --}}
-                <div class="absolute top-0 left-0 right-0 h-1.5 bg-{{ $statusColor }}-500"></div>
+            @if($selectedSlotKey === 'all')
+                @php
+                    $groupedPiket = $filteredItems->groupBy('slot_index')->sortKeys();
+                @endphp
+                <div class="space-y-6">
+                    @foreach($groupedPiket as $sKey => $slotItems)
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="px-2.5 py-1 rounded-lg bg-teal-600 text-white text-xs font-bold tracking-wide shadow-2xs">
+                                        Jam Ke-{{ $slotItems->first()['jam_ke'] }}
+                                    </span>
+                                    <span class="text-xs font-bold text-slate-800">
+                                        {{ $slotItems->first()['slot_label'] }}
+                                    </span>
+                                </div>
+                                <span class="text-xs font-semibold text-slate-500">
+                                    {{ $slotItems->count() }} Kelas
+                                </span>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                @foreach($slotItems as $item)
+                                @php
+                                    $statusColor = match($item['status']) {
+                                        'hadir' => 'emerald',
+                                        'terlambat' => 'amber',
+                                        'tidak_hadir' => 'red',
+                                        default => 'rose',
+                                    };
+                                @endphp
+                                <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs hover:shadow-md transition-shadow relative overflow-hidden flex flex-col justify-between">
+                                    <div class="absolute top-0 left-0 right-0 h-1.5 bg-{{ $statusColor }}-500"></div>
 
-                <div>
-                    {{-- Header Card: Kelas & Jam --}}
-                    <div class="flex items-start justify-between gap-2 mb-3">
+                                    <div>
+                                        <div class="flex items-start justify-between gap-2 mb-3">
+                                            <div>
+                                                <span class="inline-block px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 text-xs font-bold">
+                                                    {{ $item['kelas_nama'] }}
+                                                </span>
+                                            </div>
+                                            <div class="text-right">
+                                                <span class="text-xs font-semibold text-slate-500">Jam Ke-{{ $item['jam_ke'] }}</span>
+                                                <span class="block text-[11px] text-slate-400">{{ $item['slot_label'] }}</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="space-y-1 mb-4">
+                                            <h3 class="font-bold text-slate-900 text-base leading-tight">{{ $item['mapel_nama'] }}</h3>
+                                            <p class="text-xs text-slate-600 font-medium flex items-center gap-1.5">
+                                                <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                                                {{ $item['guru_nama'] }}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div class="pt-3 border-t border-slate-100">
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center gap-2">
+                                                @if($item['status'] === 'hadir')
+                                                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                                                    <span class="text-xs font-bold text-emerald-700">Sudah Masuk Kelas</span>
+                                                @elseif($item['status'] === 'terlambat')
+                                                    <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                                                    <span class="text-xs font-bold text-amber-700">Terlambat Masuk</span>
+                                                @elseif($item['status'] === 'tidak_hadir')
+                                                    <span class="w-2.5 h-2.5 rounded-full bg-red-600"></span>
+                                                    <span class="text-xs font-bold text-red-700">Tidak Hadir</span>
+                                                @else
+                                                    <span class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse"></span>
+                                                    <span class="text-xs font-bold text-rose-600">Belum Hadir</span>
+                                                @endif
+                                            </div>
+
+                                            @if($item['status'] === 'belum_hadir')
+                                                <form action="{{ route('piket.teguran.store') }}" method="POST">
+                                                    @csrf
+                                                    <input type="hidden" name="guru_id" value="{{ $item['guru_id'] }}">
+                                                    <input type="hidden" name="jadwal_id" value="{{ $item['jadwal_id'] }}">
+                                                    <button type="submit" class="px-2 py-1 bg-red-100 hover:bg-red-200 text-red-700 text-[10px] font-bold rounded shadow-xs transition border border-red-200" title="Kirim notifikasi teguran ke guru">
+                                                        Tegur
+                                                    </button>
+                                                </form>
+                                            @endif
+
+                                            @if($item['waktu_hadir'])
+                                                <span class="text-[11px] text-slate-400">{{ \Carbon\Carbon::parse($item['waktu_hadir'])->format('H:i') }} WIB</span>
+                                            @endif
+                                        </div>
+
+                                        @if($item['alasan'])
+                                            <div class="mt-2 px-2.5 py-1 rounded-lg bg-red-50 text-[11px] text-red-700 font-medium border border-red-100 flex items-center justify-between">
+                                                <span>Alasan: {{ $item['alasan'] }}</span>
+                                                @if($item['guru_pengganti'])
+                                                    <span class="font-bold">Pengganti: {{ $item['guru_pengganti'] }}</span>
+                                                @endif
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    @foreach($filteredItems as $item)
+                    @php
+                        $statusColor = match($item['status']) {
+                            'hadir' => 'emerald',
+                            'terlambat' => 'amber',
+                            'tidak_hadir' => 'red',
+                            default => 'rose',
+                        };
+                    @endphp
+                    <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs hover:shadow-md transition-shadow relative overflow-hidden flex flex-col justify-between">
+                        <div class="absolute top-0 left-0 right-0 h-1.5 bg-{{ $statusColor }}-500"></div>
+
                         <div>
-                            <span class="inline-block px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 text-xs font-bold">
-                                {{ $item['kelas_nama'] }}
-                            </span>
-                        </div>
-                        <div class="text-right">
-                            <span class="text-xs font-semibold text-slate-500">Jam Ke-{{ $item['jam_ke'] }}</span>
-                            <span class="block text-[11px] text-slate-400">{{ $item['slot_label'] }}</span>
-                        </div>
-                    </div>
+                            <div class="flex items-start justify-between gap-2 mb-3">
+                                <div>
+                                    <span class="inline-block px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 text-xs font-bold">
+                                        {{ $item['kelas_nama'] }}
+                                    </span>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-xs font-semibold text-slate-500">Jam Ke-{{ $item['jam_ke'] }}</span>
+                                    <span class="block text-[11px] text-slate-400">{{ $item['slot_label'] }}</span>
+                                </div>
+                            </div>
 
-                    {{-- Mata Pelajaran & Guru --}}
-                    <div class="space-y-1 mb-4">
-                        <h3 class="font-bold text-slate-900 text-base leading-tight">{{ $item['mapel_nama'] }}</h3>
-                        <p class="text-xs text-slate-600 font-medium flex items-center gap-1.5">
-                            <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                            {{ $item['guru_nama'] }}
-                        </p>
-                    </div>
-                </div>
+                            <div class="space-y-1 mb-4">
+                                <h3 class="font-bold text-slate-900 text-base leading-tight">{{ $item['mapel_nama'] }}</h3>
+                                <p class="text-xs text-slate-600 font-medium flex items-center gap-1.5">
+                                    <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                                    {{ $item['guru_nama'] }}
+                                </p>
+                            </div>
+                        </div>
 
-                {{-- Status Kehadiran Footer --}}
-                <div class="pt-3 border-t border-slate-100">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                            @if($item['status'] === 'hadir')
-                                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-                                <span class="text-xs font-bold text-emerald-700">Sudah Masuk Kelas</span>
-                            @elseif($item['status'] === 'terlambat')
-                                <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-                                <span class="text-xs font-bold text-amber-700">Terlambat Masuk</span>
-                            @elseif($item['status'] === 'tidak_hadir')
-                                <span class="w-2.5 h-2.5 rounded-full bg-red-600"></span>
-                                <span class="text-xs font-bold text-red-700">Tidak Hadir</span>
-                            @else
-                                <span class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse"></span>
-                                <span class="text-xs font-bold text-rose-600">Belum Hadir</span>
+                        <div class="pt-3 border-t border-slate-100">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    @if($item['status'] === 'hadir')
+                                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                                        <span class="text-xs font-bold text-emerald-700">Sudah Masuk Kelas</span>
+                                    @elseif($item['status'] === 'terlambat')
+                                        <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                                        <span class="text-xs font-bold text-amber-700">Terlambat Masuk</span>
+                                    @elseif($item['status'] === 'tidak_hadir')
+                                        <span class="w-2.5 h-2.5 rounded-full bg-red-600"></span>
+                                        <span class="text-xs font-bold text-red-700">Tidak Hadir</span>
+                                    @else
+                                        <span class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse"></span>
+                                        <span class="text-xs font-bold text-rose-600">Belum Hadir</span>
+                                    @endif
+                                </div>
+
+                                @if($item['status'] === 'belum_hadir')
+                                    <form action="{{ route('piket.teguran.store') }}" method="POST">
+                                        @csrf
+                                        <input type="hidden" name="guru_id" value="{{ $item['guru_id'] }}">
+                                        <input type="hidden" name="jadwal_id" value="{{ $item['jadwal_id'] }}">
+                                        <button type="submit" class="px-2 py-1 bg-red-100 hover:bg-red-200 text-red-700 text-[10px] font-bold rounded shadow-xs transition border border-red-200" title="Kirim notifikasi teguran ke guru">
+                                            Tegur
+                                        </button>
+                                    </form>
+                                @endif
+
+                                @if($item['waktu_hadir'])
+                                    <span class="text-[11px] text-slate-400">{{ \Carbon\Carbon::parse($item['waktu_hadir'])->format('H:i') }} WIB</span>
+                                @endif
+                            </div>
+
+                            @if($item['alasan'])
+                                <div class="mt-2 px-2.5 py-1 rounded-lg bg-red-50 text-[11px] text-red-700 font-medium border border-red-100 flex items-center justify-between">
+                                    <span>Alasan: {{ $item['alasan'] }}</span>
+                                    @if($item['guru_pengganti'])
+                                        <span class="font-bold">Pengganti: {{ $item['guru_pengganti'] }}</span>
+                                    @endif
+                                </div>
                             @endif
                         </div>
-
-                        @if($item['status'] === 'belum_hadir')
-                            <form action="{{ route('piket.teguran.store') }}" method="POST">
-                                @csrf
-                                <input type="hidden" name="guru_id" value="{{ $item['guru_id'] }}">
-                                <input type="hidden" name="jadwal_id" value="{{ $item['jadwal_id'] }}">
-                                <button type="submit" class="px-2 py-1 bg-red-100 hover:bg-red-200 text-red-700 text-[10px] font-bold rounded shadow-xs transition border border-red-200" title="Kirim notifikasi teguran ke guru">
-                                    Tegur
-                                </button>
-                            </form>
-                        @endif
-
-                        @if($item['waktu_hadir'])
-                            <span class="text-[11px] text-slate-400">{{ \Carbon\Carbon::parse($item['waktu_hadir'])->format('H:i') }} WIB</span>
-                        @endif
                     </div>
-
-                    {{-- Detail Alasan atau Guru Pengganti --}}
-                    @if($item['alasan'])
-                        <div class="mt-2 px-2.5 py-1 rounded-lg bg-red-50 text-[11px] text-red-700 font-medium border border-red-100 flex items-center justify-between">
-                            <span>Alasan: {{ $item['alasan'] }}</span>
-                            @if($item['guru_pengganti'])
-                                <span class="font-bold">Pengganti: {{ $item['guru_pengganti'] }}</span>
-                            @endif
-                        </div>
-                    @endif
+                    @endforeach
                 </div>
-            </div>
-            @endforeach
-        </div>
+            @endif
         @else
         <div class="bg-white rounded-2xl border border-slate-200 p-12 text-center">
             <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">

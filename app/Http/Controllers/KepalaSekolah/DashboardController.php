@@ -41,6 +41,22 @@ class DashboardController extends Controller
         // Ambil standar jam pelajaran dari master
         $masterJam = MasterJamPelajaran::orderBy('jam_ke')->get();
 
+        if ($masterJam->isEmpty()) {
+            $masterJam = collect([
+                (object) ['jam_ke' => 1, 'jam_mulai' => '06:30', 'jam_selesai' => '07:10'],
+                (object) ['jam_ke' => 2, 'jam_mulai' => '07:10', 'jam_selesai' => '07:50'],
+                (object) ['jam_ke' => 3, 'jam_mulai' => '07:50', 'jam_selesai' => '08:30'],
+                (object) ['jam_ke' => 4, 'jam_mulai' => '08:30', 'jam_selesai' => '09:10'],
+                (object) ['jam_ke' => 5, 'jam_mulai' => '09:30', 'jam_selesai' => '10:10'],
+                (object) ['jam_ke' => 6, 'jam_mulai' => '10:10', 'jam_selesai' => '10:50'],
+                (object) ['jam_ke' => 7, 'jam_mulai' => '10:50', 'jam_selesai' => '11:30'],
+                (object) ['jam_ke' => 8, 'jam_mulai' => '12:30', 'jam_selesai' => '13:10'],
+                (object) ['jam_ke' => 9, 'jam_mulai' => '13:10', 'jam_selesai' => '13:50'],
+                (object) ['jam_ke' => 10, 'jam_mulai' => '13:50', 'jam_selesai' => '14:30'],
+                (object) ['jam_ke' => 11, 'jam_mulai' => '14:30', 'jam_selesai' => '15:10'],
+            ]);
+        }
+
         $timeSlots = $masterJam->map(function ($jam) {
             $mulai = substr($jam->jam_mulai, 0, 5);
             $selesai = substr($jam->jam_selesai, 0, 5);
@@ -54,6 +70,19 @@ class DashboardController extends Controller
             ];
         });
 
+        // Cari slot-slot yang memiliki jadwal aktif hari ini
+        $availableSlotIndices = $allJadwals->map(function ($j) use ($timeSlots) {
+            $m = substr($j->jam_mulai, 0, 5);
+            $s = substr($j->jam_selesai, 0, 5);
+
+            $idx = $timeSlots->search(fn ($slot) => $slot['jam_mulai'] === $m && $slot['jam_selesai'] === $s);
+            if ($idx === false) {
+                $idx = $timeSlots->search(fn ($slot) => $m < $slot['jam_selesai'] && $s > $slot['jam_mulai']);
+            }
+
+            return $idx;
+        })->filter(fn ($idx) => $idx !== false)->unique()->values();
+
         // Deteksi slot jam yang aktif sekarang
         $currentActiveSlotIndex = null;
         foreach ($timeSlots as $idx => $slot) {
@@ -62,16 +91,10 @@ class DashboardController extends Controller
                 break;
             }
         }
-        if ($currentActiveSlotIndex === null) {
-            foreach ($timeSlots as $idx => $slot) {
-                if ($nowTime < $slot['jam_mulai']) {
-                    $currentActiveSlotIndex = $idx;
-                    break;
-                }
-            }
-        }
-        if ($currentActiveSlotIndex === null && $timeSlots->isNotEmpty()) {
-            $currentActiveSlotIndex = 0;
+        if ($currentActiveSlotIndex === null || ! $availableSlotIndices->contains($currentActiveSlotIndex)) {
+            $currentActiveSlotIndex = $availableSlotIndices->first(fn ($idx) => $timeSlots[$idx]['jam_mulai'] >= $nowTime)
+                ?? $availableSlotIndices->first()
+                ?? 0;
         }
 
         $selectedSlotKey = $request->input('slot', $currentActiveSlotIndex !== null ? (string) $currentActiveSlotIndex : 'all');
@@ -89,8 +112,13 @@ class DashboardController extends Controller
             $mulai = substr($jadwal->jam_mulai, 0, 5);
             $selesai = substr($jadwal->jam_selesai, 0, 5);
             $slotIdx = $timeSlots->search(fn ($s) => $s['jam_mulai'] === $mulai && $s['jam_selesai'] === $selesai);
-            $jamKe = $slotIdx !== false ? $slotIdx + 1 : 1;
-            $slotKey = $slotIdx !== false ? (string) $slotIdx : '0';
+
+            if ($slotIdx === false) {
+                $slotIdx = $timeSlots->search(fn ($s) => $mulai < $s['jam_selesai'] && $selesai > $s['jam_mulai']);
+            }
+
+            $jamKe = $slotIdx !== false ? $timeSlots[$slotIdx]['jam_ke'] : 1;
+            $slotKey = $slotIdx !== false ? (string) $slotIdx : 'unassigned';
 
             $pertemuan = $todayPertemuans->get($jadwal->id);
             $kh = $pertemuan?->kehadiranGuru;
@@ -136,7 +164,20 @@ class DashboardController extends Controller
 
         // Filter slot waktu
         if ($selectedSlotKey !== 'all') {
-            $monitoringCards = $monitoringCards->where('slot_index', $selectedSlotKey);
+            $selectedSlotObj = $timeSlots[$selectedSlotKey] ?? null;
+            $monitoringCards = $monitoringCards->filter(function ($item) use ($selectedSlotKey, $selectedSlotObj) {
+                if ($item['slot_index'] === $selectedSlotKey) {
+                    return true;
+                }
+                if ($selectedSlotObj) {
+                    $m = substr($item['jadwal']->jam_mulai, 0, 5);
+                    $s = substr($item['jadwal']->jam_selesai, 0, 5);
+
+                    return $m < $selectedSlotObj['jam_selesai'] && $s > $selectedSlotObj['jam_mulai'];
+                }
+
+                return false;
+            });
         }
 
         // Filter tingkat kelas

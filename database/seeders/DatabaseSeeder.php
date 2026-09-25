@@ -21,7 +21,7 @@ class DatabaseSeeder extends Seeder
         Setting::set('toleransi_keterlambatan_menit', '5'); // Default toleransi 5 menit
 
         // ── Master Jam Pelajaran ─────────────────────────────────────────────
-        //  $this->call(MasterJamPelajaranSeeder::class);
+        $this->call(MasterJamPelajaranSeeder::class);
 
         // ── Role & Permission ────────────────────────────────────────────────
         $this->call(PermissionSeeder::class);
