@@ -59,7 +59,15 @@ class PublicDashboardController extends Controller
             ];
         });
 
-        // Deteksi slot jam aktif
+        // Cari slot-slot yang memiliki jadwal aktif hari ini
+        $availableSlotIndices = $allJadwals->map(function ($j) use ($timeSlots) {
+            $m = substr($j->jam_mulai, 0, 5);
+            $s = substr($j->jam_selesai, 0, 5);
+
+            return $timeSlots->search(fn ($slot) => $slot['jam_mulai'] === $m && $slot['jam_selesai'] === $s);
+        })->filter(fn ($idx) => $idx !== false)->unique()->values();
+
+        // Deteksi slot jam aktif sekarang
         $currentActiveSlotIndex = null;
         foreach ($timeSlots as $idx => $slot) {
             if ($nowTime >= $slot['jam_mulai'] && $nowTime <= $slot['jam_selesai']) {
@@ -67,16 +75,12 @@ class PublicDashboardController extends Controller
                 break;
             }
         }
-        if ($currentActiveSlotIndex === null) {
-            foreach ($timeSlots as $idx => $slot) {
-                if ($nowTime < $slot['jam_mulai']) {
-                    $currentActiveSlotIndex = $idx;
-                    break;
-                }
-            }
-        }
-        if ($currentActiveSlotIndex === null && $timeSlots->isNotEmpty()) {
-            $currentActiveSlotIndex = 0;
+
+        // Jika sekarang di jeda/istirahat atau sebelum jam mulai, cari slot berikutnya yang ada jadwal
+        if ($currentActiveSlotIndex === null || ! $availableSlotIndices->contains($currentActiveSlotIndex)) {
+            $currentActiveSlotIndex = $availableSlotIndices->first(fn ($idx) => $timeSlots[$idx]['jam_mulai'] >= $nowTime)
+                ?? $availableSlotIndices->first()
+                ?? 0;
         }
 
         $selectedSlotKey = $request->input('slot', $currentActiveSlotIndex !== null ? (string) $currentActiveSlotIndex : 'all');
@@ -94,8 +98,14 @@ class PublicDashboardController extends Controller
             $mulai = substr($jadwal->jam_mulai, 0, 5);
             $selesai = substr($jadwal->jam_selesai, 0, 5);
             $slotIdx = $timeSlots->search(fn ($s) => $s['jam_mulai'] === $mulai && $s['jam_selesai'] === $selesai);
-            $jamKe = $slotIdx !== false ? $slotIdx + 1 : 1;
-            $slotKey = $slotIdx !== false ? (string) $slotIdx : '0';
+
+            if ($slotIdx === false) {
+                // Fallback pencarian berbasis jam mulai jika durasi membentang
+                $slotIdx = $timeSlots->search(fn ($s) => $mulai >= $s['jam_mulai'] && $mulai < $s['jam_selesai']);
+            }
+
+            $jamKe = $slotIdx !== false ? $timeSlots[$slotIdx]['jam_ke'] : 1;
+            $slotKey = $slotIdx !== false ? (string) $slotIdx : 'unassigned';
 
             $pertemuan = $todayPertemuans->get($jadwal->id);
             $kh = $pertemuan?->kehadiranGuru;

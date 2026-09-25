@@ -297,84 +297,187 @@
 
             {{-- Card Grid Monitoring Kehadiran --}}
             @if($monitoringCards->count() > 0)
-            <div class="grid grid-cols-6 gap-2 pt-2">
-                @foreach($monitoringCards as $card)
-                @php
-                    $theme = match($card['status']) {
-                        'hadir' => [
-                            'border' => 'border-emerald-200',
-                            'top' => 'bg-emerald-500',
-                            'badge' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
-                            'dot' => 'bg-emerald-500',
-                            'text' => 'Sudah Hadir',
-                        ],
-                        'terlambat' => [
-                            'border' => 'border-amber-200',
-                            'top' => 'bg-amber-500',
-                            'badge' => 'bg-amber-50 text-amber-700 border-amber-200',
-                            'dot' => 'bg-amber-500',
-                            'text' => 'Terlambat',
-                        ],
-                        'tidak_hadir' => [
-                            'border' => 'border-red-200',
-                            'top' => 'bg-red-500',
-                            'badge' => 'bg-red-50 text-red-700 border-red-200',
-                            'dot' => 'bg-red-500',
-                            'text' => 'Tidak Hadir',
-                        ],
-                        default => [
-                            'border' => 'border-rose-200',
-                            'top' => 'bg-rose-400',
-                            'badge' => 'bg-rose-50 text-rose-700 border-rose-200',
-                            'dot' => 'bg-rose-500 animate-pulse',
-                            'text' => 'Belum Hadir',
-                        ],
-                    };
-                @endphp
-                <div class="bg-white rounded-lg border border-slate-200 overflow-hidden hover:shadow-xs transition-shadow flex flex-col">
-                    <div class="flex flex-1">
-                        <div class="w-1 flex-shrink-0 {{ $theme['top'] }}"></div>
-                        <div class="flex-1 p-3 flex flex-col gap-2 min-w-0">
-                            <div class="flex items-center justify-between gap-1">
-                                <span class="px-2 py-0.5 rounded-md bg-slate-800 text-white text-xs font-extrabold tracking-wide shrink-0">
-                                    {{ $card['kelas_nama'] }}
-                                </span>
-                                <span class="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-bold shrink-0" title="{{ $card['slot_label'] }}">
-                                    Jam {{ $card['jam_ke'] }}
-                                </span>
-                            </div>
+                @if($selectedSlotKey === 'all')
+                    @php
+                        $groupedBySlot = $monitoringCards->groupBy('slot_index')->sortKeys();
+                    @endphp
+                    <div class="space-y-6 pt-2">
+                        @foreach($groupedBySlot as $sKey => $slotCards)
+                            <div class="space-y-2">
+                                <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+                                    <div class="flex items-center gap-2">
+                                        <span class="px-2.5 py-1 rounded-lg bg-blue-600 text-white text-xs font-bold tracking-wide shadow-2xs">
+                                            Jam Ke-{{ $slotCards->first()['jam_ke'] }}
+                                        </span>
+                                        <span class="text-xs font-bold text-slate-800">
+                                            {{ $slotCards->first()['slot_label'] }}
+                                        </span>
+                                    </div>
+                                    <span class="text-xs font-semibold text-slate-500">
+                                        {{ $slotCards->count() }} Kelas
+                                    </span>
+                                </div>
+                                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                                    @foreach($slotCards as $card)
+                                    @php
+                                        $theme = match($card['status']) {
+                                            'hadir' => [
+                                                'border' => 'border-emerald-200',
+                                                'top' => 'bg-emerald-500',
+                                                'badge' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                                                'dot' => 'bg-emerald-500',
+                                                'text' => 'Sudah Hadir',
+                                            ],
+                                            'terlambat' => [
+                                                'border' => 'border-amber-200',
+                                                'top' => 'bg-amber-500',
+                                                'badge' => 'bg-amber-50 text-amber-700 border-amber-200',
+                                                'dot' => 'bg-amber-500',
+                                                'text' => 'Terlambat',
+                                            ],
+                                            'tidak_hadir' => [
+                                                'border' => 'border-red-200',
+                                                'top' => 'bg-red-500',
+                                                'badge' => 'bg-red-50 text-red-700 border-red-200',
+                                                'dot' => 'bg-red-500',
+                                                'text' => 'Tidak Hadir',
+                                            ],
+                                            default => [
+                                                'border' => 'border-rose-200',
+                                                'top' => 'bg-rose-400',
+                                                'badge' => 'bg-rose-50 text-rose-700 border-rose-200',
+                                                'dot' => 'bg-rose-500 animate-pulse',
+                                                'text' => 'Belum Hadir',
+                                            ],
+                                        };
+                                    @endphp
+                                    <div class="bg-white rounded-lg border border-slate-200 overflow-hidden hover:shadow-xs transition-shadow flex flex-col">
+                                        <div class="flex flex-1">
+                                            <div class="w-1 flex-shrink-0 {{ $theme['top'] }}"></div>
+                                            <div class="flex-1 p-3 flex flex-col gap-2 min-w-0">
+                                                <div class="flex items-center justify-between gap-1">
+                                                    <span class="px-2 py-0.5 rounded-md bg-slate-800 text-white text-xs font-extrabold tracking-wide shrink-0">
+                                                        {{ $card['kelas_nama'] }}
+                                                    </span>
+                                                    <span class="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-bold shrink-0" title="{{ $card['slot_label'] }}">
+                                                        Jam {{ $card['jam_ke'] }}
+                                                    </span>
+                                                </div>
 
-                            <div class="min-w-0">
-                                <h3 class="font-semibold text-slate-900 text-xs leading-snug truncate">{{ $card['mapel_nama'] }}</h3>
-                                <p class="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1 min-w-0">
-                                    <svg class="w-2.5 h-2.5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                                    <span class="truncate">{{ $card['guru_nama'] }}</span>
-                                </p>
-                            </div>
+                                                <div class="min-w-0">
+                                                    <h3 class="font-semibold text-slate-900 text-xs leading-snug truncate">{{ $card['mapel_nama'] }}</h3>
+                                                    <p class="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1 min-w-0">
+                                                        <svg class="w-2.5 h-2.5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                                                        <span class="truncate">{{ $card['guru_nama'] }}</span>
+                                                    </p>
+                                                </div>
 
-                            <div class="flex items-center justify-between pt-2 border-t border-slate-100 mt-auto">
-                                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold border {{ $theme['badge'] }} truncate">
-                                    <span class="w-1.5 h-1.5 rounded-full {{ $theme['dot'] }} shrink-0"></span>
-                                    <span class="truncate">{{ $theme['text'] }}</span>
-                                </span>
-                                @if($card['waktu_hadir'])
-                                    <span class="text-[10px] text-slate-400 tabular-nums shrink-0">{{ \Carbon\Carbon::parse($card['waktu_hadir'])->format('H:i') }}</span>
-                                @endif
-                            </div>
+                                                <div class="flex items-center justify-between pt-2 border-t border-slate-100 mt-auto">
+                                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold border {{ $theme['badge'] }} truncate">
+                                                        <span class="w-1.5 h-1.5 rounded-full {{ $theme['dot'] }} shrink-0"></span>
+                                                        <span class="truncate">{{ $theme['text'] }}</span>
+                                                    </span>
+                                                    @if($card['waktu_hadir'])
+                                                        <span class="text-[10px] text-slate-400 tabular-nums shrink-0">{{ \Carbon\Carbon::parse($card['waktu_hadir'])->format('H:i') }}</span>
+                                                    @endif
+                                                </div>
 
-                            @if($card['alasan_label'])
-                                <div class="px-2 py-1.5 rounded bg-red-50 border border-red-100">
-                                    <p class="text-[10px] text-red-700 font-medium leading-snug truncate">{{ $card['alasan_label'] }}</p>
-                                    @if($card['guru_pengganti'])
-                                        <p class="text-[10px] text-blue-600 font-medium mt-0.5 truncate">↳ {{ $card['guru_pengganti'] }}</p>
+                                                @if($card['alasan_label'])
+                                                    <div class="px-2 py-1.5 rounded bg-red-50 border border-red-100">
+                                                        <p class="text-[10px] text-red-700 font-medium leading-snug truncate">{{ $card['alasan_label'] }}</p>
+                                                        @if($card['guru_pengganti'])
+                                                            <p class="text-[10px] text-blue-600 font-medium mt-0.5 truncate">↳ {{ $card['guru_pengganti'] }}</p>
+                                                        @endif
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @else
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 pt-2">
+                        @foreach($monitoringCards as $card)
+                        @php
+                            $theme = match($card['status']) {
+                                'hadir' => [
+                                    'border' => 'border-emerald-200',
+                                    'top' => 'bg-emerald-500',
+                                    'badge' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                                    'dot' => 'bg-emerald-500',
+                                    'text' => 'Sudah Hadir',
+                                ],
+                                'terlambat' => [
+                                    'border' => 'border-amber-200',
+                                    'top' => 'bg-amber-500',
+                                    'badge' => 'bg-amber-50 text-amber-700 border-amber-200',
+                                    'dot' => 'bg-amber-500',
+                                    'text' => 'Terlambat',
+                                ],
+                                'tidak_hadir' => [
+                                    'border' => 'border-red-200',
+                                    'top' => 'bg-red-500',
+                                    'badge' => 'bg-red-50 text-red-700 border-red-200',
+                                    'dot' => 'bg-red-500',
+                                    'text' => 'Tidak Hadir',
+                                ],
+                                default => [
+                                    'border' => 'border-rose-200',
+                                    'top' => 'bg-rose-400',
+                                    'badge' => 'bg-rose-50 text-rose-700 border-rose-200',
+                                    'dot' => 'bg-rose-500 animate-pulse',
+                                    'text' => 'Belum Hadir',
+                                ],
+                            };
+                        @endphp
+                        <div class="bg-white rounded-lg border border-slate-200 overflow-hidden hover:shadow-xs transition-shadow flex flex-col">
+                            <div class="flex flex-1">
+                                <div class="w-1 flex-shrink-0 {{ $theme['top'] }}"></div>
+                                <div class="flex-1 p-3 flex flex-col gap-2 min-w-0">
+                                    <div class="flex items-center justify-between gap-1">
+                                        <span class="px-2 py-0.5 rounded-md bg-slate-800 text-white text-xs font-extrabold tracking-wide shrink-0">
+                                            {{ $card['kelas_nama'] }}
+                                        </span>
+                                        <span class="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-bold shrink-0" title="{{ $card['slot_label'] }}">
+                                            Jam {{ $card['jam_ke'] }}
+                                        </span>
+                                    </div>
+
+                                    <div class="min-w-0">
+                                        <h3 class="font-semibold text-slate-900 text-xs leading-snug truncate">{{ $card['mapel_nama'] }}</h3>
+                                        <p class="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1 min-w-0">
+                                            <svg class="w-2.5 h-2.5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                                            <span class="truncate">{{ $card['guru_nama'] }}</span>
+                                        </p>
+                                    </div>
+
+                                    <div class="flex items-center justify-between pt-2 border-t border-slate-100 mt-auto">
+                                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold border {{ $theme['badge'] }} truncate">
+                                            <span class="w-1.5 h-1.5 rounded-full {{ $theme['dot'] }} shrink-0"></span>
+                                            <span class="truncate">{{ $theme['text'] }}</span>
+                                        </span>
+                                        @if($card['waktu_hadir'])
+                                            <span class="text-[10px] text-slate-400 tabular-nums shrink-0">{{ \Carbon\Carbon::parse($card['waktu_hadir'])->format('H:i') }}</span>
+                                        @endif
+                                    </div>
+
+                                    @if($card['alasan_label'])
+                                        <div class="px-2 py-1.5 rounded bg-red-50 border border-red-100">
+                                            <p class="text-[10px] text-red-700 font-medium leading-snug truncate">{{ $card['alasan_label'] }}</p>
+                                            @if($card['guru_pengganti'])
+                                                <p class="text-[10px] text-blue-600 font-medium mt-0.5 truncate">↳ {{ $card['guru_pengganti'] }}</p>
+                                            @endif
+                                        </div>
                                     @endif
                                 </div>
-                            @endif
+                            </div>
                         </div>
+                        @endforeach
                     </div>
-                </div>
-                @endforeach
-            </div>
+                @endif
             @else
             <div class="p-10 text-center border-2 border-dashed border-slate-200 rounded-2xl">
                 <p class="text-sm font-semibold text-slate-700">Tidak ada jadwal yang sesuai kriteria filter.</p>
