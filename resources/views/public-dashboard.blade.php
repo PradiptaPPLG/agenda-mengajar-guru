@@ -84,8 +84,49 @@
     </header>
 
     {{-- Main Container --}}
-    <main class="w-full px-4 sm:px-6 lg:px-8 pt-8 pb-6 space-y-6 flex-1">
+    <main class="w-full px-4 sm:px-6 lg:px-8 pt-6 pb-6 space-y-6 flex-1">
         
+        {{-- Hero Header Section (Logo & App Description) --}}
+        <div class="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs relative overflow-hidden">
+            <div class="absolute -right-8 -bottom-8 w-60 h-60 bg-blue-500/5 rounded-full blur-2xl pointer-events-none"></div>
+            
+            <div class="flex flex-col sm:flex-row items-center sm:items-start md:items-center gap-4 sm:gap-6 relative z-10">
+                <div class="w-20 h-20 sm:w-24 sm:h-24 p-2 rounded-2xl bg-slate-50 border border-slate-200/80 shadow-xs flex items-center justify-center shrink-0">
+                    <img src="{{ asset('images/logo_new.png') }}" alt="Logo SOPAN" class="w-full h-full object-contain">
+                </div>
+
+                <div class="flex-1 text-center sm:text-left min-w-0">
+                    <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-blue-50 border border-blue-200/70 text-blue-700 text-[11px] font-bold tracking-wide uppercase">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse"></span>
+                        Portal Publik & Monitoring Real-Time
+                    </div>
+                    
+                    <h2 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-tight mt-1.5">
+                        Aplikasi Sistem Operasi Presensi Kehadiran Mengajar Guru
+                    </h2>
+                    
+                    <p class="text-xs sm:text-sm text-slate-600 mt-1 max-w-3xl leading-relaxed">
+                        Sistem informasi dan monitoring keterlaksanaan Kegiatan Belajar Mengajar (KBM) guru dan siswa di <span class="font-bold text-slate-800">{{ \App\Models\Setting::get('school_name', 'SMK Negeri 1 Ciamis') }}</span> secara transparan, akurat, dan real-time.
+                    </p>
+
+                    <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 mt-3 pt-3 border-t border-slate-100 text-xs">
+                        <div class="inline-flex items-center gap-1.5 font-medium text-slate-600 bg-slate-50 border border-slate-200/60 px-2.5 py-1 rounded-lg">
+                            <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            <span>{{ $today->locale('id')->isoFormat('dddd, D MMMM Y') }}</span>
+                        </div>
+                        <div class="inline-flex items-center gap-1.5 font-semibold text-slate-700 bg-slate-50 border border-slate-200/60 px-2.5 py-1 rounded-lg">
+                            <svg class="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <span>Pukul {{ $nowTime }} WIB</span>
+                        </div>
+                        <div class="inline-flex items-center gap-1.5 font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                            <span>Monitoring Aktif</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         {{-- KPI Summary Cards --}}
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3 shadow-xs">
