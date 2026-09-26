@@ -4,6 +4,23 @@
         <div class="bg-white rounded-2xl border border-slate-200 p-6">
             <form action="{{ route('admin.jadwal.store') }}" method="POST" class="space-y-4">
                 @csrf
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1.5">Tahun Ajaran <span class="text-red-500">*</span></label>
+                        <input type="text" name="tahun_ajaran" value="{{ old('tahun_ajaran', $activeTahunAjaran) }}" required placeholder="Contoh: 2026/2027"
+                               class="w-full px-3.5 py-2.5 border {{ $errors->has('tahun_ajaran') ? 'border-red-400' : 'border-slate-200' }} rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        @error('tahun_ajaran')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1.5">Semester <span class="text-red-500">*</span></label>
+                        <select name="semester" required class="w-full px-3.5 py-2.5 border {{ $errors->has('semester') ? 'border-red-400' : 'border-slate-200' }} rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            @foreach($daftarSemester as $val => $label)
+                            <option value="{{ $val }}" {{ old('semester', $activeSemester) == $val ? 'selected' : '' }}>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                        @error('semester')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                    </div>
+                </div>
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1.5">Kelas <span class="text-red-500">*</span></label>
                     <select name="kelas_id" required class="w-full px-3.5 py-2.5 border {{ $errors->has('kelas_id') ? 'border-red-400' : 'border-slate-200' }} rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">

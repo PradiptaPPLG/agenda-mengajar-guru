@@ -7,6 +7,7 @@ use App\Models\KehadiranGuru;
 use App\Models\KehadiranSiswa;
 use App\Models\Kelas;
 use App\Models\Pertemuan;
+use App\Models\Setting;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -20,13 +21,23 @@ class ReportController extends Controller
         $guruList = User::where('role', 'guru')->orderBy('name')->get();
         $kelasList = Kelas::orderBy('nama')->get();
 
-        $startDate = $request->filled('start_date')
-            ? Carbon::parse($request->input('start_date'))
-            : Carbon::now()->startOfMonth();
+        $selectedTahunAjaran = $request->input('tahun_ajaran', Setting::getTahunAjaranAktif());
+        $selectedSemester = $request->input('semester', Setting::getSemesterAktif());
+        $filterMode = $request->input('filter_mode', 'semester'); // 'semester' atau 'custom'
 
-        $endDate = $request->filled('end_date')
-            ? Carbon::parse($request->input('end_date'))
-            : Carbon::now()->endOfMonth();
+        if ($filterMode === 'semester' && $selectedTahunAjaran !== 'all' && $selectedSemester !== 'all') {
+            $range = Setting::getPeriodeSemesterRange($selectedTahunAjaran, $selectedSemester);
+            $startDate = $range['start'];
+            $endDate = $range['end'];
+        } else {
+            $startDate = $request->filled('start_date')
+                ? Carbon::parse($request->input('start_date'))->startOfDay()
+                : Carbon::now()->startOfMonth();
+
+            $endDate = $request->filled('end_date')
+                ? Carbon::parse($request->input('end_date'))->endOfDay()
+                : Carbon::now()->endOfMonth();
+        }
 
         $selectedGuruId = $request->input('guru_id');
         $selectedKelasId = $request->input('kelas_id');
@@ -38,8 +49,18 @@ class ReportController extends Controller
             'pertemuan.jadwal.mataPelajaran',
             'pertemuan.fotoBuktis',
         ])
-            ->whereHas('pertemuan', function ($q) use ($startDate, $endDate, $selectedKelasId) {
+            ->whereHas('pertemuan', function ($q) use ($startDate, $endDate, $selectedKelasId, $selectedTahunAjaran, $selectedSemester, $filterMode) {
                 $q->whereBetween('tanggal', [$startDate->toDateString(), $endDate->toDateString()]);
+
+                if ($filterMode === 'semester') {
+                    if ($selectedTahunAjaran !== 'all') {
+                        $q->where(fn ($sub) => $sub->where('tahun_ajaran', $selectedTahunAjaran)->orWhereNull('tahun_ajaran'));
+                    }
+                    if ($selectedSemester !== 'all') {
+                        $q->where(fn ($sub) => $sub->where('semester', $selectedSemester)->orWhereNull('semester'));
+                    }
+                }
+
                 if ($selectedKelasId) {
                     $q->whereHas('jadwal', fn ($j) => $j->where('kelas_id', $selectedKelasId));
                 }
@@ -88,10 +109,14 @@ class ReportController extends Controller
             ['path' => LengthAwarePaginator::resolveCurrentPath(), 'pageName' => 'summary_page', 'query' => $request->query()]
         );
 
+        $daftarTahunAjaran = Setting::getDaftarTahunAjaran();
+        $daftarSemester = Setting::getDaftarSemester();
+
         return view('kepala-sekolah.report.guru', compact(
             'kehadiran', 'summary', 'guruList', 'kelasList',
             'startDate', 'endDate', 'selectedGuruId', 'selectedKelasId',
-            'onlyDiscrepancy', 'discrepancyCount'
+            'onlyDiscrepancy', 'discrepancyCount',
+            'selectedTahunAjaran', 'selectedSemester', 'daftarTahunAjaran', 'daftarSemester', 'filterMode'
         ));
     }
 
@@ -99,20 +124,43 @@ class ReportController extends Controller
     {
         $kelasList = Kelas::orderBy('nama')->get();
 
-        $startDate = $request->filled('start_date')
-            ? Carbon::parse($request->input('start_date'))
-            : Carbon::now()->startOfMonth();
+        $selectedTahunAjaran = $request->input('tahun_ajaran', Setting::getTahunAjaranAktif());
+        $selectedSemester = $request->input('semester', Setting::getSemesterAktif());
+        $filterMode = $request->input('filter_mode', 'semester');
 
-        $endDate = $request->filled('end_date')
-            ? Carbon::parse($request->input('end_date'))
-            : Carbon::now()->endOfMonth();
+        if ($filterMode === 'semester' && $selectedTahunAjaran !== 'all' && $selectedSemester !== 'all') {
+            $range = Setting::getPeriodeSemesterRange($selectedTahunAjaran, $selectedSemester);
+            $startDate = $range['start'];
+            $endDate = $range['end'];
+        } else {
+            $startDate = $request->filled('start_date')
+                ? Carbon::parse($request->input('start_date'))->startOfDay()
+                : Carbon::now()->startOfMonth();
+
+            $endDate = $request->filled('end_date')
+                ? Carbon::parse($request->input('end_date'))->endOfDay()
+                : Carbon::now()->endOfMonth();
+        }
 
         $selectedKelasId = $request->input('kelas_id');
 
         // Get pertemuan in range
-        $pertemuanIds = Pertemuan::whereBetween('tanggal', [$startDate->toDateString(), $endDate->toDateString()])
-            ->when($selectedKelasId, fn ($q) => $q->whereHas('jadwal', fn ($j) => $j->where('kelas_id', $selectedKelasId)))
-            ->pluck('id');
+        $pertemuanQuery = Pertemuan::whereBetween('tanggal', [$startDate->toDateString(), $endDate->toDateString()]);
+
+        if ($filterMode === 'semester') {
+            if ($selectedTahunAjaran !== 'all') {
+                $pertemuanQuery->where(fn ($sub) => $sub->where('tahun_ajaran', $selectedTahunAjaran)->orWhereNull('tahun_ajaran'));
+            }
+            if ($selectedSemester !== 'all') {
+                $pertemuanQuery->where(fn ($sub) => $sub->where('semester', $selectedSemester)->orWhereNull('semester'));
+            }
+        }
+
+        if ($selectedKelasId) {
+            $pertemuanQuery->whereHas('jadwal', fn ($j) => $j->where('kelas_id', $selectedKelasId));
+        }
+
+        $pertemuanIds = $pertemuanQuery->pluck('id');
 
         $kehadiranSiswaData = KehadiranSiswa::with(['siswa', 'pertemuan.jadwal.mataPelajaran'])
             ->whereIn('pertemuan_id', $pertemuanIds)
@@ -141,8 +189,12 @@ class ReportController extends Controller
             ['path' => LengthAwarePaginator::resolveCurrentPath(), 'pageName' => 'page', 'query' => $request->query()]
         );
 
+        $daftarTahunAjaran = Setting::getDaftarTahunAjaran();
+        $daftarSemester = Setting::getDaftarSemester();
+
         return view('kepala-sekolah.report.siswa', compact(
-            'summary', 'kelasList', 'startDate', 'endDate', 'selectedKelasId'
+            'summary', 'kelasList', 'startDate', 'endDate', 'selectedKelasId',
+            'selectedTahunAjaran', 'selectedSemester', 'daftarTahunAjaran', 'daftarSemester', 'filterMode'
         ));
     }
 }
