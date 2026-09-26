@@ -35,14 +35,18 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-slate-100">
-                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                        <span class="text-[11px] font-medium text-slate-500 block">Total Siswa</span>
-                        <span class="text-xl font-bold text-slate-900 mt-0.5 block">{{ $totalSiswa }} Siswa</span>
+                <div class="grid grid-cols-3 gap-2.5 mt-4 pt-4 border-t border-slate-100">
+                    <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                        <span class="text-[10px] font-medium text-slate-500 block">Total Siswa</span>
+                        <span class="text-lg font-bold text-slate-900 mt-0.5 block">{{ $totalSiswa }}</span>
                     </div>
-                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                        <span class="text-[11px] font-medium text-slate-500 block">Total Jadwal KBM</span>
-                        <span class="text-xl font-bold text-slate-900 mt-0.5 block">{{ $kelas->jadwalPelajarans->count() }} Sesi</span>
+                    <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                        <span class="text-[10px] font-medium text-slate-500 block">Jadwal KBM</span>
+                        <span class="text-lg font-bold text-slate-900 mt-0.5 block">{{ $kelas->jadwalPelajarans->count() }} Sesi</span>
+                    </div>
+                    <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                        <span class="text-[10px] font-medium text-slate-500 block">Kehadiran</span>
+                        <span class="text-lg font-bold {{ ($persentaseKelas ?? 100) >= 85 ? 'text-emerald-600' : (($persentaseKelas ?? 100) >= 75 ? 'text-amber-600' : 'text-rose-600') }} mt-0.5 block">{{ $persentaseKelas ?? 100 }}%</span>
                     </div>
                 </div>
             </div>
@@ -228,12 +232,25 @@
                                     <th class="px-4 py-3">No</th>
                                     <th class="px-4 py-3">Nama Siswa</th>
                                     <th class="px-4 py-3">NIS</th>
-                                    <th class="px-4 py-3">Email</th>
+                                    <th class="px-4 py-3 text-center text-emerald-600">Hadir</th>
+                                    <th class="px-4 py-3 text-center text-amber-600">Sakit</th>
+                                    <th class="px-4 py-3 text-center text-sky-600">Izin</th>
+                                    <th class="px-4 py-3 text-center text-red-600">Alpa</th>
+                                    <th class="px-4 py-3 text-center text-blue-600">% Hadir</th>
                                     <th class="px-4 py-3 text-right">Status Akun</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100">
                                 @foreach($kelas->siswaProfiles as $idx => $sp)
+                                    @php
+                                        $st = $rekapSiswa[$sp->user_id] ?? ['hadir' => 0, 'sakit' => 0, 'izin' => 0, 'alpa' => 0, 'total' => 0, 'persentase' => 100];
+                                        $pct = $st['persentase'];
+                                        $badgeClass = match (true) {
+                                            $pct >= 90 => 'bg-emerald-100 text-emerald-800 border-emerald-300',
+                                            $pct >= 75 => 'bg-amber-100 text-amber-800 border-amber-300',
+                                            default => 'bg-rose-100 text-rose-800 border-rose-300',
+                                        };
+                                    @endphp
                                     <tr class="hover:bg-slate-50/70 transition-colors">
                                         <td class="px-4 py-3 text-slate-400 font-semibold">{{ $idx + 1 }}</td>
                                         <td class="px-4 py-3 font-bold text-slate-900">
@@ -241,13 +258,41 @@
                                                 <div class="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs shrink-0">
                                                     {{ substr($sp->user->name ?? 'S', 0, 1) }}
                                                 </div>
-                                                <span>{{ $sp->user->name ?? '—' }}</span>
+                                                <div>
+                                                    <span>{{ $sp->user->name ?? '—' }}</span>
+                                                    <span class="block text-[10px] text-slate-400 font-normal">{{ $sp->user->email ?? '' }}</span>
+                                                </div>
                                             </div>
                                         </td>
                                         <td class="px-4 py-3 font-mono text-slate-600">{{ $sp->nis ?? '—' }}</td>
-                                        <td class="px-4 py-3 text-slate-500">{{ $sp->user->email ?? '—' }}</td>
+                                        <td class="px-4 py-3 text-center font-semibold text-emerald-700">{{ $st['hadir'] }}</td>
+                                        <td class="px-4 py-3 text-center font-semibold text-amber-700">{{ $st['sakit'] }}</td>
+                                        <td class="px-4 py-3 text-center font-semibold text-sky-700">{{ $st['izin'] }}</td>
+                                        <td class="px-4 py-3 text-center font-semibold text-red-700">{{ $st['alpa'] }}</td>
+                                        <td class="px-4 py-3 text-center">
+                                            <span class="inline-block px-2 py-0.5 rounded-md text-[11px] font-bold border {{ $badgeClass }}">
+                                                {{ $pct }}%
+                                            </span>
+                                        </td>
                                         <td class="px-4 py-3 text-right">
-                                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">Aktif</span>
+                                            @if($sp->user)
+                                                <form action="{{ route('admin.siswa.toggle-active', $sp->user) }}" method="POST" class="inline-block">
+                                                    @csrf
+                                                    <button type="submit" 
+                                                            title="Klik untuk mengubah status (Aktif / Nonaktif)"
+                                                            class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold shadow-2xs transition-colors {{ $sp->user->is_active ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100' : 'bg-red-50 text-red-700 border border-red-200 hover:bg-red-100' }}">
+                                                        @if($sp->user->is_active)
+                                                            <svg class="w-3.5 h-3.5 mr-1 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                                            Aktif
+                                                        @else
+                                                            <svg class="w-3.5 h-3.5 mr-1 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+                                                            Nonaktif
+                                                        @endif
+                                                    </button>
+                                                </form>
+                                            @else
+                                                <span class="text-xs text-slate-400 italic">—</span>
+                                            @endif
                                         </td>
                                     </tr>
                                 @endforeach

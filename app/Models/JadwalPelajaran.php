@@ -146,10 +146,10 @@ class JadwalPelajaran extends Model
                 $prev = $currentBlock->last();
                 $prevEnd = Carbon::parse($prev->jam_selesai);
                 $currStart = Carbon::parse($item->jam_mulai);
-                $diffMinutes = $currStart->diffInMinutes($prevEnd, false);
+                $gapMinutes = $prevEnd->diffInMinutes($currStart, false);
 
-                // Jika bersambung atau jeda istirahat <= 75 menit (toleransi jeda/istirahat KBM)
-                if ($diffMinutes >= -15 && $diffMinutes <= 75) {
+                // Jika bersambung atau jeda istirahat <= 75 menit (toleransi jeda/istirahat KBM, dan sedikit toleransi overlap)
+                if ($gapMinutes >= -15 && $gapMinutes <= 75) {
                     $currentBlock->push($item);
                 } else {
                     $blocks[] = $currentBlock;
@@ -200,9 +200,9 @@ class JadwalPelajaran extends Model
 
                 $prevEnd = Carbon::parse($prev->jam_selesai);
                 $currStart = Carbon::parse($item->jam_mulai);
-                $diffMinutes = $currStart->diffInMinutes($prevEnd, false);
+                $gapMinutes = $prevEnd->diffInMinutes($currStart, false);
 
-                if ($sameClass && $sameGuru && $sameBlok && $sameMapel && $diffMinutes <= 60 && $currStart >= $prevEnd) {
+                if ($sameClass && $sameGuru && $sameBlok && $sameMapel && $gapMinutes >= -15 && $gapMinutes <= 75) {
                     $currentGroup->push($item);
                 } else {
                     $grouped->push(static::formatGroupedSession($currentGroup));

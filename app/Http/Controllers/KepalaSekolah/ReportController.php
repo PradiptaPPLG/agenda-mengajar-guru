@@ -92,10 +92,10 @@ class ReportController extends Controller
         $summaryCollection = $allKehadiran->groupBy('guru_id')->map(function ($items) {
             return [
                 'guru' => $items->first()->guru,
-                'hadir' => $items->where('status', 'hadir')->count(),
-                'sakit' => $items->where('status', 'sakit')->count(),
-                'alpa' => $items->where('status', 'alpa')->count(),
-                'dispensasi' => $items->where('status', 'dispensasi')->count(),
+                'hadir' => $items->filter(fn ($item) => $item->isHadirCategory())->count(),
+                'sakit' => $items->filter(fn ($item) => $item->isSakitCategory())->count(),
+                'dispensasi' => $items->filter(fn ($item) => $item->isDispensasiCategory())->count(),
+                'alpa' => $items->filter(fn ($item) => $item->isAlpaCategory())->count(),
                 'total' => $items->count(),
             ];
         })->values();

@@ -34,8 +34,17 @@ class JadwalBlokResolverService
         $query = JadwalPelajaran::with(['mataPelajaran', 'guru.guruProfile'])
             ->where('kelas_id', $kelas->id);
 
-        if ($hari) {
-            $query->where('hari', $hari);
+        if ($hari !== null && $hari !== '') {
+            if (is_string($hari) && ! is_numeric($hari)) {
+                $mapHari = array_flip(array_map('strtolower', JadwalPelajaran::$namaHari));
+                $hariVal = $mapHari[strtolower(trim($hari))] ?? null;
+            } else {
+                $hariVal = (int) $hari;
+            }
+
+            if ($hariVal !== null) {
+                $query->where('hari', $hariVal);
+            }
         }
 
         // Tentukan tahun ajaran dan semester aktif untuk tanggal target
@@ -74,7 +83,7 @@ class JadwalBlokResolverService
         $kelompokAktif = $mingguAktif->kelompokAktifUntukKelas($kelas);
 
         return $query->where(function (Builder $q) use ($kelompokAktif) {
-            $q->where('kelompok_blok', 'reguler')
+            $q->where(fn ($sub) => $sub->where('kelompok_blok', 'reguler')->orWhereNull('kelompok_blok'))
                 ->orWhere('kelompok_blok', $kelompokAktif);
         })->get();
     }

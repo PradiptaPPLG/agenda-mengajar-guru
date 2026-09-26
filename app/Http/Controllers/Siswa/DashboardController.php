@@ -58,6 +58,9 @@ class DashboardController extends Controller
             $jamMulai = $jadwal->jam_mulai_formatted ?? substr($jadwal->jam_mulai, 0, 5);
             $jamSelesai = $jadwal->jam_selesai_formatted ?? substr($jadwal->jam_selesai, 0, 5);
 
+            $jamCheckoutMulai = Carbon::createFromFormat('H:i', $jamSelesai)->subMinutes(15)->format('H:i');
+            $canCheckout = ($nowTime >= $jamCheckoutMulai);
+
             $isStarted = ($nowTime >= $jamMulai);
             $isActiveNow = ($nowTime >= $jamMulai && $nowTime <= $jamSelesai);
 
@@ -67,6 +70,8 @@ class DashboardController extends Controller
                 'fotoBukti' => $fotoBukti,
                 'sudahCapture' => $sudahCapture,
                 'sudahCheckout' => $sudahCheckout,
+                'canCheckout' => $canCheckout,
+                'jamCheckoutMulai' => $jamCheckoutMulai,
                 'isStarted' => $isStarted,
                 'isActiveNow' => $isActiveNow,
                 'jamMulai' => $jamMulai,

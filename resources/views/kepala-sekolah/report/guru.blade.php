@@ -202,6 +202,14 @@
                                 ? asset($siswaReport->foto_path)
                                 : \Illuminate\Support\Facades\Storage::url($siswaReport->foto_path);
                         }
+                        $fotoCheckoutSrc = null;
+                        if ($siswaReport && $siswaReport->foto_checkout_path) {
+                            $fotoCheckoutSrc = str_starts_with($siswaReport->foto_checkout_path, 'images/')
+                                ? asset($siswaReport->foto_checkout_path)
+                                : \Illuminate\Support\Facades\Storage::url($siswaReport->foto_checkout_path);
+                        }
+                        $waktuMasuk = $siswaReport?->created_at ? $siswaReport->created_at->format('H:i') . ' WIB' : null;
+                        $waktuCheckout = $siswaReport?->checkout_at ? $siswaReport->checkout_at->format('H:i') . ' WIB' : null;
                     @endphp
                     <tr class="transition-colors {{ $isDiscrepant ? 'bg-amber-50/60 hover:bg-amber-100/60' : 'hover:bg-slate-50' }}">
                         <td class="px-4 py-3 whitespace-nowrap text-slate-600">
@@ -214,8 +222,8 @@
                         <td class="px-4 py-3 text-slate-500">{{ $kh->pertemuan?->jadwal?->mataPelajaran?->nama ?? '—' }}</td>
                         <td class="px-4 py-3 text-slate-500">{{ $kh->pertemuan?->jadwal?->kelas?->nama ?? '—' }}</td>
                         <td class="px-4 py-3">
-                            <div class="flex flex-col gap-1">
-                                <div class="flex items-center gap-2">
+                            <div class="flex flex-col gap-1.5">
+                                <div class="flex items-center gap-2 flex-wrap">
                                     <span class="text-xs font-medium px-2 py-0.5 rounded-full inline-block w-fit
                                         {{ match($kh->status) {
                                             'hadir' => 'badge-hadir',
@@ -225,19 +233,46 @@
                                         } }}">
                                         {{ $kh->status_label }}
                                     </span>
-                                    {{-- Thumbnail foto bukti siswa inline --}}
-                                    @if($fotoSrc)
-                                    <button type="button"
-                                        onclick="openFotoModal('{{ $fotoSrc }}', '{{ addslashes($siswaReport->siswa->name ?? 'Siswa') }}', '{{ ucfirst($siswaReport->status_guru_dilaporkan) }}')"
-                                        class="w-7 h-7 rounded-md overflow-hidden border border-slate-200 hover:border-blue-400 hover:scale-110 transition-all shrink-0 relative group"
-                                        title="Klik untuk lihat foto bukti">
-                                        <img src="{{ $fotoSrc }}" alt="Foto" class="w-full h-full object-cover">
-                                        <div class="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                            <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                                        </div>
-                                    </button>
+
+                                    {{-- Thumbnails foto bukti siswa inline --}}
+                                    <div class="flex items-center gap-1.5">
+                                        @if($fotoSrc)
+                                        <button type="button"
+                                            onclick="openFotoModal('{{ $fotoSrc }}', '{{ addslashes($siswaReport->siswa->name ?? 'Siswa') }}', '{{ ucfirst($siswaReport->status_guru_dilaporkan) }}', 'Masuk (Awal KBM): {{ $waktuMasuk }}')"
+                                            class="w-7 h-7 rounded-md overflow-hidden border border-slate-200 hover:border-blue-400 hover:scale-110 transition-all shrink-0 relative group"
+                                            title="Foto Masuk ({{ $waktuMasuk }})">
+                                            <img src="{{ $fotoSrc }}" alt="Foto Masuk" class="w-full h-full object-cover">
+                                            <div class="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                            </div>
+                                        </button>
+                                        @endif
+                                        @if($fotoCheckoutSrc)
+                                        <button type="button"
+                                            onclick="openFotoModal('{{ $fotoCheckoutSrc }}', '{{ addslashes($siswaReport->siswa->name ?? 'Siswa') }}', 'Check-out Selesai', 'Check-out (Akhir KBM): {{ $waktuCheckout }}')"
+                                            class="w-7 h-7 rounded-md overflow-hidden border border-emerald-300 hover:border-emerald-500 hover:scale-110 transition-all shrink-0 relative group"
+                                            title="Foto Check-out ({{ $waktuCheckout }})">
+                                            <img src="{{ $fotoCheckoutSrc }}" alt="Foto Check-out" class="w-full h-full object-cover">
+                                            <div class="absolute inset-0 bg-emerald-900/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                            </div>
+                                        </button>
+                                        @endif
+                                    </div>
+                                </div>
+
+                                {{-- Waktu Upload Foto Bukti --}}
+                                @if($waktuMasuk || $waktuCheckout)
+                                <div class="text-[10px] text-slate-500 leading-tight space-y-0.5">
+                                    @if($waktuMasuk)
+                                    <div>Foto Masuk: <span class="font-medium text-slate-700">{{ $waktuMasuk }}</span></div>
+                                    @endif
+                                    @if($waktuCheckout)
+                                    <div>Foto Keluar: <span class="font-medium text-emerald-700">{{ $waktuCheckout }}</span></div>
                                     @endif
                                 </div>
+                                @endif
+
                                 @if($kh->jenis_alpa)
                                 <span class="text-xs text-slate-400">{{ $kh->jenis_alpa_label }}</span>
                                 @endif
@@ -300,10 +335,10 @@
 
     @push('scripts')
     <script>
-        function openFotoModal(src, nama, status) {
+        function openFotoModal(src, nama, status, waktu = '') {
             document.getElementById('foto-modal-img').src = src;
             document.getElementById('foto-modal-nama').textContent = nama;
-            document.getElementById('foto-modal-status').textContent = 'Dilaporkan: ' + status;
+            document.getElementById('foto-modal-status').textContent = 'Dilaporkan: ' + status + (waktu ? ' • ' + waktu : '');
             document.getElementById('foto-modal').classList.remove('hidden');
         }
         function closeFotoModal(e) {

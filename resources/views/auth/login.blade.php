@@ -6,7 +6,7 @@
     <title>Login — Agenda Mengajar</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @vite('resources/css/app.css')
 </head>
 <body class="h-full bg-gradient-to-br from-slate-100 to-blue-50 flex items-center justify-center p-4">
 

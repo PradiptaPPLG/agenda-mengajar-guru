@@ -2,14 +2,14 @@
     <x-slot:title>Dashboard Kaprog</x-slot:title>
 
     <div class="px-4 py-4 space-y-6">
-        <div class="bg-gradient-to-r from-purple-600 to-indigo-700 rounded-2xl p-5 text-white shadow-md">
+        <div class="bg-blue-600 rounded-2xl p-5 text-white shadow-md">
             <h1 class="text-xl font-bold">Dashboard Kepala Program (Kaprog)</h1>
             <p class="text-sm opacity-90 mt-1">Pemantauan KBM & Kehadiran Jurusan {{ $jurusan ?? 'Keseluruhan' }} (Kelas 10–12)</p>
         </div>
 
         <form method="GET" class="flex flex-col sm:flex-row gap-2">
-            <input type="date" name="tanggal" value="{{ $tanggal }}" class="flex-1 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-            <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition-colors">Tampilkan Laporan</button>
+            <input type="date" name="tanggal" value="{{ $tanggal }}" class="flex-1 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-colors">Tampilkan Laporan</button>
         </form>
 
         {{-- Pemantauan Guru Mengajar di Jurusan --}}
@@ -19,7 +19,7 @@
                     <h2 class="font-bold text-slate-800 text-lg">Pemantauan Guru Mengajar Jurusan {{ $jurusan ?? '' }}</h2>
                     <p class="text-xs text-slate-500 mt-0.5">Kehadiran dan agenda mengajar guru di seluruh kelas jurusan Anda hari ini</p>
                 </div>
-                <span class="text-xs font-semibold bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full border border-indigo-200">
+                <span class="text-xs font-semibold bg-blue-50 text-blue-700 px-3 py-1 rounded-full border border-blue-200">
                     {{ $rekapGuru['total'] }} Sesi KBM
                 </span>
             </div>

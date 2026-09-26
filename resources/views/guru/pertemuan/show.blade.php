@@ -147,8 +147,9 @@
                                     <div class="min-w-0 flex-1 space-y-0.5">
                                         <p class="text-xs font-bold text-slate-800 truncate">{{ $foto->siswa->name }}</p>
                                         <p class="text-[11px] text-slate-500">Status: <span class="font-semibold {{ $foto->status_guru_dilaporkan === 'hadir' ? 'text-emerald-700' : 'text-red-600' }}">{{ ucfirst($foto->status_guru_dilaporkan) }}</span></p>
+                                        <p class="text-[10px] text-slate-600 font-medium">Foto Masuk: {{ $foto->created_at->format('H:i') }} WIB</p>
                                         @if($foto->checkout_at)
-                                            <p class="text-[10px] text-emerald-700 font-medium">Check-out: {{ $foto->checkout_at->format('H:i') }} WIB</p>
+                                            <p class="text-[10px] text-emerald-700 font-medium">Foto Check-out: {{ $foto->checkout_at->format('H:i') }} WIB</p>
                                         @endif
                                         @if($foto->alasan_tidak_hadir)
                                             <p class="text-[10px] text-red-600 font-medium truncate">Alasan: {{ match($foto->alasan_tidak_hadir) {

@@ -64,7 +64,7 @@ class MataPelajaranController extends Controller
             'jenis' => $validated['jenis'],
         ]);
 
-        if (in_array($validated['jenis'], ['produktif', 'adaptif']) && isset($validated['kelas_ids'])) {
+        if (in_array($validated['jenis'], ['produktif', 'adaptif', 'kejuruan']) && isset($validated['kelas_ids'])) {
             $mataPelajaran->kelas()->sync($validated['kelas_ids']);
         }
 
@@ -95,7 +95,7 @@ class MataPelajaranController extends Controller
             'jenis' => $validated['jenis'],
         ]);
 
-        if (in_array($validated['jenis'], ['produktif', 'adaptif']) && isset($validated['kelas_ids'])) {
+        if (in_array($validated['jenis'], ['produktif', 'adaptif', 'kejuruan']) && isset($validated['kelas_ids'])) {
             $mataPelajaran->kelas()->sync($validated['kelas_ids']);
         } else {
             $mataPelajaran->kelas()->detach();

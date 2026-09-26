@@ -89,7 +89,7 @@
                     <div class="text-center">
                         <img src="{{ Storage::url($existingCapture->foto_path) }}" alt="Foto Masuk"
                              class="w-full h-auto max-h-56 object-contain rounded-xl bg-white border border-slate-200">
-                        <span class="inline-block mt-1 text-[11px] font-bold text-slate-600">Foto Masuk (Awal)</span>
+                        <span class="inline-block mt-1 text-[11px] font-bold text-slate-600">Foto Masuk ({{ $existingCapture->created_at ? $existingCapture->created_at->format('H:i') . ' WIB' : 'Awal' }})</span>
                     </div>
                     @if($existingCapture->foto_checkout_path)
                     <div class="text-center">
@@ -154,6 +154,7 @@
                 </div>
             </div>
 
+            @if(!empty($canCheckout))
             <form action="{{ route('siswa.capture.checkout', ['jadwal' => $pertemuan->jadwal_id, 'tanggal' => $pertemuan->tanggal->toDateString()]) }}" method="POST" enctype="multipart/form-data" class="p-5 space-y-4">
                 @csrf
                 {{-- Hidden final input for checkout --}}
@@ -176,7 +177,7 @@
                 <div class="grid grid-cols-2 gap-2">
                     <label class="flex flex-col items-center justify-center gap-2 py-3.5 border-2 border-dashed border-emerald-300 bg-emerald-50/50 rounded-xl cursor-pointer hover:border-emerald-500 hover:bg-emerald-50 transition-colors">
                         <input type="file" accept="image/*" capture="environment"
-                               class="sr-only" onchange="handleCheckoutPhoto(this)">
+                                class="sr-only" onchange="handleCheckoutPhoto(this)">
                         <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -185,7 +186,7 @@
                     </label>
                     <label class="flex flex-col items-center justify-center gap-2 py-3.5 border-2 border-dashed border-slate-300 rounded-xl cursor-pointer hover:border-emerald-400 hover:bg-emerald-50 transition-colors">
                         <input type="file" accept="image/*"
-                               class="sr-only" onchange="handleCheckoutPhoto(this)">
+                                class="sr-only" onchange="handleCheckoutPhoto(this)">
                         <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                         </svg>
@@ -198,6 +199,17 @@
                     {{ $existingCapture->foto_checkout_path ? 'Perbarui Foto Check-out' : 'Simpan Foto Check-out' }}
                 </button>
             </form>
+            @else
+            <div class="p-6 text-center space-y-2">
+                <div class="w-10 h-10 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mx-auto mb-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+                <h4 class="text-sm font-bold text-slate-800">Check-out Belum Dibuka</h4>
+                <p class="text-xs text-slate-500 max-w-sm mx-auto">
+                    Foto check-out baru dapat diambil mulai pukul <strong class="text-slate-800">{{ $jamCheckoutMulai }} WIB</strong> (15 menit sebelum jam pelajaran berakhir pada pukul {{ $jamSelesai }} WIB).
+                </p>
+            </div>
+            @endif
         </div>
         @endif
 

@@ -21,14 +21,46 @@ class UserController extends Controller
 {
     public function index(Request $request): View
     {
+        $roleFilter = $request->input('role_filter');
+        $mapelId = $request->input('mapel_id');
+        $search = $request->input('search');
+
         $users = User::whereIn('role', ['guru', 'piket'])
             ->with(['guruProfile', 'roles', 'mapels', 'jadwalPelajarans.mataPelajaran', 'jadwalPelajarans.kelas'])
-            ->when($request->input('search'), fn ($q, $s) => $q->where(fn ($sub) => $sub->where('name', 'like', "%{$s}%")->orWhere('email', 'like', "%{$s}%")))
+            ->when($roleFilter, function ($q, $rf) {
+                if ($rf === 'bk') {
+                    $q->where(function ($sub) {
+                        $sub->whereHas('roles', fn ($r) => $r->where('name', 'like', '%bk%'))
+                            ->orWhereIn('id', Kelas::whereNotNull('bk_id')->pluck('bk_id'));
+                    });
+                } elseif ($rf === 'wali_kelas') {
+                    $q->where(function ($sub) {
+                        $sub->whereHas('roles', fn ($r) => $r->where('name', 'like', '%wali%'))
+                            ->orWhereIn('id', Kelas::whereNotNull('wali_kelas_id')->pluck('wali_kelas_id'));
+                    });
+                } elseif ($rf === 'kaprog') {
+                    $q->where(function ($sub) {
+                        $sub->whereHas('roles', fn ($r) => $r->where('name', 'like', '%kaprog%'))
+                            ->orWhereHas('guruProfile', fn ($gp) => $gp->whereNotNull('kaprog_jurusan'));
+                    });
+                } elseif ($rf === 'guru') {
+                    $q->where('role', 'guru');
+                }
+            })
+            ->when($mapelId, function ($q, $mId) {
+                $q->where(function ($sub) use ($mId) {
+                    $sub->whereHas('mapels', fn ($m) => $m->where('mata_pelajarans.id', $mId))
+                        ->orWhereHas('jadwalPelajarans', fn ($j) => $j->where('jadwal_pelajarans.mata_pelajaran_id', $mId));
+                });
+            })
+            ->when($search, fn ($q, $s) => $q->where(fn ($sub) => $sub->where('name', 'like', "%{$s}%")->orWhere('email', 'like', "%{$s}%")->orWhereHas('guruProfile', fn ($gp) => $gp->where('nip', 'like', "%{$s}%"))))
             ->orderBy('name')
             ->paginate(20)
             ->withQueryString();
 
-        return view('admin.users.index', compact('users'));
+        $mataPelajarans = MataPelajaran::orderBy('nama')->get();
+
+        return view('admin.users.index', compact('users', 'mataPelajarans'));
     }
 
     public function create(): View
@@ -188,17 +220,17 @@ class UserController extends Controller
 
             // Sync Wali Kelas
             if (! empty($validated['wali_kelas_id'])) {
-                Kelas::where('wali_kelas_id', $user->id)->update(['wali_kelas_id' => null]);
+                Kelas::where('wali_kelas_id', $user->id)->where('id', '!=', $validated['wali_kelas_id'])->update(['wali_kelas_id' => null]);
                 Kelas::where('id', $validated['wali_kelas_id'])->update(['wali_kelas_id' => $user->id]);
-            } elseif (! $hasWaliRole) {
+            } else {
                 Kelas::where('wali_kelas_id', $user->id)->update(['wali_kelas_id' => null]);
             }
 
             // Sync BK
             if (! empty($validated['bk_kelas_ids'])) {
-                Kelas::where('bk_id', $user->id)->update(['bk_id' => null]);
+                Kelas::where('bk_id', $user->id)->whereNotIn('id', $validated['bk_kelas_ids'])->update(['bk_id' => null]);
                 Kelas::whereIn('id', $validated['bk_kelas_ids'])->update(['bk_id' => $user->id]);
-            } elseif (! $hasBkRole) {
+            } else {
                 Kelas::where('bk_id', $user->id)->update(['bk_id' => null]);
             }
         } elseif ($user->guruProfile) {
@@ -230,6 +262,9 @@ class UserController extends Controller
             return redirect()->back()->with('error', 'Anda tidak dapat menghapus akun sendiri.');
         }
 
+        Kelas::where('wali_kelas_id', $user->id)->update(['wali_kelas_id' => null]);
+        Kelas::where('bk_id', $user->id)->update(['bk_id' => null]);
+
         $user->delete();
 
         return redirect()->route('admin.users.index')->with('success', 'Pengguna berhasil dihapus.');
@@ -249,6 +284,12 @@ class UserController extends Controller
 
             // Mencegah menghapus akun sendiri
             $query->where('id', '!=', auth()->id());
+
+            $targetIds = (clone $query)->pluck('id')->all();
+            if (! empty($targetIds)) {
+                Kelas::whereIn('wali_kelas_id', $targetIds)->update(['wali_kelas_id' => null]);
+                Kelas::whereIn('bk_id', $targetIds)->update(['bk_id' => null]);
+            }
 
             $count = $query->count();
             $query->delete();
@@ -270,6 +311,9 @@ class UserController extends Controller
                 return redirect()->back()->with('error', 'Anda tidak dapat menghapus akun sendiri. Tidak ada akun lain yang dipilih.');
             }
         }
+
+        Kelas::whereIn('wali_kelas_id', $ids)->update(['wali_kelas_id' => null]);
+        Kelas::whereIn('bk_id', $ids)->update(['bk_id' => null]);
 
         User::whereIn('id', $ids)->delete();
 

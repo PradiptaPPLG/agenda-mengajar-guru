@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\KalenderBlokMinggu;
+use App\Models\KehadiranSiswa;
 use App\Models\Kelas;
 use App\Models\SiswaProfile;
 use App\Models\User;
@@ -37,8 +38,31 @@ class KelasController extends Controller
             ->groupBy('hari');
 
         $totalSiswa = $kelas->siswaProfiles->count();
+        $siswaUserIds = $kelas->siswaProfiles->pluck('user_id')->filter();
 
-        return view('admin.kelas.show', compact('kelas', 'jadwalGrouped', 'totalSiswa'));
+        $kehadiran = KehadiranSiswa::whereIn('siswa_id', $siswaUserIds)->get();
+
+        $rekapSiswa = [];
+        foreach ($siswaUserIds as $uid) {
+            $studentKh = $kehadiran->where('siswa_id', $uid);
+            $total = $studentKh->count();
+            $hadir = $studentKh->where('status', 'hadir')->count();
+            $rekapSiswa[$uid] = [
+                'hadir' => $hadir,
+                'sakit' => $studentKh->where('status', 'sakit')->count(),
+                'izin' => $studentKh->where('status', 'izin')->count(),
+                'alpa' => $studentKh->where('status', 'alpa')->count(),
+                'dispensasi' => $studentKh->where('status', 'dispensasi')->count(),
+                'total' => $total,
+                'persentase' => $total > 0 ? round(($hadir / $total) * 100, 1) : 100,
+            ];
+        }
+
+        $totalAll = $kehadiran->count();
+        $hadirAll = $kehadiran->where('status', 'hadir')->count();
+        $persentaseKelas = $totalAll > 0 ? round(($hadirAll / $totalAll) * 100, 1) : 100;
+
+        return view('admin.kelas.show', compact('kelas', 'jadwalGrouped', 'totalSiswa', 'rekapSiswa', 'persentaseKelas'));
     }
 
     public function create(): View

@@ -46,7 +46,7 @@ class KaprogController extends Controller
                 $q->whereIn('kelas_id', $kelasIds);
             })
             ->whereHas('pertemuan', function ($q) use ($tanggal) {
-                $q->where('tanggal', $tanggal);
+                $q->whereDate('tanggal', $tanggal);
             })
             ->get();
 

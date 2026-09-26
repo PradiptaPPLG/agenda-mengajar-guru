@@ -81,13 +81,16 @@ class CaptureController extends Controller
             ->where('siswa_id', $user->id)
             ->first();
 
-        $enableCheckout = (Setting::get('enable_checkout_foto', '0') == '1');
+        $jamCheckoutMulai = Carbon::createFromFormat('H:i', $jamSelesai)->subMinutes(15)->format('H:i');
+        $canCheckout = ! $tanggalCarbon->isToday() || (now()->format('H:i') >= $jamCheckoutMulai);
 
         return view('siswa.capture.show', [
             'pertemuan' => $pertemuan->load(['jadwal.guru', 'jadwal.mataPelajaran', 'kehadiranGuru']),
             'existingCapture' => $existingCapture,
             'isPast' => $isPast,
             'enableCheckout' => $enableCheckout,
+            'canCheckout' => $canCheckout,
+            'jamCheckoutMulai' => $jamCheckoutMulai,
             'consecutiveSchedules' => $consecutiveSchedules,
             'totalJp' => $consecutiveSchedules->count(),
             'jamMulai' => $jamMulai,
@@ -174,8 +177,10 @@ class CaptureController extends Controller
             }
         }
 
+        $hasNewFoto = $request->hasFile('foto');
+
         // Save FotoBukti & automatically sync teacher attendance in KehadiranGuru for all consecutive schedules
-        DB::transaction(function () use ($consecutiveSchedules, $user, $fotoPath, $validated, $statusGuru, $tanggalCarbon) {
+        DB::transaction(function () use ($consecutiveSchedules, $user, $fotoPath, $hasNewFoto, $validated, $statusGuru, $tanggalCarbon) {
             foreach ($consecutiveSchedules as $sched) {
                 $targetPertemuan = Pertemuan::firstOrCreate(
                     ['jadwal_id' => $sched->id, 'tanggal' => $tanggalCarbon->format('Y-m-d 00:00:00')],
@@ -187,7 +192,7 @@ class CaptureController extends Controller
                     ->first();
 
                 if ($schedExisting) {
-                    if ($request->hasFile('foto') && $schedExisting->foto_path && $schedExisting->foto_path !== $fotoPath) {
+                    if ($hasNewFoto && $schedExisting->foto_path && $schedExisting->foto_path !== $fotoPath) {
                         Storage::disk('public')->delete($schedExisting->foto_path);
                     }
                     $schedExisting->update([
@@ -242,13 +247,43 @@ class CaptureController extends Controller
         $jadwal = JadwalPelajaran::findOrFail($jadwalId);
         abort_unless($jadwal->kelas_id === $kelas?->id, 403);
 
+        if (Setting::get('enable_checkout_foto', '0') !== '1') {
+            return redirect()->route('siswa.dashboard')->with('error', 'Fitur foto check-out saat ini dinonaktifkan.');
+        }
+
         $tanggalCarbon = Carbon::parse($tanggal);
+
+        // Check if schedule is active for this class on this date in block system
+        if ($kelas && $kelas->is_sistem_blok) {
+            $activeJadwals = app(JadwalBlokResolverService::class)->resolveJadwal($kelas, $tanggalCarbon, (string) $jadwal->hari);
+            if (! $activeJadwals->pluck('id')->contains($jadwal->id)) {
+                return redirect()->route('siswa.dashboard')->with('error', 'Mata pelajaran ini tidak aktif untuk kelas Anda pada tanggal tersebut.');
+            }
+
+            if ($kelas->model_rotasi === 'split_harian' && $user->siswaProfile?->kelompok_blok) {
+                $kelompokSiswa = $user->siswaProfile->kelompok_blok;
+                if ($jadwal->kelompok_blok && $jadwal->kelompok_blok !== 'reguler' && $jadwal->kelompok_blok !== $kelompokSiswa) {
+                    return redirect()->route('siswa.dashboard')->with('error', 'Mata pelajaran ini bukan untuk kelompok Anda.');
+                }
+            }
+        }
 
         if ($tanggalCarbon->gt(now()->endOfDay()) || $tanggalCarbon->lt(now()->subDays(7)->startOfDay())) {
             return redirect()->route('siswa.dashboard')->with('error', 'Waktu pengiriman laporan untuk tanggal ini sudah ditutup.');
         }
 
         $consecutiveSchedules = $jadwal->getConsecutiveSchedules();
+        $jadwalAkhir = $consecutiveSchedules->last();
+        $jamSelesai = substr($jadwalAkhir->jam_selesai, 0, 5);
+        $jamCheckoutMulai = Carbon::createFromFormat('H:i', $jamSelesai)->subMinutes(15)->format('H:i');
+
+        if ($tanggalCarbon->isToday()) {
+            $nowTime = now()->format('H:i');
+            if ($nowTime < $jamCheckoutMulai) {
+                return redirect()->route('siswa.dashboard')->with('error', "Check-out untuk mata pelajaran {$jadwal->mataPelajaran->nama} baru dapat dilakukan mulai pukul {$jamCheckoutMulai} WIB (15 menit sebelum jam pelajaran berakhir).");
+            }
+        }
+
         $subIds = $consecutiveSchedules->pluck('id')->all();
 
         $pertemuanIds = Pertemuan::whereIn('jadwal_id', $subIds)

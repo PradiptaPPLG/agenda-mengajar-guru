@@ -79,6 +79,27 @@ class KehadiranGuru extends Model
         return in_array($this->status, ['tidak_hadir', 'sakit', 'alpa', 'dispensasi']);
     }
 
+    public function isHadirCategory(): bool
+    {
+        return in_array($this->status, ['hadir', 'terlambat']);
+    }
+
+    public function isSakitCategory(): bool
+    {
+        return $this->status === 'sakit' || $this->alasan_tidak_hadir === 'sakit';
+    }
+
+    public function isDispensasiCategory(): bool
+    {
+        return in_array($this->status, ['dispensasi', 'izin'])
+            || in_array($this->alasan_tidak_hadir, ['izin', 'rapat_dinas', 'dinas_luar', 'tugas_luar', 'dispensasi']);
+    }
+
+    public function isAlpaCategory(): bool
+    {
+        return ! $this->isHadirCategory() && ! $this->isSakitCategory() && ! $this->isDispensasiCategory();
+    }
+
     public function getJenisAlpaLabelAttribute(): string
     {
         return match ($this->jenis_alpa) {

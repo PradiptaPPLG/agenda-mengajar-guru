@@ -58,7 +58,11 @@
                     <td class="px-4 py-3">
                         <input type="checkbox" name="ids[]" value="{{ $k->id }}" class="row-checkbox rounded border-slate-300 text-blue-600 shadow-sm focus:ring-blue-500">
                     </td>
-                    <td class="px-4 py-3 font-medium text-slate-900">{{ $k->nama }}</td>
+                    <td class="px-4 py-3 font-medium text-slate-900">
+                        <a href="{{ route('admin.kelas.show', $k) }}" class="text-blue-600 hover:text-blue-800 font-bold hover:underline" title="Lihat Detail Kelas (Wali Kelas, BK, Siswa, Jadwal)">
+                            {{ $k->nama }}
+                        </a>
+                    </td>
                     <td class="px-4 py-3 text-slate-500 hidden md:table-cell">{{ $k->tingkat }}</td>
                     <td class="px-4 py-3">
                         @if($k->is_sistem_blok)
@@ -103,7 +107,13 @@
                         <span class="text-xs font-medium bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">{{ $k->siswa_profiles_count }} siswa</span>
                     </td>
                     <td class="px-4 py-3">
-                        <div class="flex items-center justify-end">
+                        <div class="flex items-center justify-end gap-1.5">
+                            <a href="{{ route('admin.kelas.show', $k) }}" 
+                               class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors"
+                               title="Lihat Detail Kelas">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                Detail
+                            </a>
                             <x-action-dropdown 
                                 :detailUrl="route('admin.kelas.show', $k)"
                                 :editUrl="route('admin.kelas.edit', $k)" 

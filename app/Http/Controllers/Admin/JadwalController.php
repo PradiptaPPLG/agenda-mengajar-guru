@@ -431,9 +431,9 @@ class JadwalController extends Controller
             ->where('jam_selesai', '>', $validated['jam_mulai']);
 
         if ($kelompokBaru === 'kelompok_a') {
-            $kelasConflictQuery->whereIn('kelompok_blok', ['reguler', 'kelompok_a']);
+            $kelasConflictQuery->where(fn ($sub) => $sub->whereIn('kelompok_blok', ['reguler', 'kelompok_a'])->orWhereNull('kelompok_blok'));
         } elseif ($kelompokBaru === 'kelompok_b') {
-            $kelasConflictQuery->whereIn('kelompok_blok', ['reguler', 'kelompok_b']);
+            $kelasConflictQuery->where(fn ($sub) => $sub->whereIn('kelompok_blok', ['reguler', 'kelompok_b'])->orWhereNull('kelompok_blok'));
         }
 
         $kelasConflict = $kelasConflictQuery->first();

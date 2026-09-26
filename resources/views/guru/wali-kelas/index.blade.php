@@ -2,14 +2,14 @@
     <x-slot:title>Wali Kelas</x-slot:title>
 
     <div class="px-4 py-4 space-y-6">
-        <div class="bg-gradient-to-r from-amber-500 to-orange-600 rounded-2xl p-5 text-white shadow-md">
+        <div class="bg-blue-600 rounded-2xl p-5 text-white shadow-md">
             <h1 class="text-xl font-bold">Dashboard Wali Kelas</h1>
             <p class="text-sm opacity-90 mt-1">Pemantauan Presensi Kelas Binaan</p>
         </div>
 
         <form method="GET" class="flex gap-2">
-            <input type="date" name="tanggal" value="{{ $tanggal }}" class="flex-1 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
-            <button type="submit" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-sm font-semibold transition-colors">Lihat</button>
+            <input type="date" name="tanggal" value="{{ $tanggal }}" class="flex-1 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-colors">Lihat</button>
         </form>
 
         <div class="space-y-4">
@@ -19,7 +19,7 @@
             <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
                 <div class="flex items-center justify-between mb-3 border-b border-slate-100 pb-2">
                     <h3 class="font-bold text-slate-900">{{ $rekap['kelas']->nama }}</h3>
-                    <span class="text-xs font-semibold px-2 py-1 bg-amber-100 text-amber-800 rounded-lg">Kelas Binaan</span>
+                    <span class="text-xs font-semibold px-2 py-1 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg">Kelas Binaan</span>
                 </div>
                 
                 <div class="grid grid-cols-2 gap-3">

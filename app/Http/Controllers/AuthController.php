@@ -30,14 +30,15 @@ class AuthController extends Controller
         $identifier = trim($credentials['identifier']);
         $password = $credentials['password'];
 
-        $user = User::whereHas('guruProfile', function ($q) use ($identifier) {
-            $q->where('nip', $identifier);
-        })
-            ->orWhere('email', $identifier)
-            ->orWhereHas('siswaProfile', function ($q) use ($identifier) {
-                $q->where('nis', $identifier);
+        $user = User::where(function ($query) use ($identifier) {
+            $query->whereHas('guruProfile', function ($q) use ($identifier) {
+                $q->where('nip', $identifier);
             })
-            ->first();
+                ->orWhere('email', $identifier)
+                ->orWhereHas('siswaProfile', function ($q) use ($identifier) {
+                    $q->where('nis', $identifier);
+                });
+        })->first();
 
         if ($user && Hash::check($password, $user->password)) {
             if (! $user->is_active) {

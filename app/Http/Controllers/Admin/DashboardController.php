@@ -38,7 +38,7 @@ class DashboardController extends Controller
             ->groupBy('status')
             ->pluck('count', 'status');
 
-        $chartData['data'][0] = $totalStats['hadir'] ?? 0;
+        $chartData['data'][0] = ($totalStats['hadir'] ?? 0) + ($totalStats['terlambat'] ?? 0);
         $chartData['data'][1] = $totalStats['sakit'] ?? 0;
         $chartData['data'][2] = $totalStats['alpa'] ?? 0;
         $chartData['data'][3] = $totalStats['dispensasi'] ?? 0;
@@ -54,7 +54,7 @@ class DashboardController extends Controller
             ->groupBy('status')
             ->pluck('count', 'status');
 
-        $chartDataSiswa['data'][0] = $totalStatsSiswa['hadir'] ?? 0;
+        $chartDataSiswa['data'][0] = ($totalStatsSiswa['hadir'] ?? 0) + ($totalStatsSiswa['terlambat'] ?? 0);
         $chartDataSiswa['data'][1] = $totalStatsSiswa['sakit'] ?? 0;
         $chartDataSiswa['data'][2] = $totalStatsSiswa['izin'] ?? 0;
         $chartDataSiswa['data'][3] = $totalStatsSiswa['alpa'] ?? 0;
@@ -62,10 +62,10 @@ class DashboardController extends Controller
 
         // Leaderboard Top Guru
         $topGurus = KehadiranGuru::with('guru')
-            ->selectRaw('guru_id, 
+            ->selectRaw("guru_id, 
                 COUNT(*) as total_sesi, 
-                SUM(CASE WHEN status = "hadir" THEN 1 ELSE 0 END) as total_hadir,
-                (SUM(CASE WHEN status = "hadir" THEN 1 ELSE 0 END) * 100.0 / COUNT(*)) as persentase')
+                SUM(CASE WHEN status IN ('hadir', 'terlambat') THEN 1 ELSE 0 END) as total_hadir,
+                (SUM(CASE WHEN status IN ('hadir', 'terlambat') THEN 1 ELSE 0 END) * 100.0 / COUNT(*)) as persentase")
             ->groupBy('guru_id')
             ->having('total_sesi', '>', 0)
             ->orderByDesc('persentase')
