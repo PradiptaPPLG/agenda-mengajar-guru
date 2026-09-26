@@ -5,12 +5,13 @@
                 <h1 class="text-xl font-semibold text-slate-900">Edit Akses: {{ $user->name }}</h1>
                 <p class="mt-1 text-sm text-slate-600">Atur role sistem dan hak akses tambahan untuk pengguna ini.</p>
             </div>
-            <a href="{{ route('admin.pengguna.index') }}" class="text-sm font-semibold leading-6 text-slate-900 bg-white px-3 py-2 border border-slate-300 rounded-lg shadow-sm hover:bg-slate-50 transition-colors">Kembali</a>
+            <a href="{{ request('redirect_to', route('admin.pengguna.index')) }}" class="text-sm font-semibold leading-6 text-slate-900 bg-white px-3 py-2 border border-slate-300 rounded-lg shadow-sm hover:bg-slate-50 transition-colors">Kembali</a>
         </div>
 
         <form action="{{ route('admin.pengguna.update', $user) }}" method="POST" class="bg-white shadow-sm ring-1 ring-slate-200 sm:rounded-xl">
             @csrf
             @method('PUT')
+            <input type="hidden" name="redirect_to" value="{{ request('redirect_to', url()->previous()) }}">
             
             <div class="px-4 py-6 sm:p-8">
                 <div class="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
@@ -20,7 +21,6 @@
                         <p class="text-xs text-slate-500 mb-2">Mengubah ini dapat mengubah dashboard mana yang mereka lihat saat login.</p>
                         <select name="role" required class="block w-full rounded-md border-0 py-1.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6">
                             <option value="guru" {{ $user->role === 'guru' ? 'selected' : '' }}>Guru</option>
-                            <option value="siswa" {{ $user->role === 'siswa' ? 'selected' : '' }}>Siswa</option>
                             <option value="piket" {{ $user->role === 'piket' ? 'selected' : '' }}>Petugas Piket</option>
                             <option value="tu" {{ $user->role === 'tu' ? 'selected' : '' }}>Tata Usaha</option>
                             <option value="kepala_sekolah" {{ $user->role === 'kepala_sekolah' ? 'selected' : '' }}>Kepala Sekolah</option>
