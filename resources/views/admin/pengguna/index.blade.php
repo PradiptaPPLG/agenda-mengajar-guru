@@ -17,23 +17,42 @@
     <div>
         <!-- Header & Actions -->
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-            <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                <form action="{{ route('admin.pengguna.index') }}" method="GET" class="flex gap-2 w-full sm:w-auto" id="pengguna-filter-form">
-                    <select name="role" onchange="document.getElementById('pengguna-filter-form').submit()" class="px-4 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500">
+            <div class="w-full">
+                <form action="{{ route('admin.pengguna.index') }}" method="GET" class="flex flex-wrap items-center gap-2.5 w-full" id="pengguna-filter-form">
+                    {{-- Role Utama --}}
+                    <select name="role" onchange="document.getElementById('pengguna-filter-form').submit()" class="px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 bg-white">
                         <option value="">Semua Role Sistem</option>
                         <option value="admin" {{ request('role') == 'admin' ? 'selected' : '' }}>Admin</option>
                         <option value="kepala_sekolah" {{ request('role') == 'kepala_sekolah' ? 'selected' : '' }}>Kepala Sekolah</option>
-                        <option value="tu" {{ request('role') == 'tu' ? 'selected' : '' }}>TU</option>
+                        <option value="tu" {{ request('role') == 'tu' ? 'selected' : '' }}>Tata Usaha (TU)</option>
                         <option value="guru" {{ request('role') == 'guru' ? 'selected' : '' }}>Guru</option>
                         <option value="piket" {{ request('role') == 'piket' ? 'selected' : '' }}>Piket</option>
-                        <option value="siswa" {{ request('role') == 'siswa' ? 'selected' : '' }}>Siswa</option>
                     </select>
-                    <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama atau email..."
-                           id="pengguna-search-input"
-                           class="w-full sm:w-64 px-4 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500"
-                           oninput="debouncedFilterSubmit('pengguna-filter-form', 'pengguna-search-input')">
-                    @if(request()->has('search') || request()->has('role'))
-                        <a href="{{ route('admin.pengguna.index') }}" class="px-4 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl text-sm font-semibold transition-colors">
+
+                    {{-- Jabatan / Role Tambahan --}}
+                    <select name="jabatan" onchange="document.getElementById('pengguna-filter-form').submit()" class="px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 bg-white">
+                        <option value="">Semua Jabatan / Akses</option>
+                        <option value="kaprog" {{ request('jabatan') == 'kaprog' ? 'selected' : '' }}>Kepala Program (Kaprog)</option>
+                        <option value="bk" {{ request('jabatan') == 'bk' ? 'selected' : '' }}>Guru BK</option>
+                        <option value="wali_kelas" {{ request('jabatan') == 'wali_kelas' ? 'selected' : '' }}>Wali Kelas</option>
+                        <option value="piket" {{ request('jabatan') == 'piket' ? 'selected' : '' }}>Petugas Piket</option>
+                    </select>
+
+                    {{-- Search Input & Button --}}
+                    <div class="flex items-center gap-1.5 flex-1 min-w-[240px] max-w-md">
+                        <div class="relative w-full">
+                            <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama, NIP, atau email..."
+                                   id="pengguna-search-input"
+                                   class="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 bg-white">
+                            <svg class="w-4 h-4 text-slate-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                        </div>
+                        <button type="submit" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-sm font-medium transition-colors shrink-0">
+                            Cari
+                        </button>
+                    </div>
+
+                    @if(request()->has('search') || request()->has('role') || request()->has('jabatan'))
+                        <a href="{{ route('admin.pengguna.index') }}" class="px-3.5 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl text-sm font-semibold transition-colors">
                             Reset
                         </a>
                     @endif
@@ -88,7 +107,7 @@
                                 <div class="flex items-center justify-end">
                                     @if($user->role !== 'super_admin' || auth()->user()->role === 'super_admin')
                                     <x-action-dropdown 
-                                        :editUrl="route('admin.pengguna.edit', $user)" 
+                                        :editUrl="route('admin.pengguna.edit', [$user, 'redirect_to' => request()->fullUrl()])" 
                                     />
                                     @endif
                                 </div>
@@ -145,7 +164,7 @@
 
                 <div class="flex gap-2 pt-3 border-t border-slate-100">
                     @if($user->role !== 'super_admin' || auth()->user()->role === 'super_admin')
-                    <a href="{{ route('admin.pengguna.edit', $user) }}" class="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-sm font-medium transition-colors">
+                    <a href="{{ route('admin.pengguna.edit', [$user, 'redirect_to' => request()->fullUrl()]) }}" class="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-sm font-medium transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                         Edit Akses
                     </a>
