@@ -1,18 +1,39 @@
 <x-layouts.app>
     <x-slot:title>{{ $title ?? 'Admin' }}</x-slot:title>
 
-    <div class="flex h-screen overflow-hidden bg-slate-50">
+    <div x-data="{ sidebarOpen: false }" class="flex h-screen overflow-hidden bg-slate-50">
+        {{-- Mobile Backdrop Overlay --}}
+        <div x-show="sidebarOpen" 
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             @click="sidebarOpen = false" 
+             style="display: none;"
+             class="fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-xs lg:hidden">
+        </div>
+
         {{-- Sidebar --}}
-        <aside id="sidebar" class="hidden lg:flex flex-col w-64 bg-white border-r border-slate-200 shrink-0">
-            {{-- Logo --}}
-            <div class="flex items-center gap-3 px-5 py-4 border-b border-slate-200">
-                <div class="w-10 h-10 flex items-center justify-center shrink-0">
-                    <img src="{{ asset('images/logo_new.png') }}" alt="Logo" class="w-full h-full object-contain">
+        <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
+               class="fixed inset-y-0 left-0 z-50 flex flex-col w-64 bg-white border-r border-slate-200 shrink-0 transition-transform duration-300 ease-in-out lg:static lg:z-auto">
+            {{-- Logo & Mobile Close Button --}}
+            <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 flex items-center justify-center shrink-0">
+                        <img src="{{ asset('images/logo_new.png') }}" alt="Logo" class="w-full h-full object-contain">
+                    </div>
+                    <div>
+                        <p class="text-sm font-bold text-slate-900 leading-tight">{{ \App\Models\Setting::get('school_name', 'Agenda Mengajar') }}</p>
+                        <p class="text-xs text-slate-500">{{ auth()->user()->role_label }}</p>
+                    </div>
                 </div>
-                <div>
-                    <p class="text-sm font-bold text-slate-900 leading-tight">{{ \App\Models\Setting::get('school_name', 'Agenda Mengajar') }}</p>
-                    <p class="text-xs text-slate-500">{{ auth()->user()->role_label }}</p>
-                </div>
+
+                {{-- Mobile Close Button --}}
+                <button @click="sidebarOpen = false" class="lg:hidden p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors" title="Tutup Menu">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
             </div>
 
             {{-- Navigation --}}
@@ -167,7 +188,7 @@
                     </div>
                     <form method="POST" action="{{ route('logout') }}" onsubmit="event.preventDefault(); window.dispatchEvent(new CustomEvent('open-logout-modal', { detail: { form: this } }));">
                         @csrf
-                        <button type="submit" class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors" title="Logout">
+                        <button type="submit" class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-red-600 transition-colors" title="Logout">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
                         </button>
                     </form>
@@ -176,64 +197,57 @@
         </aside>
 
         {{-- Main content --}}
-        <div class="flex flex-col flex-1 overflow-hidden">
+        <div class="flex flex-col flex-1 overflow-hidden min-w-0">
             {{-- Mobile topbar --}}
             <header class="lg:hidden flex items-center justify-between px-4 h-14 bg-white border-b border-slate-200 shrink-0">
-                <button id="sidebar-toggle" class="p-2 rounded-lg text-slate-500 hover:bg-slate-100">
+                <button @click="sidebarOpen = true" class="flex items-center gap-2 p-2 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors" title="Buka Menu Navigasi">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-600">Menu</span>
                 </button>
-                <span class="text-sm font-semibold text-slate-900">{{ $title ?? 'Admin' }}</span>
-                <form method="POST" action="{{ route('logout') }}" onsubmit="event.preventDefault(); window.dispatchEvent(new CustomEvent('open-logout-modal', { detail: { form: this } }));">
-                    @csrf
-                    <button type="submit" class="p-2 rounded-lg text-slate-500 hover:bg-slate-100">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-                    </button>
-                </form>
+                <div class="flex items-center gap-2 min-w-0">
+                    <img src="{{ asset('images/logo_new.png') }}" alt="Logo" class="w-6 h-6 object-contain shrink-0">
+                    <span class="text-xs font-bold text-slate-900 truncate max-w-[140px] sm:max-w-none">{{ $title ?? 'Admin' }}</span>
+                </div>
+                <div class="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs shrink-0">
+                    {{ substr(auth()->user()->name, 0, 1) }}
+                </div>
             </header>
 
             {{-- Page content --}}
             <main class="flex-1 overflow-y-auto">
                 {{-- Page header --}}
-                <div class="px-6 py-5 bg-white border-b border-slate-200">
-                    <div class="flex items-center justify-between">
+                <div class="px-4 sm:px-6 py-4 sm:py-5 bg-white border-b border-slate-200">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                         <div>
-                            <h1 class="text-xl font-bold text-slate-900">{{ $title ?? 'Dashboard' }}</h1>
+                            <h1 class="text-lg sm:text-xl font-bold text-slate-900 leading-tight">{{ $title ?? 'Dashboard' }}</h1>
                             @isset($subtitle)
-                            <p class="mt-0.5 text-sm text-slate-500">{{ $subtitle }}</p>
+                            <p class="mt-0.5 text-xs sm:text-sm text-slate-500">{{ $subtitle }}</p>
                             @endisset
                         </div>
                         @isset($actions)
-                        <div class="flex items-center gap-2">{{ $actions }}</div>
+                        <div class="flex flex-wrap items-center gap-2 shrink-0">{{ $actions }}</div>
                         @endisset
                     </div>
                 </div>
 
                 {{-- Flash messages --}}
                 @if(session('success'))
-                <div class="mx-6 mt-4 px-4 py-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-sm flex items-start gap-2">
+                <div class="mx-4 sm:mx-6 mt-4 px-4 py-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-sm flex items-start gap-2">
                     <svg class="w-4 h-4 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                     {{ session('success') }}
                 </div>
                 @endif
                 @if(session('error'))
-                <div class="mx-6 mt-4 px-4 py-3 bg-red-50 border border-red-200 text-red-800 rounded-xl text-sm flex items-start gap-2">
+                <div class="mx-4 sm:mx-6 mt-4 px-4 py-3 bg-red-50 border border-red-200 text-red-800 rounded-xl text-sm flex items-start gap-2">
                     <svg class="w-4 h-4 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                     {{ session('error') }}
                 </div>
                 @endif
 
-                <div class="p-6">
+                <div class="p-4 sm:p-6">
                     {{ $slot }}
                 </div>
             </main>
         </div>
     </div>
-
-    @push('scripts')
-    <script>
-        document.getElementById('sidebar-toggle')?.addEventListener('click', () => {
-            document.getElementById('sidebar')?.classList.toggle('hidden');
-        });
-    </script>
-    @endpush
 </x-layouts.app>

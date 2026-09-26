@@ -48,7 +48,7 @@
         @endif
 
         {{-- Content --}}
-        <main class="flex-1 pb-safe">
+        <main class="flex-1 pb-20 sm:pb-24">
             {{ $slot }}
         </main>
 
@@ -83,12 +83,12 @@
                 @if($isWaliKelas)
                 <div class="flex flex-col items-center justify-center -mt-6">
                     <a href="{{ route('guru.wali-kelas.index') }}"
-                       class="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-600 text-white rounded-full shadow-lg shadow-amber-500/40 border-[3px] border-white {{ request()->routeIs('guru.wali-kelas.*') ? 'ring-2 ring-amber-300 ring-offset-1' : '' }} transition-transform active:scale-95">
+                       class="flex items-center justify-center w-12 h-12 bg-blue-600 text-white rounded-full shadow-lg shadow-blue-500/40 border-[3px] border-white {{ request()->routeIs('guru.wali-kelas.*') ? 'ring-2 ring-blue-300 ring-offset-1' : '' }} transition-transform active:scale-95">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
                         </svg>
                     </a>
-                    <span class="mt-1 text-[10px] font-bold text-amber-600">Wali Kelas</span>
+                    <span class="mt-1 text-[10px] font-bold text-blue-600">Wali Kelas</span>
                 </div>
                 @endif
                 
@@ -107,12 +107,12 @@
                 @if($isKaprog)
                 <div class="flex flex-col items-center justify-center -mt-6">
                     <a href="{{ route('guru.kaprog.index') }}"
-                       class="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-600 text-white rounded-full shadow-lg shadow-purple-500/40 border-[3px] border-white {{ request()->routeIs('guru.kaprog.*') ? 'ring-2 ring-purple-300 ring-offset-1' : '' }} transition-transform active:scale-95">
+                       class="flex items-center justify-center w-12 h-12 bg-blue-600 text-white rounded-full shadow-lg shadow-blue-500/40 border-[3px] border-white {{ request()->routeIs('guru.kaprog.*') ? 'ring-2 ring-blue-300 ring-offset-1' : '' }} transition-transform active:scale-95">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m0 0h4m-4 0V11m0 0l-2 2m2-2l2 2"/>
                         </svg>
                     </a>
-                    <span class="mt-1 text-[10px] font-bold text-purple-600">Kaprog</span>
+                    <span class="mt-1 text-[10px] font-bold text-blue-600">Kaprog</span>
                 </div>
                 @endif
                 

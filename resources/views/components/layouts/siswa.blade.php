@@ -40,7 +40,7 @@
         @endif
 
         {{-- Content --}}
-        <main class="flex-1 pb-safe">
+        <main class="flex-1 pb-20 sm:pb-24">
             {{ $slot }}
         </main>
 

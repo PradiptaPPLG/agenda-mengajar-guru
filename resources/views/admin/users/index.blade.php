@@ -2,27 +2,64 @@
     <x-slot:title>Manajemen Guru</x-slot:title>
     
     @push('scripts')
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script>
+        let filterTimeout;
+        function debouncedFilterSubmit(formId, inputId) {
+            clearTimeout(filterTimeout);
+            filterTimeout = setTimeout(() => {
+                const f = document.getElementById(formId);
+                if (f) f.submit();
+            }, 500);
+        }
+    </script>
     @endpush
 
     <div x-data="{ showImport: false, isSubmitting: false }">
         <!-- Header & Actions -->
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-            <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                <form action="{{ route('admin.users.index') }}" method="GET" class="flex gap-2 w-full sm:w-auto" id="users-filter-form">
-                    <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama guru..."
-                           id="users-search-input"
-                           class="w-full sm:w-64 px-4 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500"
-                           oninput="debouncedFilterSubmit('users-filter-form', 'users-search-input')">
-                    @if(request()->has('search'))
-                        <a href="{{ route('admin.users.index') }}" class="px-4 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl text-sm font-semibold transition-colors">
+        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
+            <div class="w-full lg:w-auto flex-1">
+                <form action="{{ route('admin.users.index') }}" method="GET" class="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2.5 w-full" id="users-filter-form">
+                    {{-- Search Input --}}
+                    <div class="relative w-full sm:w-64">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                            </svg>
+                        </div>
+                        <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama atau NIP guru..."
+                               id="users-search-input"
+                               class="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 bg-white"
+                               oninput="debouncedFilterSubmit('users-filter-form', 'users-search-input')">
+                    </div>
+
+                    {{-- Dropdown 1: Role / Akses --}}
+                    <select name="role_filter" onchange="document.getElementById('users-filter-form').submit()" class="w-full sm:w-auto px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 bg-white text-slate-700">
+                        <option value="">Semua Role / Akses</option>
+                        <option value="guru" {{ request('role_filter') == 'guru' ? 'selected' : '' }}>Guru Pengajar</option>
+                        <option value="bk" {{ request('role_filter') == 'bk' ? 'selected' : '' }}>Guru BK</option>
+                        <option value="wali_kelas" {{ request('role_filter') == 'wali_kelas' ? 'selected' : '' }}>Wali Kelas</option>
+                        <option value="kaprog" {{ request('role_filter') == 'kaprog' ? 'selected' : '' }}>Kaprog</option>
+                    </select>
+
+                    {{-- Dropdown 2: Mata Pelajaran --}}
+                    <select name="mapel_id" onchange="document.getElementById('users-filter-form').submit()" class="w-full sm:w-auto px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 bg-white text-slate-700">
+                        <option value="">Semua Mata Pelajaran</option>
+                        @foreach($mataPelajarans as $mp)
+                            <option value="{{ $mp->id }}" {{ request('mapel_id') == $mp->id ? 'selected' : '' }}>
+                                {{ $mp->nama }}
+                            </option>
+                        @endforeach
+                    </select>
+
+                    @if(request()->filled('search') || request()->filled('role_filter') || request()->filled('mapel_id'))
+                        <a href="{{ route('admin.users.index') }}" class="px-3.5 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl text-sm font-semibold transition-colors">
                             Reset
                         </a>
                     @endif
                 </form>
             </div>
             
-            <div class="flex gap-3">
+            <div class="flex flex-wrap gap-2.5 shrink-0 w-full lg:w-auto justify-end">
                 <button type="submit" form="bulk-delete-form" id="btn-bulk-delete" class="hidden px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold shadow-sm transition-colors flex items-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                     Hapus Terpilih (<span id="selected-count">0</span>)
@@ -43,6 +80,8 @@
                 @csrf
                 <input type="hidden" name="delete_all" id="delete-all-input" value="0">
                 <input type="hidden" name="search" value="{{ request('search') }}">
+                <input type="hidden" name="role_filter" value="{{ request('role_filter') }}">
+                <input type="hidden" name="mapel_id" value="{{ request('mapel_id') }}">
             <table class="w-full text-sm">
                 <thead class="bg-slate-50/80 border-b border-slate-200">
                     <tr>

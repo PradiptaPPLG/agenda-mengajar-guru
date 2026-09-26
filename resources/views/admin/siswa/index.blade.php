@@ -1,20 +1,16 @@
 <x-layouts.admin>
     <x-slot:title>Manajemen Siswa</x-slot:title>
 
-    @push('scripts')
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    @endpush
-
     <div x-data="{ showImport: false, isSubmitting: false }">
         <!-- Header & Actions -->
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                <form action="{{ route('admin.siswa.index') }}" method="GET" class="flex gap-2 w-full sm:w-auto" id="siswa-filter-form">
+                <form action="{{ route('admin.siswa.index') }}" method="GET" class="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 w-full sm:w-auto" id="siswa-filter-form">
                     <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama atau NIS..."
                            id="siswa-search-input"
                            class="w-full sm:w-64 px-4 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500"
                            oninput="debouncedFilterSubmit('siswa-filter-form', 'siswa-search-input')">
-                    <select name="kelas_id" class="px-4 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 bg-white"
+                    <select name="kelas_id" class="w-full sm:w-auto px-4 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 bg-white"
                             onchange="document.getElementById('siswa-filter-form').submit()">
                         <option value="">Semua Kelas</option>
                         @foreach($kelasList as $kelas)
