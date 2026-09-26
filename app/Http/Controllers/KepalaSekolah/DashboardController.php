@@ -29,6 +29,12 @@ class DashboardController extends Controller
             'guru_tidak_hadir_hari_ini' => KehadiranGuru::whereHas('pertemuan', fn ($q) => $q->whereDate('tanggal', $today))->whereIn('status', ['tidak_hadir', 'sakit', 'alpa', 'dispensasi'])->count(),
             'total_guru' => User::where('role', 'guru')->count(),
             'pertemuan_hari_ini' => Pertemuan::whereDate('tanggal', $today)->count(),
+
+            // Siswa Stats Hari Ini (berdasarkan sesi mapel pertemuan)
+            'siswa_hadir_hari_ini' => KehadiranSiswa::whereHas('pertemuan', fn ($q) => $q->whereDate('tanggal', $today))->where('status', 'hadir')->count(),
+            'siswa_terlambat_hari_ini' => KehadiranSiswa::whereHas('pertemuan', fn ($q) => $q->whereDate('tanggal', $today))->where('status', 'terlambat')->count(),
+            'siswa_tidak_hadir_hari_ini' => KehadiranSiswa::whereHas('pertemuan', fn ($q) => $q->whereDate('tanggal', $today))->whereIn('status', ['sakit', 'izin', 'alpa', 'dispensasi'])->count(),
+            'total_siswa' => User::where('role', 'siswa')->count(),
         ];
 
         // ── Real-Time Monitoring KBM Hari Ini Berbasis Kartu & Jam Berjalan (sistem blok aware) ──
