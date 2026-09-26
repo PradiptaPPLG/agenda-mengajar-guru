@@ -26,7 +26,7 @@
                 @csrf
 
                 <div>
-                    <label for="identifier" class="block text-sm font-medium text-slate-700 mb-1.5">Email / NIP / NIS</label>
+                    <label for="identifier" class="block text-sm font-medium text-slate-700 mb-1.5">NIP / Email / NIS</label>
                     <input
                         id="identifier"
                         type="text"
@@ -34,7 +34,7 @@
                         value="{{ old('identifier') }}"
                         autocomplete="username"
                         autofocus
-                        placeholder="Masukkan Email, NIP, atau NIS"
+                        placeholder="Masukkan NIP (Guru) atau Email / NIS"
                         class="w-full px-3.5 py-2.5 bg-slate-50 border rounded-xl text-sm text-slate-900 placeholder-slate-400 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white
                                {{ $errors->has('identifier') ? 'border-red-400 bg-red-50' : 'border-slate-200' }}"
                     >

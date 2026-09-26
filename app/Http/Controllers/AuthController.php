@@ -27,13 +27,13 @@ class AuthController extends Controller
             'password' => ['required'],
         ]);
 
-        $identifier = $credentials['identifier'];
+        $identifier = trim($credentials['identifier']);
         $password = $credentials['password'];
 
-        $user = User::where('email', $identifier)
-            ->orWhereHas('guruProfile', function ($q) use ($identifier) {
-                $q->where('nip', $identifier);
-            })
+        $user = User::whereHas('guruProfile', function ($q) use ($identifier) {
+            $q->where('nip', $identifier);
+        })
+            ->orWhere('email', $identifier)
             ->orWhereHas('siswaProfile', function ($q) use ($identifier) {
                 $q->where('nis', $identifier);
             })
