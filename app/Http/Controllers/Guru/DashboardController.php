@@ -65,9 +65,10 @@ class DashboardController extends Controller
         for ($i = 0; $i < 6; $i++) {
             $date = $weekStart->copy()->addDays($i);
             $hariAngka = $i + 1; // 1=Senin
+            $rawJadwals = $jadwalByHari->get($hariAngka, collect());
             $mingguIni[$hariAngka] = [
                 'tanggal' => $date,
-                'jadwals' => $jadwalByHari->get($hariAngka, collect()),
+                'jadwals' => JadwalPelajaran::groupContinuousSchedules($rawJadwals),
                 'hariLibur' => $holidays->get($date->toDateString()),
             ];
         }

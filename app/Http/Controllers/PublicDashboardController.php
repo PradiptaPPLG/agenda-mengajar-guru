@@ -59,15 +59,20 @@ class PublicDashboardController extends Controller
             ];
         });
 
-        // Cari slot-slot yang memiliki jadwal aktif hari ini
+        // Cari slot-slot yang memiliki jadwal aktif hari ini (overlap check)
         $availableSlotIndices = $allJadwals->map(function ($j) use ($timeSlots) {
             $m = substr($j->jam_mulai, 0, 5);
             $s = substr($j->jam_selesai, 0, 5);
 
-            return $timeSlots->search(fn ($slot) => $slot['jam_mulai'] === $m && $slot['jam_selesai'] === $s);
+            $idx = $timeSlots->search(fn ($slot) => $slot['jam_mulai'] === $m && $slot['jam_selesai'] === $s);
+            if ($idx === false) {
+                $idx = $timeSlots->search(fn ($slot) => $m < $slot['jam_selesai'] && $s > $slot['jam_mulai']);
+            }
+
+            return $idx;
         })->filter(fn ($idx) => $idx !== false)->unique()->values();
 
-        // Deteksi slot jam aktif sekarang
+        // Deteksi slot jam aktif sekarang berdasarkan rentang jam pelajaran
         $currentActiveSlotIndex = null;
         foreach ($timeSlots as $idx => $slot) {
             if ($nowTime >= $slot['jam_mulai'] && $nowTime <= $slot['jam_selesai']) {
@@ -76,11 +81,16 @@ class PublicDashboardController extends Controller
             }
         }
 
-        // Jika sekarang di jeda/istirahat atau sebelum jam mulai, cari slot berikutnya yang ada jadwal
-        if ($currentActiveSlotIndex === null || ! $availableSlotIndices->contains($currentActiveSlotIndex)) {
-            $currentActiveSlotIndex = $availableSlotIndices->first(fn ($idx) => $timeSlots[$idx]['jam_mulai'] >= $nowTime)
-                ?? $availableSlotIndices->first()
-                ?? 0;
+        // Jika sekarang di jeda/istirahat atau di luar jam KBM
+        if ($currentActiveSlotIndex === null) {
+            // Cari slot yang jam mulainya paling dekat berikutnya
+            $nextSlot = $timeSlots->search(fn ($s) => $s['jam_mulai'] >= $nowTime);
+            if ($nextSlot !== false) {
+                $currentActiveSlotIndex = $nextSlot;
+            } else {
+                // Jika sudah melewati semua jam sekolah (sore/malam), pakai slot terakhir hari ini
+                $currentActiveSlotIndex = $availableSlotIndices->last() ?? ($timeSlots->keys()->last() ?? 0);
+            }
         }
 
         $selectedSlotKey = $request->input('slot', $currentActiveSlotIndex !== null ? (string) $currentActiveSlotIndex : 'all');
@@ -100,8 +110,8 @@ class PublicDashboardController extends Controller
             $slotIdx = $timeSlots->search(fn ($s) => $s['jam_mulai'] === $mulai && $s['jam_selesai'] === $selesai);
 
             if ($slotIdx === false) {
-                // Fallback pencarian berbasis jam mulai jika durasi membentang
-                $slotIdx = $timeSlots->search(fn ($s) => $mulai >= $s['jam_mulai'] && $mulai < $s['jam_selesai']);
+                // Fallback pencarian berbasis rentang waktu (overlap) jika durasi membentang
+                $slotIdx = $timeSlots->search(fn ($s) => $mulai < $s['jam_selesai'] && $selesai > $s['jam_mulai']);
             }
 
             $jamKe = $slotIdx !== false ? $timeSlots[$slotIdx]['jam_ke'] : 1;

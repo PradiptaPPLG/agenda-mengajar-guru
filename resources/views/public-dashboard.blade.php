@@ -284,17 +284,17 @@
             </div>
 
             {{-- Filter Bar --}}
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
+            <div id="monitoring-kbm" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2 scroll-mt-20">
                 <div>
                     <label class="block text-[11px] font-bold text-slate-700 mb-1">Jam Pelajaran</label>
                     <select onchange="window.location.href = this.value" class="w-full text-xs font-semibold bg-blue-50 border border-blue-200 text-blue-900 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-2xs">
-                        <option value="{{ request()->fullUrlWithQuery(['slot' => 'all']) }}" {{ $selectedSlotKey === 'all' ? 'selected' : '' }}>Semua Jam</option>
+                        <option value="{{ request()->fullUrlWithQuery(['slot' => 'all']) }}#monitoring-kbm" {{ $selectedSlotKey === 'all' ? 'selected' : '' }}>Semua Jam</option>
                         @foreach($timeSlots as $idx => $slot)
                         @php
                             $isActiveNow = ($idx === $currentActiveSlotIndex);
                             $isSelected = ($selectedSlotKey === (string) $idx);
                         @endphp
-                        <option value="{{ request()->fullUrlWithQuery(['slot' => $idx]) }}" {{ $isSelected ? 'selected' : '' }}>
+                        <option value="{{ request()->fullUrlWithQuery(['slot' => $idx]) }}#monitoring-kbm" {{ $isSelected ? 'selected' : '' }}>
                             Jam {{ $slot['jam_ke'] }} ({{ $slot['label'] }}) {{ $isActiveNow ? '⚡ [Sedang Berjalan]' : '' }}
                         </option>
                         @endforeach
@@ -304,34 +304,34 @@
                 <div>
                     <label class="block text-[11px] font-semibold text-slate-600 mb-1">Tingkat Kelas</label>
                     <select onchange="window.location.href = this.value" class="w-full text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
-                        <option value="{{ request()->fullUrlWithQuery(['tingkat' => 'all']) }}" {{ $selectedTingkat === 'all' ? 'selected' : '' }}>Semua Tingkat</option>
-                        <option value="{{ request()->fullUrlWithQuery(['tingkat' => '10']) }}" {{ $selectedTingkat === '10' ? 'selected' : '' }}>Kelas 10 (X)</option>
-                        <option value="{{ request()->fullUrlWithQuery(['tingkat' => '11']) }}" {{ $selectedTingkat === '11' ? 'selected' : '' }}>Kelas 11 (XI)</option>
-                        <option value="{{ request()->fullUrlWithQuery(['tingkat' => '12']) }}" {{ $selectedTingkat === '12' ? 'selected' : '' }}>Kelas 12 (XII)</option>
+                        <option value="{{ request()->fullUrlWithQuery(['tingkat' => 'all']) }}#monitoring-kbm" {{ $selectedTingkat === 'all' ? 'selected' : '' }}>Semua Tingkat</option>
+                        <option value="{{ request()->fullUrlWithQuery(['tingkat' => '10']) }}#monitoring-kbm" {{ $selectedTingkat === '10' ? 'selected' : '' }}>Kelas 10 (X)</option>
+                        <option value="{{ request()->fullUrlWithQuery(['tingkat' => '11']) }}#monitoring-kbm" {{ $selectedTingkat === '11' ? 'selected' : '' }}>Kelas 11 (XI)</option>
+                        <option value="{{ request()->fullUrlWithQuery(['tingkat' => '12']) }}#monitoring-kbm" {{ $selectedTingkat === '12' ? 'selected' : '' }}>Kelas 12 (XII)</option>
                     </select>
                 </div>
 
                 <div>
                     <label class="block text-[11px] font-semibold text-slate-600 mb-1">Status Kehadiran</label>
                     <select onchange="window.location.href = this.value" class="w-full text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
-                        <option value="{{ request()->fullUrlWithQuery(['status' => 'all']) }}" {{ $selectedStatus === 'all' ? 'selected' : '' }}>Semua Status</option>
-                        <option value="{{ request()->fullUrlWithQuery(['status' => 'hadir']) }}" {{ $selectedStatus === 'hadir' ? 'selected' : '' }}>Hadir</option>
-                        <option value="{{ request()->fullUrlWithQuery(['status' => 'terlambat']) }}" {{ $selectedStatus === 'terlambat' ? 'selected' : '' }}>Terlambat</option>
-                        <option value="{{ request()->fullUrlWithQuery(['status' => 'belum_hadir']) }}" {{ $selectedStatus === 'belum_hadir' ? 'selected' : '' }}>Belum Hadir</option>
-                        <option value="{{ request()->fullUrlWithQuery(['status' => 'tidak_hadir']) }}" {{ $selectedStatus === 'tidak_hadir' ? 'selected' : '' }}>Tidak Hadir</option>
+                        <option value="{{ request()->fullUrlWithQuery(['status' => 'all']) }}#monitoring-kbm" {{ $selectedStatus === 'all' ? 'selected' : '' }}>Semua Status</option>
+                        <option value="{{ request()->fullUrlWithQuery(['status' => 'hadir']) }}#monitoring-kbm" {{ $selectedStatus === 'hadir' ? 'selected' : '' }}>Hadir</option>
+                        <option value="{{ request()->fullUrlWithQuery(['status' => 'terlambat']) }}#monitoring-kbm" {{ $selectedStatus === 'terlambat' ? 'selected' : '' }}>Terlambat</option>
+                        <option value="{{ request()->fullUrlWithQuery(['status' => 'belum_hadir']) }}#monitoring-kbm" {{ $selectedStatus === 'belum_hadir' ? 'selected' : '' }}>Belum Hadir</option>
+                        <option value="{{ request()->fullUrlWithQuery(['status' => 'tidak_hadir']) }}#monitoring-kbm" {{ $selectedStatus === 'tidak_hadir' ? 'selected' : '' }}>Tidak Hadir</option>
                     </select>
                 </div>
 
                 <div>
                     <label class="block text-[11px] font-semibold text-slate-600 mb-1">Alasan Tidak Hadir</label>
                     <select onchange="window.location.href = this.value" class="w-full text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
-                        <option value="{{ request()->fullUrlWithQuery(['alasan' => 'all']) }}" {{ $selectedAlasan === 'all' ? 'selected' : '' }}>Semua Alasan</option>
-                        <option value="{{ request()->fullUrlWithQuery(['alasan' => 'sakit']) }}" {{ $selectedAlasan === 'sakit' ? 'selected' : '' }}>Sakit</option>
-                        <option value="{{ request()->fullUrlWithQuery(['alasan' => 'izin']) }}" {{ $selectedAlasan === 'izin' ? 'selected' : '' }}>Izin</option>
-                        <option value="{{ request()->fullUrlWithQuery(['alasan' => 'rapat_dinas']) }}" {{ $selectedAlasan === 'rapat_dinas' ? 'selected' : '' }}>Rapat Dinas</option>
-                        <option value="{{ request()->fullUrlWithQuery(['alasan' => 'dinas_luar']) }}" {{ $selectedAlasan === 'dinas_luar' ? 'selected' : '' }}>Dinas Luar</option>
-                        <option value="{{ request()->fullUrlWithQuery(['alasan' => 'tugas_luar']) }}" {{ $selectedAlasan === 'tugas_luar' ? 'selected' : '' }}>Tugas Luar</option>
-                        <option value="{{ request()->fullUrlWithQuery(['alasan' => 'tanpa_keterangan']) }}" {{ $selectedAlasan === 'tanpa_keterangan' ? 'selected' : '' }}>Alpa</option>
+                        <option value="{{ request()->fullUrlWithQuery(['alasan' => 'all']) }}#monitoring-kbm" {{ $selectedAlasan === 'all' ? 'selected' : '' }}>Semua Alasan</option>
+                        <option value="{{ request()->fullUrlWithQuery(['alasan' => 'sakit']) }}#monitoring-kbm" {{ $selectedAlasan === 'sakit' ? 'selected' : '' }}>Sakit</option>
+                        <option value="{{ request()->fullUrlWithQuery(['alasan' => 'izin']) }}#monitoring-kbm" {{ $selectedAlasan === 'izin' ? 'selected' : '' }}>Izin</option>
+                        <option value="{{ request()->fullUrlWithQuery(['alasan' => 'rapat_dinas']) }}#monitoring-kbm" {{ $selectedAlasan === 'rapat_dinas' ? 'selected' : '' }}>Rapat Dinas</option>
+                        <option value="{{ request()->fullUrlWithQuery(['alasan' => 'dinas_luar']) }}#monitoring-kbm" {{ $selectedAlasan === 'dinas_luar' ? 'selected' : '' }}>Dinas Luar</option>
+                        <option value="{{ request()->fullUrlWithQuery(['alasan' => 'tugas_luar']) }}#monitoring-kbm" {{ $selectedAlasan === 'tugas_luar' ? 'selected' : '' }}>Tugas Luar</option>
+                        <option value="{{ request()->fullUrlWithQuery(['alasan' => 'tanpa_keterangan']) }}#monitoring-kbm" {{ $selectedAlasan === 'tanpa_keterangan' ? 'selected' : '' }}>Alpa</option>
                     </select>
                 </div>
             </div>

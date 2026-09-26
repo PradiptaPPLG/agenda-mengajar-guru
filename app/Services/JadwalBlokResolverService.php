@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\JadwalPelajaran;
 use App\Models\KalenderBlokMinggu;
 use App\Models\Kelas;
+use App\Models\Setting;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -37,13 +38,26 @@ class JadwalBlokResolverService
             $query->where('hari', $hari);
         }
 
+        // Tentukan tahun ajaran dan semester aktif untuk tanggal target
+        $mingguAktif = KalenderBlokMinggu::aktif($tanggal)->first();
+        $tahunAjaran = $mingguAktif?->tahun_ajaran ?: Setting::getTahunAjaranAktif();
+        $semester = $mingguAktif?->semester ?: (
+            $tanggal->isToday()
+                ? Setting::getSemesterAktif()
+                : ($tanggal->month >= 7 ? 'ganjil' : 'genap')
+        );
+
+        $query->where(function (Builder $q) use ($tahunAjaran, $semester) {
+            $q->where(function (Builder $sub) use ($tahunAjaran, $semester) {
+                $sub->where('tahun_ajaran', $tahunAjaran)
+                    ->where('semester', $semester);
+            })->orWhereNull('tahun_ajaran');
+        });
+
         if (! $kelas->is_sistem_blok) {
             // Kelas reguler: ambil semua jadwal biasa
             return $query->get();
         }
-
-        // Kelas sistem blok: tentukan kelompok aktif minggu ini
-        $mingguAktif = KalenderBlokMinggu::aktif($tanggal)->first();
 
         if (! $mingguAktif) {
             // Tidak ada kalender yang dikonfigurasi, fallback ke semua jadwal
