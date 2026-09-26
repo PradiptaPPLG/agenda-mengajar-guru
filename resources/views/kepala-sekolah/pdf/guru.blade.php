@@ -29,9 +29,11 @@
     <div class="school-name">{{ $schoolName }}</div>
     <h1>Laporan Kehadiran Guru</h1>
     <div class="subtitle">
-        Periode: {{ $startDate->format('d F Y') }} – {{ $endDate->format('d F Y') }}
-        @if($selectedGuru) | Guru: {{ $selectedGuru->name }} @endif
-        @if($selectedKelas) | Kelas: {{ $selectedKelas->nama }} @endif
+        <strong>Tahun Ajaran:</strong> {{ $tahunAjaran !== 'all' ? $tahunAjaran : 'Semua' }} | 
+        <strong>Semester:</strong> {{ $semesterLabel }} | 
+        <strong>Periode:</strong> {{ $startDate->format('d F Y') }} – {{ $endDate->format('d F Y') }}
+        @if($selectedGuru) | <strong>Guru:</strong> {{ $selectedGuru->name }} @endif
+        @if($selectedKelas) | <strong>Kelas:</strong> {{ $selectedKelas->nama }} @endif
     </div>
 </div>
 

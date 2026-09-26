@@ -62,6 +62,25 @@
                     </div>
                 </div>
 
+                <hr class="border-slate-200">
+
+                <div>
+                    <h3 class="text-sm font-semibold text-slate-900 mb-3">Fitur Presensi Siswa</h3>
+                    <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                        <label class="flex items-start gap-3 cursor-pointer">
+                            <input type="checkbox" name="enable_checkout_foto" value="1"
+                                   {{ old('enable_checkout_foto', $settings['enable_checkout_foto']) == '1' ? 'checked' : '' }}
+                                   class="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                            <div>
+                                <span class="text-sm font-medium text-slate-900">Aktifkan Bukti Foto Check-out (Akhir Jam Pelajaran)</span>
+                                <p class="text-xs text-slate-500 mt-0.5">
+                                    Jika diaktifkan, siswa diwajibkan mengambil foto guru kembali di akhir jam pelajaran / saat pulang sebagai bukti bahwa guru mengajar sampai selesai. Jika dinonaktifkan, siswa hanya perlu 1x foto awal.
+                                </p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
                 <div class="pt-2">
                     <button type="submit" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors">
                         Simpan Pengaturan

@@ -18,6 +18,7 @@ class SettingsController extends Controller
         'school_year',
         'semester',
         'phone',
+        'enable_checkout_foto',
     ];
 
     public function index(): View
@@ -39,7 +40,10 @@ class SettingsController extends Controller
             'school_year' => ['required', 'string', 'max:20', 'regex:/^\d{4}\/\d{4}$/'],
             'semester' => ['required', 'in:1,2'],
             'phone' => ['nullable', 'string', 'max:20'],
+            'enable_checkout_foto' => ['nullable', 'in:0,1'],
         ]);
+
+        $validated['enable_checkout_foto'] = $request->has('enable_checkout_foto') ? '1' : '0';
 
         foreach ($validated as $key => $value) {
             Setting::set($key, $value);

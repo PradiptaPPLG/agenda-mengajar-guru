@@ -18,13 +18,23 @@ class PdfController extends Controller
 {
     public function guru(Request $request): Response
     {
-        $startDate = $request->filled('start_date')
-            ? Carbon::parse($request->input('start_date'))
-            : Carbon::now()->startOfMonth();
+        $selectedTahunAjaran = $request->input('tahun_ajaran', Setting::getTahunAjaranAktif());
+        $selectedSemester = $request->input('semester', Setting::getSemesterAktif());
+        $filterMode = $request->input('filter_mode', 'semester');
 
-        $endDate = $request->filled('end_date')
-            ? Carbon::parse($request->input('end_date'))
-            : Carbon::now()->endOfMonth();
+        if ($filterMode === 'semester' && $selectedTahunAjaran !== 'all' && $selectedSemester !== 'all') {
+            $range = Setting::getPeriodeSemesterRange($selectedTahunAjaran, $selectedSemester);
+            $startDate = $range['start'];
+            $endDate = $range['end'];
+        } else {
+            $startDate = $request->filled('start_date')
+                ? Carbon::parse($request->input('start_date'))->startOfDay()
+                : Carbon::now()->startOfMonth();
+
+            $endDate = $request->filled('end_date')
+                ? Carbon::parse($request->input('end_date'))->endOfDay()
+                : Carbon::now()->endOfMonth();
+        }
 
         $selectedGuruId = $request->input('guru_id');
         $selectedKelasId = $request->input('kelas_id');
@@ -34,8 +44,18 @@ class PdfController extends Controller
             'pertemuan.jadwal.kelas',
             'pertemuan.jadwal.mataPelajaran',
         ])
-            ->whereHas('pertemuan', function ($q) use ($startDate, $endDate, $selectedKelasId) {
+            ->whereHas('pertemuan', function ($q) use ($startDate, $endDate, $selectedKelasId, $selectedTahunAjaran, $selectedSemester, $filterMode) {
                 $q->whereBetween('tanggal', [$startDate->toDateString(), $endDate->toDateString()]);
+
+                if ($filterMode === 'semester') {
+                    if ($selectedTahunAjaran !== 'all') {
+                        $q->where(fn ($sub) => $sub->where('tahun_ajaran', $selectedTahunAjaran)->orWhereNull('tahun_ajaran'));
+                    }
+                    if ($selectedSemester !== 'all') {
+                        $q->where(fn ($sub) => $sub->where('semester', $selectedSemester)->orWhereNull('semester'));
+                    }
+                }
+
                 if ($selectedKelasId) {
                     $q->whereHas('jadwal', fn ($j) => $j->where('kelas_id', $selectedKelasId));
                 }
@@ -64,10 +84,13 @@ class PdfController extends Controller
         $schoolName = Setting::get('school_name', 'Nama Sekolah');
         $selectedGuru = $selectedGuruId ? User::find($selectedGuruId) : null;
         $selectedKelas = $selectedKelasId ? Kelas::find($selectedKelasId) : null;
+        $tahunAjaran = $selectedTahunAjaran;
+        $semesterLabel = Setting::getSemesterLabel($selectedSemester);
 
         $pdf = Pdf::loadView('kepala-sekolah.pdf.guru', compact(
             'kehadiran', 'summary', 'startDate', 'endDate',
-            'schoolName', 'selectedGuru', 'selectedKelas'
+            'schoolName', 'selectedGuru', 'selectedKelas',
+            'tahunAjaran', 'semesterLabel'
         ))->setPaper('a4', 'landscape');
 
         $filename = 'laporan-kehadiran-guru-'.$startDate->format('Y-m-d').'-sd-'.$endDate->format('Y-m-d').'.pdf';
@@ -77,19 +100,42 @@ class PdfController extends Controller
 
     public function siswa(Request $request): Response
     {
-        $startDate = $request->filled('start_date')
-            ? Carbon::parse($request->input('start_date'))
-            : Carbon::now()->startOfMonth();
+        $selectedTahunAjaran = $request->input('tahun_ajaran', Setting::getTahunAjaranAktif());
+        $selectedSemester = $request->input('semester', Setting::getSemesterAktif());
+        $filterMode = $request->input('filter_mode', 'semester');
 
-        $endDate = $request->filled('end_date')
-            ? Carbon::parse($request->input('end_date'))
-            : Carbon::now()->endOfMonth();
+        if ($filterMode === 'semester' && $selectedTahunAjaran !== 'all' && $selectedSemester !== 'all') {
+            $range = Setting::getPeriodeSemesterRange($selectedTahunAjaran, $selectedSemester);
+            $startDate = $range['start'];
+            $endDate = $range['end'];
+        } else {
+            $startDate = $request->filled('start_date')
+                ? Carbon::parse($request->input('start_date'))->startOfDay()
+                : Carbon::now()->startOfMonth();
+
+            $endDate = $request->filled('end_date')
+                ? Carbon::parse($request->input('end_date'))->endOfDay()
+                : Carbon::now()->endOfMonth();
+        }
 
         $selectedKelasId = $request->input('kelas_id');
 
-        $pertemuanIds = Pertemuan::whereBetween('tanggal', [$startDate->toDateString(), $endDate->toDateString()])
-            ->when($selectedKelasId, fn ($q) => $q->whereHas('jadwal', fn ($j) => $j->where('kelas_id', $selectedKelasId)))
-            ->pluck('id');
+        $pertemuanQuery = Pertemuan::whereBetween('tanggal', [$startDate->toDateString(), $endDate->toDateString()]);
+
+        if ($filterMode === 'semester') {
+            if ($selectedTahunAjaran !== 'all') {
+                $pertemuanQuery->where(fn ($sub) => $sub->where('tahun_ajaran', $selectedTahunAjaran)->orWhereNull('tahun_ajaran'));
+            }
+            if ($selectedSemester !== 'all') {
+                $pertemuanQuery->where(fn ($sub) => $sub->where('semester', $selectedSemester)->orWhereNull('semester'));
+            }
+        }
+
+        if ($selectedKelasId) {
+            $pertemuanQuery->whereHas('jadwal', fn ($j) => $j->where('kelas_id', $selectedKelasId));
+        }
+
+        $pertemuanIds = $pertemuanQuery->pluck('id');
 
         $kehadiranData = KehadiranSiswa::with(['siswa', 'pertemuan.jadwal.mataPelajaran'])
             ->whereIn('pertemuan_id', $pertemuanIds)
@@ -109,9 +155,12 @@ class PdfController extends Controller
 
         $schoolName = Setting::get('school_name', 'Nama Sekolah');
         $selectedKelas = $selectedKelasId ? Kelas::find($selectedKelasId) : null;
+        $tahunAjaran = $selectedTahunAjaran;
+        $semesterLabel = Setting::getSemesterLabel($selectedSemester);
 
         $pdf = Pdf::loadView('kepala-sekolah.pdf.siswa', compact(
-            'summary', 'startDate', 'endDate', 'schoolName', 'selectedKelas'
+            'summary', 'startDate', 'endDate', 'schoolName', 'selectedKelas',
+            'tahunAjaran', 'semesterLabel'
         ))->setPaper('a4', 'landscape');
 
         $filename = 'laporan-kehadiran-siswa-'.$startDate->format('Y-m-d').'-sd-'.$endDate->format('Y-m-d').'.pdf';

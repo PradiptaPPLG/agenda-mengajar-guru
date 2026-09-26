@@ -9,52 +9,99 @@
     </x-slot:actions>
 
     {{-- Filters --}}
-    <form method="GET" class="bg-white rounded-2xl border border-slate-200 p-4 mb-5 flex flex-wrap gap-3" id="guru-report-form">
-        <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">Dari Tanggal</label>
-            <input type="date" name="start_date" value="{{ $startDate->toDateString() }}"
-                   class="px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+    <form method="GET" class="bg-white rounded-2xl border border-slate-200 p-4 mb-5 space-y-3" id="guru-report-form">
+        <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100">
+            <div class="flex items-center gap-2">
+                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Mode Filter:</span>
+                <div class="inline-flex p-1 bg-slate-100 rounded-xl">
+                    <label class="cursor-pointer px-3 py-1 text-xs font-medium rounded-lg transition-all {{ ($filterMode ?? 'semester') === 'semester' ? 'bg-white text-blue-600 shadow-2xs font-semibold' : 'text-slate-600 hover:text-slate-900' }}">
+                        <input type="radio" name="filter_mode" value="semester" {{ ($filterMode ?? 'semester') === 'semester' ? 'checked' : '' }} class="sr-only" onchange="document.getElementById('guru-report-form').submit();">
+                        Per Semester
+                    </label>
+                    <label class="cursor-pointer px-3 py-1 text-xs font-medium rounded-lg transition-all {{ ($filterMode ?? 'semester') === 'custom' ? 'bg-white text-blue-600 shadow-2xs font-semibold' : 'text-slate-600 hover:text-slate-900' }}">
+                        <input type="radio" name="filter_mode" value="custom" {{ ($filterMode ?? 'semester') === 'custom' ? 'checked' : '' }} class="sr-only" onchange="document.getElementById('guru-report-form').submit();">
+                        Rentang Tanggal
+                    </label>
+                </div>
+            </div>
+
+            @if(($filterMode ?? 'semester') === 'semester')
+            <div class="text-xs text-slate-500 font-medium">
+                Rentang Tanggal: <span class="text-slate-800 font-semibold">{{ $startDate->format('d M Y') }} – {{ $endDate->format('d M Y') }}</span>
+            </div>
+            @endif
         </div>
-        <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">Sampai Tanggal</label>
-            <input type="date" name="end_date" value="{{ $endDate->toDateString() }}"
-                   class="px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-        </div>
-        <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">Guru</label>
-            <select name="guru_id" class="px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    onchange="document.getElementById('guru-report-form').submit()">
-                <option value="">Semua Guru</option>
-                @foreach($guruList as $g)
-                <option value="{{ $g->id }}" {{ $selectedGuruId == $g->id ? 'selected' : '' }}>{{ $g->name }}</option>
-                @endforeach
-            </select>
-        </div>
-        <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">Kelas</label>
-            <select name="kelas_id" class="px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    onchange="document.getElementById('guru-report-form').submit()">
-                <option value="">Semua Kelas</option>
-                @foreach($kelasList as $k)
-                <option value="{{ $k->id }}" {{ $selectedKelasId == $k->id ? 'selected' : '' }}>{{ $k->nama }}</option>
-                @endforeach
-            </select>
-        </div>
-        <div class="flex items-center self-end pb-0.5">
-            <label class="inline-flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 px-3 py-2.5 rounded-xl transition-colors">
-                <input type="checkbox" name="only_discrepancy" value="1" {{ !empty($onlyDiscrepancy) ? 'checked' : '' }} class="rounded border-slate-300 text-amber-600 focus:ring-amber-500"
-                       onchange="document.getElementById('guru-report-form').submit()">
-                <span class="flex items-center gap-1.5">
-                    <span class="w-2 h-2 rounded-full bg-amber-500"></span>
-                    Hanya Selisih Data
-                    @if(($discrepancyCount ?? 0) > 0)
-                    <span class="bg-amber-100 text-amber-800 text-[10px] px-1.5 py-0.5 rounded-full font-bold">{{ $discrepancyCount }}</span>
-                    @endif
-                </span>
-            </label>
-        </div>
-        <div class="flex items-end">
-            <button type="submit" class="px-4 py-2.5 bg-slate-900 text-white text-sm font-medium rounded-xl hover:bg-slate-800 transition-colors">Tampilkan</button>
+
+        <div class="flex flex-wrap items-end gap-3">
+            @if(($filterMode ?? 'semester') === 'semester')
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Tahun Ajaran</label>
+                    <select name="tahun_ajaran" class="px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            onchange="document.getElementById('guru-report-form').submit()">
+                        <option value="all" {{ ($selectedTahunAjaran ?? '') === 'all' ? 'selected' : '' }}>Semua Tahun Ajaran</option>
+                        @foreach($daftarTahunAjaran as $ta)
+                        <option value="{{ $ta }}" {{ ($selectedTahunAjaran ?? '') === $ta ? 'selected' : '' }}>{{ $ta }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Semester</label>
+                    <select name="semester" class="px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            onchange="document.getElementById('guru-report-form').submit()">
+                        <option value="all" {{ ($selectedSemester ?? '') === 'all' ? 'selected' : '' }}>Semua Semester</option>
+                        <option value="ganjil" {{ ($selectedSemester ?? '') === 'ganjil' ? 'selected' : '' }}>Semester 1 (Ganjil)</option>
+                        <option value="genap" {{ ($selectedSemester ?? '') === 'genap' ? 'selected' : '' }}>Semester 2 (Genap)</option>
+                    </select>
+                </div>
+            @else
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Dari Tanggal</label>
+                    <input type="date" name="start_date" value="{{ $startDate->toDateString() }}"
+                           class="px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Sampai Tanggal</label>
+                    <input type="date" name="end_date" value="{{ $endDate->toDateString() }}"
+                           class="px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+            @endif
+
+            <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">Guru</label>
+                <select name="guru_id" class="px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        onchange="document.getElementById('guru-report-form').submit()">
+                    <option value="">Semua Guru</option>
+                    @foreach($guruList as $g)
+                    <option value="{{ $g->id }}" {{ $selectedGuruId == $g->id ? 'selected' : '' }}>{{ $g->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">Kelas</label>
+                <select name="kelas_id" class="px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        onchange="document.getElementById('guru-report-form').submit()">
+                    <option value="">Semua Kelas</option>
+                    @foreach($kelasList as $k)
+                    <option value="{{ $k->id }}" {{ $selectedKelasId == $k->id ? 'selected' : '' }}>{{ $k->nama }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="flex items-center pb-0.5">
+                <label class="inline-flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 px-3 py-2.5 rounded-xl transition-colors">
+                    <input type="checkbox" name="only_discrepancy" value="1" {{ !empty($onlyDiscrepancy) ? 'checked' : '' }} class="rounded border-slate-300 text-amber-600 focus:ring-amber-500"
+                           onchange="document.getElementById('guru-report-form').submit()">
+                    <span class="flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                        Hanya Selisih Data
+                        @if(($discrepancyCount ?? 0) > 0)
+                        <span class="bg-amber-100 text-amber-800 text-[10px] px-1.5 py-0.5 rounded-full font-bold">{{ $discrepancyCount }}</span>
+                        @endif
+                    </span>
+                </label>
+            </div>
+            <div>
+                <button type="submit" class="px-4 py-2.5 bg-slate-900 text-white text-sm font-medium rounded-xl hover:bg-slate-800 transition-colors">Tampilkan</button>
+            </div>
         </div>
     </form>
 
@@ -63,7 +110,7 @@
     <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden mb-5">
         <div class="px-5 py-4 border-b border-slate-200">
             <h3 class="font-semibold text-slate-900">Ringkasan Per Guru</h3>
-            <p class="text-sm text-slate-500 mt-0.5">{{ $startDate->format('d/m/Y') }} – {{ $endDate->format('d/m/Y') }}</p>
+            <p class="text-sm text-slate-500 mt-0.5">{{ ($selectedTahunAjaran && $selectedTahunAjaran !== 'all') ? $selectedTahunAjaran.' (Semester '.ucfirst($selectedSemester).') • ' : '' }}{{ $startDate->format('d/m/Y') }} – {{ $endDate->format('d/m/Y') }}</p>
         </div>
         <table class="w-full text-sm">
             <thead class="bg-slate-50 border-b border-slate-200">

@@ -5,6 +5,7 @@ namespace App\Imports;
 use App\Models\JadwalPelajaran;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
+use App\Models\Setting;
 use App\Models\User;
 use Database\Seeders\KelompokBlokMataPelajaranSeeder;
 use Illuminate\Support\Collection;
@@ -16,6 +17,14 @@ use Maatwebsite\Excel\Concerns\WithHeadingRow;
 
 class JadwalImport implements ToCollection, WithHeadingRow
 {
+    public function __construct(
+        public ?string $tahunAjaran = null,
+        public ?string $semester = null
+    ) {
+        $this->tahunAjaran = $this->tahunAjaran ?: Setting::getTahunAjaranAktif();
+        $this->semester = $this->semester ?: Setting::getSemesterAktif();
+    }
+
     public function collection(Collection $rows): void
     {
         set_time_limit(300);
@@ -146,17 +155,20 @@ class JadwalImport implements ToCollection, WithHeadingRow
                 }
 
                 if ($kelas && $guru && $mapel && $jam_mulai && $jam_selesai) {
+                    $targetKelompokBlok = $mapel->kelompok_blok ?? 'reguler';
                     JadwalPelajaran::updateOrCreate(
                         [
                             'kelas_id' => $kelas->id,
                             'hari' => $hari,
                             'jam_mulai' => $jam_mulai,
                             'jam_selesai' => $jam_selesai,
+                            'kelompok_blok' => $targetKelompokBlok,
+                            'tahun_ajaran' => $this->tahunAjaran,
+                            'semester' => $this->semester,
                         ],
                         [
                             'guru_id' => $guru->id,
                             'mata_pelajaran_id' => $mapel->id,
-                            'kelompok_blok' => $mapel->kelompok_blok ?? 'reguler',
                         ]
                     );
                 } else {
