@@ -34,7 +34,7 @@
                 <p class="font-semibold text-sm">Hari ini, {{ $today->translatedFormat('l, d F Y') }}</p>
                 <p class="text-xs text-blue-100">
                     @if(isset($mingguIni[$todayHari]) && $mingguIni[$todayHari]['jadwals']->count() > 0)
-                        {{ $mingguIni[$todayHari]['jadwals']->count() }} jadwal mengajar
+                        {{ $mingguIni[$todayHari]['jadwals']->count() }} sesi mengajar
                     @else
                         Tidak ada jadwal hari ini
                     @endif
@@ -120,23 +120,37 @@
                     @foreach($jadwals as $jadwal)
                     @php
                         $tanggalStr = $tanggal->toDateString();
-                        $pertemuan = \App\Models\Pertemuan::where('jadwal_id', $jadwal->id)
+                        $subIds = $jadwal->sub_jadwal_ids ?? [$jadwal->id];
+                        $pertemuan = \App\Models\Pertemuan::whereIn('jadwal_id', $subIds)
                             ->where('tanggal', $tanggalStr)->first();
                         $statusPertemuan = $pertemuan?->status ?? 'belum';
                         $kehadiranGuru = $pertemuan?->kehadiranGuru;
+                        $jamMulai = $jadwal->jam_mulai_formatted ?? \Carbon\Carbon::parse($jadwal->jam_mulai)->format('H:i');
+                        $jamSelesai = $jadwal->jam_selesai_formatted ?? \Carbon\Carbon::parse($jadwal->jam_selesai)->format('H:i');
+                        $totalJp = $jadwal->total_jp ?? 1;
                     @endphp
                     <a href="{{ route('guru.pertemuan.show', [$jadwal->id, $tanggalStr]) }}"
                        class="flex items-center gap-3 bg-white rounded-2xl border border-slate-200 p-3.5 hover:border-blue-300 hover:shadow-sm transition-all group">
                         {{-- Time column --}}
-                        <div class="shrink-0 text-center w-14">
-                            <p class="text-xs font-semibold text-slate-900">{{ \Carbon\Carbon::parse($jadwal->jam_mulai)->format('H:i') }}</p>
-                            <p class="text-xs text-slate-400">{{ \Carbon\Carbon::parse($jadwal->jam_selesai)->format('H:i') }}</p>
+                        <div class="shrink-0 text-center w-16">
+                            <p class="text-xs font-bold text-slate-900">{{ $jamMulai }}</p>
+                            <p class="text-xs text-slate-400">{{ $jamSelesai }}</p>
+                            @if(!empty($jadwal->is_multi_jam))
+                                <span class="inline-block mt-0.5 px-1.5 py-0.2 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                    {{ $totalJp }} JP
+                                </span>
+                            @endif
                         </div>
                         <div class="w-px h-10 bg-slate-200"></div>
                         {{-- Info --}}
                         <div class="flex-1 min-w-0">
                             <p class="text-sm font-semibold text-slate-900 truncate">{{ $jadwal->mataPelajaran->nama }}</p>
-                            <p class="text-xs text-slate-500 mt-0.5">{{ $jadwal->kelas->nama }}</p>
+                            <div class="flex items-center gap-1.5 mt-0.5">
+                                <p class="text-xs text-slate-500">{{ $jadwal->kelas->nama }}</p>
+                                @if(!empty($jadwal->is_multi_jam))
+                                    <span class="text-[10px] text-slate-400 font-medium">• 1 Sesi KBM</span>
+                                @endif
+                            </div>
                         </div>
                         {{-- Status badge --}}
                         <div class="shrink-0">
@@ -145,7 +159,7 @@
                                     {{ $kehadiranGuru->status === 'hadir' ? 'badge-hadir' : ($kehadiranGuru->status === 'sakit' ? 'badge-sakit' : 'badge-alpa') }}">
                                     {{ ucfirst($kehadiranGuru->status) }}
                                 </span>
-                            @elseif($pertemuan)
+                            @elseif($pertemuan && $pertemuan->status !== 'menunggu')
                                 <span class="text-xs font-medium px-2 py-1 rounded-full badge-menunggu">Belum absen</span>
                             @else
                                 <svg class="w-4 h-4 text-slate-300 group-hover:text-blue-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
