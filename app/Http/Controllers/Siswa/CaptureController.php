@@ -47,13 +47,18 @@ class CaptureController extends Controller
             }
         }
 
+        $consecutiveSchedules = $jadwal->getConsecutiveSchedules();
+        $jadwalUtama = $consecutiveSchedules->first();
+        $jadwalAkhir = $consecutiveSchedules->last();
+        $jamMulai = substr($jadwalUtama->jam_mulai, 0, 5);
+        $jamSelesai = substr($jadwalAkhir->jam_selesai, 0, 5);
+
         if ($tanggalCarbon->gt(now()->endOfDay())) {
             return redirect()->route('siswa.dashboard')->with('error', 'Laporan kehadiran untuk tanggal mendatang belum dapat diakses.');
         }
 
         if ($tanggalCarbon->isToday()) {
             $nowTime = now()->format('H:i');
-            $jamMulai = substr($jadwal->jam_mulai, 0, 5);
             if ($nowTime < $jamMulai) {
                 return redirect()->route('siswa.dashboard')->with('error', "Pengambilan foto untuk mata pelajaran {$jadwal->mataPelajaran->nama} belum dibuka (Mulai pukul {$jamMulai} WIB).");
             }
@@ -67,14 +72,26 @@ class CaptureController extends Controller
             ['status' => 'menunggu']
         );
 
-        $existingCapture = FotoBukti::where('pertemuan_id', $pertemuan->id)
+        $subIds = $consecutiveSchedules->pluck('id')->all();
+        $pertemuanIds = Pertemuan::whereIn('jadwal_id', $subIds)
+            ->whereDate('tanggal', $tanggalCarbon)
+            ->pluck('id');
+
+        $existingCapture = FotoBukti::whereIn('pertemuan_id', $pertemuanIds)
             ->where('siswa_id', $user->id)
             ->first();
+
+        $enableCheckout = (Setting::get('enable_checkout_foto', '0') == '1');
 
         return view('siswa.capture.show', [
             'pertemuan' => $pertemuan->load(['jadwal.guru', 'jadwal.mataPelajaran', 'kehadiranGuru']),
             'existingCapture' => $existingCapture,
             'isPast' => $isPast,
+            'enableCheckout' => $enableCheckout,
+            'consecutiveSchedules' => $consecutiveSchedules,
+            'totalJp' => $consecutiveSchedules->count(),
+            'jamMulai' => $jamMulai,
+            'jamSelesai' => $jamSelesai,
         ]);
     }
 
@@ -107,18 +124,16 @@ class CaptureController extends Controller
             return redirect()->route('siswa.dashboard')->with('error', 'Waktu pengiriman laporan untuk tanggal ini sudah ditutup (maksimal 7 hari ke belakang).');
         }
 
+        $consecutiveSchedules = $jadwal->getConsecutiveSchedules();
+        $jadwalUtama = $consecutiveSchedules->first();
+        $jamMulai = substr($jadwalUtama->jam_mulai, 0, 5);
+
         if ($tanggalCarbon->isToday()) {
             $nowTime = now()->format('H:i');
-            $jamMulai = substr($jadwal->jam_mulai, 0, 5);
             if ($nowTime < $jamMulai) {
                 return redirect()->route('siswa.dashboard')->with('error', "Pengambilan foto untuk mata pelajaran {$jadwal->mataPelajaran->nama} belum dibuka (Mulai pukul {$jamMulai} WIB).");
             }
         }
-
-        $pertemuan = Pertemuan::firstOrCreate(
-            ['jadwal_id' => $jadwal->id, 'tanggal' => $tanggalCarbon->format('Y-m-d 00:00:00')],
-            ['status' => 'menunggu']
-        );
 
         $validated = $request->validate([
             'foto' => ['nullable', 'image', 'max:10240'], // Max 10MB input, will be compressed to < 300KB WebP
@@ -128,7 +143,12 @@ class CaptureController extends Controller
             'guru_pengganti_nama' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $existing = FotoBukti::where('pertemuan_id', $pertemuan->id)
+        $subIds = $consecutiveSchedules->pluck('id')->all();
+        $pertemuanIds = Pertemuan::whereIn('jadwal_id', $subIds)
+            ->whereDate('tanggal', $tanggalCarbon)
+            ->pluck('id');
+
+        $existing = FotoBukti::whereIn('pertemuan_id', $pertemuanIds)
             ->where('siswa_id', $user->id)
             ->first();
 
@@ -142,59 +162,134 @@ class CaptureController extends Controller
             $fotoPath = $imageCompressor->compressAndStore($request->file('foto'), 'foto-bukti', 1200, 80);
         }
 
-        // Save FotoBukti & automatically sync teacher attendance in KehadiranGuru
-        DB::transaction(function () use ($pertemuan, $user, $fotoPath, $validated, $existing, $jadwal, $request, $tanggalCarbon) {
-            if ($existing) {
-                if ($request->hasFile('foto') && $existing->foto_path && $existing->foto_path !== $fotoPath) {
-                    Storage::disk('public')->delete($existing->foto_path);
-                }
-                $existing->update([
-                    'foto_path' => $fotoPath,
-                    'status_guru_dilaporkan' => $validated['status_guru_dilaporkan'],
-                    'alasan_tidak_hadir' => $validated['alasan_tidak_hadir'] ?? null,
-                    'jenis_alpa_dilaporkan' => $validated['jenis_alpa_dilaporkan'] ?? null,
-                    'guru_pengganti_nama' => $validated['guru_pengganti_nama'] ?? null,
-                ]);
-            } else {
-                FotoBukti::create([
-                    'pertemuan_id' => $pertemuan->id,
-                    'siswa_id' => $user->id,
-                    'foto_path' => $fotoPath,
-                    'status_guru_dilaporkan' => $validated['status_guru_dilaporkan'],
-                    'alasan_tidak_hadir' => $validated['alasan_tidak_hadir'] ?? null,
-                    'jenis_alpa_dilaporkan' => $validated['jenis_alpa_dilaporkan'] ?? null,
-                    'guru_pengganti_nama' => $validated['guru_pengganti_nama'] ?? null,
-                ]);
+        // Apply Tolerance Logic for KehadiranGuru
+        $statusGuru = $validated['status_guru_dilaporkan'];
+        if ($statusGuru === 'hadir' && $tanggalCarbon->isToday()) {
+            $toleransi = Setting::get('toleransi_keterlambatan_menit', 5);
+            $waktuBatas = Carbon::parse($jamMulai)->addMinutes((int) $toleransi)->format('H:i');
+            $nowTime = now()->format('H:i');
+
+            if ($nowTime > $waktuBatas) {
+                $statusGuru = 'terlambat';
             }
+        }
 
-            // Apply Tolerance Logic
-            $statusGuru = $validated['status_guru_dilaporkan'];
-            if ($statusGuru === 'hadir' && $tanggalCarbon->isToday()) {
-                $toleransi = Setting::get('toleransi_keterlambatan_menit', 5);
-                $jamMulai = substr($jadwal->jam_mulai, 0, 5);
-                $waktuBatas = Carbon::parse($jamMulai)->addMinutes((int) $toleransi)->format('H:i');
-                $nowTime = now()->format('H:i');
+        // Save FotoBukti & automatically sync teacher attendance in KehadiranGuru for all consecutive schedules
+        DB::transaction(function () use ($consecutiveSchedules, $user, $fotoPath, $validated, $statusGuru, $tanggalCarbon) {
+            foreach ($consecutiveSchedules as $sched) {
+                $targetPertemuan = Pertemuan::firstOrCreate(
+                    ['jadwal_id' => $sched->id, 'tanggal' => $tanggalCarbon->format('Y-m-d 00:00:00')],
+                    ['status' => 'menunggu']
+                );
 
-                if ($nowTime > $waktuBatas) {
-                    $statusGuru = 'terlambat';
-                    $validated['status_guru_dilaporkan'] = 'terlambat';
+                $schedExisting = FotoBukti::where('pertemuan_id', $targetPertemuan->id)
+                    ->where('siswa_id', $user->id)
+                    ->first();
+
+                if ($schedExisting) {
+                    if ($request->hasFile('foto') && $schedExisting->foto_path && $schedExisting->foto_path !== $fotoPath) {
+                        Storage::disk('public')->delete($schedExisting->foto_path);
+                    }
+                    $schedExisting->update([
+                        'foto_path' => $fotoPath,
+                        'status_guru_dilaporkan' => $validated['status_guru_dilaporkan'],
+                        'alasan_tidak_hadir' => $validated['alasan_tidak_hadir'] ?? null,
+                        'jenis_alpa_dilaporkan' => $validated['jenis_alpa_dilaporkan'] ?? null,
+                        'guru_pengganti_nama' => $validated['guru_pengganti_nama'] ?? null,
+                    ]);
+                } else {
+                    FotoBukti::create([
+                        'pertemuan_id' => $targetPertemuan->id,
+                        'siswa_id' => $user->id,
+                        'foto_path' => $fotoPath,
+                        'status_guru_dilaporkan' => $validated['status_guru_dilaporkan'],
+                        'alasan_tidak_hadir' => $validated['alasan_tidak_hadir'] ?? null,
+                        'jenis_alpa_dilaporkan' => $validated['jenis_alpa_dilaporkan'] ?? null,
+                        'guru_pengganti_nama' => $validated['guru_pengganti_nama'] ?? null,
+                    ]);
                 }
+
+                // Sync to KehadiranGuru
+                KehadiranGuru::updateOrCreate(
+                    ['pertemuan_id' => $targetPertemuan->id, 'guru_id' => $sched->guru_id],
+                    [
+                        'status' => $statusGuru,
+                        'alasan_tidak_hadir' => $validated['alasan_tidak_hadir'] ?? null,
+                        'guru_pengganti_nama' => $validated['guru_pengganti_nama'] ?? null,
+                        'waktu_hadir' => KehadiranGuru::where('pertemuan_id', $targetPertemuan->id)->where('guru_id', $sched->guru_id)->value('waktu_hadir') ?? now(),
+                    ]
+                );
+
+                $targetPertemuan->update(['status' => 'berlangsung']);
             }
-
-            // Sync to KehadiranGuru
-            KehadiranGuru::updateOrCreate(
-                ['pertemuan_id' => $pertemuan->id, 'guru_id' => $jadwal->guru_id],
-                [
-                    'status' => $statusGuru,
-                    'alasan_tidak_hadir' => $validated['alasan_tidak_hadir'] ?? null,
-                    'guru_pengganti_nama' => $validated['guru_pengganti_nama'] ?? null,
-                    'waktu_hadir' => KehadiranGuru::where('pertemuan_id', $pertemuan->id)->where('guru_id', $jadwal->guru_id)->value('waktu_hadir') ?? now(),
-                ]
-            );
-
-            $pertemuan->update(['status' => 'berlangsung']);
         });
 
-        return redirect()->route('siswa.dashboard')->with('success', 'Foto bukti dan presensi guru berhasil disimpan!');
+        $msg = $consecutiveSchedules->count() > 1
+            ? "Foto bukti presensi guru berhasil disimpan untuk {$consecutiveSchedules->count()} jam pelajaran sekaligus!"
+            : 'Foto bukti dan presensi guru berhasil disimpan!';
+
+        return redirect()->route('siswa.dashboard')->with('success', $msg);
+    }
+
+    /**
+     * Store student check-out photo at the end of class/school day.
+     */
+    public function storeCheckout(Request $request, int $jadwalId, string $tanggal): RedirectResponse
+    {
+        $user = Auth::user();
+        $kelas = $user->siswaProfile?->kelas;
+
+        $jadwal = JadwalPelajaran::findOrFail($jadwalId);
+        abort_unless($jadwal->kelas_id === $kelas?->id, 403);
+
+        $tanggalCarbon = Carbon::parse($tanggal);
+
+        if ($tanggalCarbon->gt(now()->endOfDay()) || $tanggalCarbon->lt(now()->subDays(7)->startOfDay())) {
+            return redirect()->route('siswa.dashboard')->with('error', 'Waktu pengiriman laporan untuk tanggal ini sudah ditutup.');
+        }
+
+        $consecutiveSchedules = $jadwal->getConsecutiveSchedules();
+        $subIds = $consecutiveSchedules->pluck('id')->all();
+
+        $pertemuanIds = Pertemuan::whereIn('jadwal_id', $subIds)
+            ->whereDate('tanggal', $tanggalCarbon)
+            ->pluck('id');
+
+        $hasFotoAwal = FotoBukti::whereIn('pertemuan_id', $pertemuanIds)
+            ->where('siswa_id', $user->id)
+            ->whereNotNull('foto_path')
+            ->exists();
+
+        if (! $hasFotoAwal) {
+            return redirect()->route('siswa.dashboard')->with('error', 'Foto bukti awal (masuk) wajib diunggah terlebih dahulu sebelum melakukan check-out.');
+        }
+
+        $validated = $request->validate([
+            'foto_checkout' => ['required', 'image', 'max:10240'],
+        ]);
+
+        $imageCompressor = app(ImageCompressor::class);
+        $fotoCheckoutPath = $imageCompressor->compressAndStore($request->file('foto_checkout'), 'foto-bukti', 1200, 80);
+
+        DB::transaction(function () use ($pertemuanIds, $user, $fotoCheckoutPath) {
+            foreach ($pertemuanIds as $pertemuanId) {
+                $fotoBukti = FotoBukti::where('pertemuan_id', $pertemuanId)
+                    ->where('siswa_id', $user->id)
+                    ->first();
+
+                if ($fotoBukti) {
+                    if ($fotoBukti->foto_checkout_path && $fotoBukti->foto_checkout_path !== $fotoCheckoutPath) {
+                        Storage::disk('public')->delete($fotoBukti->foto_checkout_path);
+                    }
+
+                    $fotoBukti->update([
+                        'foto_checkout_path' => $fotoCheckoutPath,
+                        'checkout_at' => now(),
+                    ]);
+                }
+            }
+        });
+
+        return redirect()->route('siswa.dashboard')->with('success', 'Foto bukti check-out (akhir jam pelajaran) berhasil disimpan!');
     }
 }

@@ -16,10 +16,17 @@ class FotoBukti extends Model
         'pertemuan_id',
         'siswa_id',
         'foto_path',
+        'foto_checkout_path',
+        'checkout_at',
         'status_guru_dilaporkan',
         'alasan_tidak_hadir',
         'jenis_alpa_dilaporkan',
         'guru_pengganti_nama',
+    ];
+
+    /** @var array<string, string> */
+    protected $casts = [
+        'checkout_at' => 'datetime',
     ];
 
     public function pertemuan(): BelongsTo
@@ -30,5 +37,27 @@ class FotoBukti extends Model
     public function siswa(): BelongsTo
     {
         return $this->belongsTo(User::class, 'siswa_id');
+    }
+
+    public function getFotoUrlAttribute(): ?string
+    {
+        if (empty($this->foto_path)) {
+            return null;
+        }
+
+        return str_starts_with($this->foto_path, 'images/')
+            ? asset($this->foto_path)
+            : asset('storage/'.$this->foto_path);
+    }
+
+    public function getFotoCheckoutUrlAttribute(): ?string
+    {
+        if (empty($this->foto_checkout_path)) {
+            return null;
+        }
+
+        return str_starts_with($this->foto_checkout_path, 'images/')
+            ? asset($this->foto_checkout_path)
+            : asset('storage/'.$this->foto_checkout_path);
     }
 }

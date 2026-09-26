@@ -9,9 +9,28 @@
 
         {{-- Pelajaran info --}}
         <div class="bg-emerald-600 rounded-2xl p-4 text-white">
-            <p class="text-lg font-bold">{{ $pertemuan->jadwal->mataPelajaran->nama }}</p>
-            <p class="text-sm text-emerald-100 mt-0.5">Guru: {{ $pertemuan->jadwal->guru->name }}</p>
-            <p class="text-sm text-emerald-100 mt-0.5">{{ $pertemuan->tanggal->translatedFormat('l, d F Y') }}</p>
+            <div class="flex items-start justify-between gap-3">
+                <div>
+                    <p class="text-lg font-bold">{{ $pertemuan->jadwal->mataPelajaran->nama }}</p>
+                    <p class="text-sm text-emerald-100 mt-0.5">Guru: {{ $pertemuan->jadwal->guru->name }}</p>
+                </div>
+                @if(isset($totalJp) && $totalJp > 1)
+                    <span class="px-2.5 py-1 rounded-xl bg-white/20 text-white text-xs font-bold border border-white/30 backdrop-blur-xs">
+                        {{ $totalJp }} Jam Pelajaran
+                    </span>
+                @endif
+            </div>
+            <div class="flex items-center gap-3 mt-3 text-sm text-emerald-100">
+                <span>{{ $jamMulai ?? substr($pertemuan->jadwal->jam_mulai, 0, 5) }} – {{ $jamSelesai ?? substr($pertemuan->jadwal->jam_selesai, 0, 5) }} WIB</span>
+                <span>•</span>
+                <span>{{ $pertemuan->tanggal->translatedFormat('l, d F Y') }}</span>
+            </div>
+            @if(isset($totalJp) && $totalJp > 1)
+                <div class="mt-2.5 pt-2.5 border-t border-white/20 text-xs text-emerald-100 flex items-center gap-1.5">
+                    <svg class="w-4 h-4 shrink-0 text-emerald-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <span>Sesi KBM Tergabung: foto bukti berlaku otomatis untuk seluruh <strong>{{ $totalJp }} JP</strong> sekaligus.</span>
+                </div>
+            @endif
         </div>
 
         {{-- Teacher status from the teacher's own record / student sync --}}
@@ -57,12 +76,32 @@
         {{-- Existing capture preview --}}
         @if($existingCapture)
         <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-            <div class="px-4 py-3 border-b border-slate-100">
+            <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
                 <p class="text-sm font-semibold text-slate-900">Foto Bukti Anda</p>
+                @if($existingCapture->foto_checkout_path)
+                    <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                        Lengkap (Check-in & Check-out)
+                    </span>
+                @endif
             </div>
             <div class="p-4 bg-slate-50 flex flex-col items-center">
-                <img src="{{ Storage::url($existingCapture->foto_path) }}" alt="Foto Bukti"
-                     class="w-full h-auto max-h-64 object-contain rounded-xl">
+                <div class="grid {{ $existingCapture->foto_checkout_path ? 'grid-cols-2 gap-3' : 'grid-cols-1' }} w-full max-w-md">
+                    <div class="text-center">
+                        <img src="{{ Storage::url($existingCapture->foto_path) }}" alt="Foto Masuk"
+                             class="w-full h-auto max-h-56 object-contain rounded-xl bg-white border border-slate-200">
+                        <span class="inline-block mt-1 text-[11px] font-bold text-slate-600">Foto Masuk (Awal)</span>
+                    </div>
+                    @if($existingCapture->foto_checkout_path)
+                    <div class="text-center">
+                        <img src="{{ Storage::url($existingCapture->foto_checkout_path) }}" alt="Foto Keluar"
+                             class="w-full h-auto max-h-56 object-contain rounded-xl bg-white border border-emerald-300">
+                        <span class="inline-block mt-1 text-[11px] font-bold text-emerald-700">
+                            Foto Check-out ({{ $existingCapture->checkout_at ? $existingCapture->checkout_at->format('H:i') . ' WIB' : 'Akhir' }})
+                        </span>
+                    </div>
+                    @endif
+                </div>
+
                 <div class="mt-3 flex flex-wrap items-center justify-center gap-2">
                     <span class="text-xs font-medium px-2.5 py-1 rounded-full
                         {{ match($existingCapture->status_guru_dilaporkan) {
@@ -102,12 +141,72 @@
         </div>
         @endif
 
-        {{-- Upload form --}}
+        {{-- Check-out Section (When enableCheckout is ON, and photo awal is done) --}}
+        @if(!$isPast && $enableCheckout && $existingCapture && in_array($existingCapture->status_guru_dilaporkan, ['hadir', 'terlambat']))
+        <div id="section-checkout" class="bg-white rounded-2xl border-2 {{ $existingCapture->foto_checkout_path ? 'border-emerald-200' : 'border-emerald-500 shadow-sm' }} overflow-hidden">
+            <div class="px-4 py-3 bg-emerald-50 border-b border-emerald-100 flex items-center justify-between">
+                <div>
+                    <h2 class="text-sm font-bold text-emerald-950 flex items-center gap-1.5">
+                        <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        Bukti Foto Check-out (Akhir Jam Pelajaran)
+                    </h2>
+                    <p class="text-xs text-emerald-700 mt-0.5">Ambil foto guru saat pelajaran selesai / menjelang pulang sebagai bukti guru mengajar hingga tuntas</p>
+                </div>
+            </div>
+
+            <form action="{{ route('siswa.capture.checkout', ['jadwal' => $pertemuan->jadwal_id, 'tanggal' => $pertemuan->tanggal->toDateString()]) }}" method="POST" enctype="multipart/form-data" class="p-5 space-y-4">
+                @csrf
+                {{-- Hidden final input for checkout --}}
+                <input type="file" name="foto_checkout" id="final-checkout-input" class="sr-only" required>
+
+                {{-- Preview checkout container --}}
+                <div id="preview-checkout-container" class="hidden bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
+                    <div class="relative">
+                        <img id="preview-checkout-img" src="#" alt="Preview Checkout" class="w-full h-auto max-h-64 object-contain">
+                        <div id="compressing-checkout-indicator" class="hidden absolute inset-0 bg-slate-900/40 backdrop-blur-xs flex flex-col items-center justify-center text-white text-xs font-medium">
+                            <svg class="animate-spin h-6 w-6 text-white mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Mengompresi foto checkout hemat kuota...
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <label class="flex flex-col items-center justify-center gap-2 py-3.5 border-2 border-dashed border-emerald-300 bg-emerald-50/50 rounded-xl cursor-pointer hover:border-emerald-500 hover:bg-emerald-50 transition-colors">
+                        <input type="file" accept="image/*" capture="environment"
+                               class="sr-only" onchange="handleCheckoutPhoto(this)">
+                        <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                        <span class="text-xs font-semibold text-emerald-800">Kamera Check-out</span>
+                    </label>
+                    <label class="flex flex-col items-center justify-center gap-2 py-3.5 border-2 border-dashed border-slate-300 rounded-xl cursor-pointer hover:border-emerald-400 hover:bg-emerald-50 transition-colors">
+                        <input type="file" accept="image/*"
+                               class="sr-only" onchange="handleCheckoutPhoto(this)">
+                        <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        <span class="text-xs font-medium text-slate-600">Galeri Check-out</span>
+                    </label>
+                </div>
+
+                <button type="submit" id="btn-submit-checkout" disabled
+                        class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white font-semibold text-sm rounded-xl transition-colors">
+                    {{ $existingCapture->foto_checkout_path ? 'Perbarui Foto Check-out' : 'Simpan Foto Check-out' }}
+                </button>
+            </form>
+        </div>
+        @endif
+
+        {{-- Upload form (Foto Masuk / Awal) --}}
         @if(!$isPast)
         <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
             <div class="px-4 py-3 border-b border-slate-100">
                 <h2 class="text-sm font-semibold text-slate-900">
-                    {{ $existingCapture ? 'Perbarui Foto Bukti' : 'Upload Foto Bukti' }}
+                    {{ $existingCapture ? 'Perbarui Foto Masuk (Awal KBM)' : 'Upload Foto Masuk (Awal KBM)' }}
                 </h2>
             </div>
             <form action="{{ route('siswa.capture.store', ['jadwal' => $pertemuan->jadwal_id, 'tanggal' => $pertemuan->tanggal->toDateString()]) }}" method="POST" enctype="multipart/form-data" class="p-5 space-y-6" id="capture-form">
@@ -362,6 +461,88 @@
                 dataTransfer.items.add(file);
                 finalInput.files = dataTransfer.files;
                 previewImg.src = URL.createObjectURL(file);
+            } finally {
+                indicator.classList.add('hidden');
+            }
+        }
+
+        async function handleCheckoutPhoto(input) {
+            if (!input.files || !input.files[0]) return;
+            const file = input.files[0];
+
+            const previewContainer = document.getElementById('preview-checkout-container');
+            const previewImg = document.getElementById('preview-checkout-img');
+            const indicator = document.getElementById('compressing-checkout-indicator');
+            const finalInput = document.getElementById('final-checkout-input');
+            const btnSubmit = document.getElementById('btn-submit-checkout');
+
+            previewContainer.classList.remove('hidden');
+            indicator.classList.remove('hidden');
+
+            try {
+                const img = new Image();
+                const url = URL.createObjectURL(file);
+
+                await new Promise((resolve, reject) => {
+                    img.onload = resolve;
+                    img.onerror = reject;
+                    img.src = url;
+                });
+
+                const maxDim = 1200;
+                let width = img.width;
+                let height = img.height;
+
+                if (width > maxDim || height > maxDim) {
+                    if (width >= height) {
+                        height = Math.round((height / width) * maxDim);
+                        width = maxDim;
+                    } else {
+                        width = Math.round((width / height) * maxDim);
+                        height = maxDim;
+                    }
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                const blob = await new Promise((resolve) => {
+                    canvas.toBlob((b) => {
+                        if (b) {
+                            resolve(b);
+                        } else {
+                            canvas.toBlob((bJpeg) => resolve(bJpeg), 'image/jpeg', 0.82);
+                        }
+                    }, 'image/webp', 0.82);
+                });
+
+                const previewUrl = URL.createObjectURL(blob);
+                previewImg.src = previewUrl;
+
+                const ext = blob.type === 'image/webp' ? 'webp' : 'jpg';
+                const compressedFile = new File([blob], `foto_checkout.${ext}`, { type: blob.type });
+
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(compressedFile);
+                finalInput.files = dataTransfer.files;
+
+                if (btnSubmit) {
+                    btnSubmit.disabled = false;
+                }
+
+                URL.revokeObjectURL(url);
+            } catch (err) {
+                console.error('Compression error for checkout, fallback to raw file:', err);
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                finalInput.files = dataTransfer.files;
+                previewImg.src = URL.createObjectURL(file);
+                if (btnSubmit) {
+                    btnSubmit.disabled = false;
+                }
             } finally {
                 indicator.classList.add('hidden');
             }

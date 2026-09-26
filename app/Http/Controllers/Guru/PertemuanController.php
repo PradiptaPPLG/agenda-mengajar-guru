@@ -62,11 +62,21 @@ class PertemuanController extends Controller
 
         $isLocked = $tanggalCarbon->lt(now()->subDays(7)->startOfDay()) || $tanggalCarbon->gt(now()->endOfDay());
 
+        // Get consecutive schedules in the same session
+        $consecutiveSchedules = $jadwal->getConsecutiveSchedules();
+        $totalJp = $consecutiveSchedules->count();
+        $jamMulaiFormatted = substr($consecutiveSchedules->first()->jam_mulai, 0, 5);
+        $jamSelesaiFormatted = substr($consecutiveSchedules->last()->jam_selesai, 0, 5);
+
         return view('guru.pertemuan.show', [
             'jadwal' => $jadwal,
             'pertemuan' => $pertemuan,
             'tanggal' => $tanggalCarbon,
             'isLocked' => $isLocked,
+            'consecutiveSchedules' => $consecutiveSchedules,
+            'totalJp' => $totalJp,
+            'jamMulaiFormatted' => $jamMulaiFormatted,
+            'jamSelesaiFormatted' => $jamSelesaiFormatted,
         ]);
     }
 
@@ -93,37 +103,52 @@ class PertemuanController extends Controller
             'siswa.*.keterangan' => ['nullable', 'string', 'max:255'],
         ]);
 
-        DB::transaction(function () use ($pertemuan, $validated) {
-            // 1. Update Pertemuan
-            $pertemuan->update([
-                'materi_ajar' => $validated['materi_ajar'] ?? null,
-                'penugasan' => $validated['penugasan'] ?? null,
-                'status' => 'berlangsung',
-            ]);
+        $consecutiveSchedules = $pertemuan->jadwal->getConsecutiveSchedules();
 
-            // 2. Ensure KehadiranGuru exists with default 'hadir' if not yet created by student
-            KehadiranGuru::firstOrCreate(
-                ['pertemuan_id' => $pertemuan->id, 'guru_id' => Auth::id()],
-                [
-                    'status' => 'hadir',
-                    'waktu_hadir' => now(),
-                ]
-            );
-
-            // 3. Update Siswa Attendance
-            if (isset($validated['siswa']) && is_array($validated['siswa'])) {
-                foreach ($validated['siswa'] as $siswaId => $data) {
-                    KehadiranSiswa::updateOrCreate(
-                        ['pertemuan_id' => $pertemuan->id, 'siswa_id' => $siswaId],
-                        [
-                            'status' => $data['status'],
-                            'keterangan' => $data['keterangan'] ?? null,
-                        ]
+        DB::transaction(function () use ($pertemuan, $validated, $consecutiveSchedules) {
+            foreach ($consecutiveSchedules as $sched) {
+                $targetPertemuan = ($sched->id === $pertemuan->jadwal_id)
+                    ? $pertemuan
+                    : Pertemuan::firstOrCreate(
+                        ['jadwal_id' => $sched->id, 'tanggal' => $pertemuan->tanggal],
+                        ['status' => 'menunggu']
                     );
+
+                // 1. Update Pertemuan
+                $targetPertemuan->update([
+                    'materi_ajar' => $validated['materi_ajar'] ?? null,
+                    'penugasan' => $validated['penugasan'] ?? null,
+                    'status' => 'berlangsung',
+                ]);
+
+                // 2. Ensure KehadiranGuru exists with default 'hadir'
+                KehadiranGuru::firstOrCreate(
+                    ['pertemuan_id' => $targetPertemuan->id, 'guru_id' => Auth::id()],
+                    [
+                        'status' => 'hadir',
+                        'waktu_hadir' => now(),
+                    ]
+                );
+
+                // 3. Update Siswa Attendance
+                if (isset($validated['siswa']) && is_array($validated['siswa'])) {
+                    foreach ($validated['siswa'] as $siswaId => $data) {
+                        KehadiranSiswa::updateOrCreate(
+                            ['pertemuan_id' => $targetPertemuan->id, 'siswa_id' => $siswaId],
+                            [
+                                'status' => $data['status'],
+                                'keterangan' => $data['keterangan'] ?? null,
+                            ]
+                        );
+                    }
                 }
             }
         });
 
-        return back()->with('success', 'Agenda mengajar dan presensi siswa berhasil disimpan.');
+        $successMsg = $consecutiveSchedules->count() > 1
+            ? "Agenda mengajar dan presensi siswa berhasil disimpan untuk {$consecutiveSchedules->count()} jam pelajaran sekaligus."
+            : 'Agenda mengajar dan presensi siswa berhasil disimpan.';
+
+        return back()->with('success', $successMsg);
     }
 }
