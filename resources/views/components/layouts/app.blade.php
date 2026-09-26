@@ -14,8 +14,15 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Alpine Plugins -->
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/anchor@3.x.x/dist/cdn.min.js"></script>
-    <!-- Alpine Core -->
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <!-- PWA Manifest & Icons -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Agenda Guru">
+    <link rel="apple-touch-icon" href="/images/logo_new.png">
+
     @stack('head')
 </head>
 <body class="h-full bg-slate-50 text-slate-900 antialiased" x-data="{ showGlobalLogoutModal: false, logoutForm: null }" @open-logout-modal.window="showGlobalLogoutModal = true; logoutForm = $event.detail.form">
@@ -156,7 +163,19 @@
                 }
             }, delay);
         }
+
+        // PWA Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch((err) => {
+                    console.log('SW registration error:', err);
+                });
+            });
+        }
     </script>
+
+    <x-pwa-install-prompt />
+
     @stack('scripts')
 </body>
 </html>

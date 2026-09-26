@@ -10,7 +10,14 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <!-- PWA Manifest & Icons -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Agenda Guru">
+    <link rel="apple-touch-icon" href="/images/logo_new.png">
 </head>
 <body class="h-full bg-slate-50 text-slate-900 antialiased flex flex-col min-h-screen">
     {{-- Header Topbar Public --}}
@@ -600,6 +607,17 @@
             options: pieOpts,
             plugins: [slicePercentagePlugin]
         });
+
+        // PWA Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch((err) => {
+                    console.log('SW registration error:', err);
+                });
+            });
+        }
     </script>
+
+    <x-pwa-install-prompt />
 </body>
 </html>
