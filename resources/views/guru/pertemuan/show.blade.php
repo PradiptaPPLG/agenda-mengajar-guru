@@ -10,12 +10,28 @@
 
         {{-- Info card --}}
         <div class="bg-blue-600 rounded-2xl p-4 text-white">
-            <p class="text-lg font-bold">{{ $jadwal->mataPelajaran->nama }}</p>
-            <p class="text-sm text-blue-100 mt-0.5">{{ $jadwal->kelas->nama }}</p>
+            <div class="flex items-start justify-between gap-3">
+                <div>
+                    <p class="text-lg font-bold">{{ $jadwal->mataPelajaran->nama }}</p>
+                    <p class="text-sm text-blue-100 mt-0.5">{{ $jadwal->kelas->nama }}</p>
+                </div>
+                @if(isset($totalJp) && $totalJp > 1)
+                    <span class="px-2.5 py-1 rounded-xl bg-white/20 text-white text-xs font-bold border border-white/30 backdrop-blur-xs">
+                        {{ $totalJp }} Jam Pelajaran
+                    </span>
+                @endif
+            </div>
             <div class="flex items-center gap-4 mt-3 text-sm text-blue-100">
-                <span>{{ \Carbon\Carbon::parse($jadwal->jam_mulai)->format('H:i') }} – {{ \Carbon\Carbon::parse($jadwal->jam_selesai)->format('H:i') }}</span>
+                <span>{{ $jamMulaiFormatted ?? \Carbon\Carbon::parse($jadwal->jam_mulai)->format('H:i') }} – {{ $jamSelesaiFormatted ?? \Carbon\Carbon::parse($jadwal->jam_selesai)->format('H:i') }} WIB</span>
+                <span>•</span>
                 <span>{{ $tanggal->translatedFormat('l, d F Y') }}</span>
             </div>
+            @if(isset($totalJp) && $totalJp > 1)
+                <div class="mt-2.5 pt-2.5 border-t border-white/20 text-xs text-blue-100 flex items-center gap-1.5">
+                    <svg class="w-4 h-4 shrink-0 text-blue-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <span>Sesi KBM Tergabung: materi & presensi otomatis tersimpan untuk seluruh <strong>{{ $totalJp }} JP</strong> sekaligus.</span>
+                </div>
+            @endif
         </div>
 
         <form action="{{ route('guru.pertemuan.save-all', $pertemuan->id) }}" method="POST" id="main-form" class="space-y-4">
@@ -107,27 +123,45 @@
                             @php
                                 $imgSrc = str_starts_with($foto->foto_path, 'images/') ? asset($foto->foto_path) : asset('storage/' . $foto->foto_path);
                             @endphp
-                            <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 flex items-center gap-3 hover:border-blue-300 transition-all">
-                                <a href="{{ $imgSrc }}" target="_blank" title="Klik untuk memperbesar foto" class="w-16 h-16 rounded-lg overflow-hidden bg-slate-200 shrink-0 border border-slate-200 relative group">
-                                    <img src="{{ $imgSrc }}" alt="Bukti {{ $foto->siswa->name }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform">
-                                    <div class="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                            <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2 hover:border-blue-300 transition-all">
+                                <div class="flex items-center gap-3">
+                                    <div class="flex items-center gap-2">
+                                        <div class="text-center">
+                                            <a href="{{ $imgSrc }}" target="_blank" title="Foto Check-in (Awal)" class="w-14 h-14 rounded-lg overflow-hidden bg-slate-200 block border border-slate-200 relative group">
+                                                <img src="{{ $imgSrc }}" alt="Bukti Masuk {{ $foto->siswa->name }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform">
+                                                <span class="absolute bottom-0 inset-x-0 bg-black/60 text-[9px] text-white py-0.5 text-center font-bold">Masuk</span>
+                                            </a>
+                                        </div>
+                                        @if($foto->foto_checkout_path)
+                                            @php
+                                                $imgOut = str_starts_with($foto->foto_checkout_path, 'images/') ? asset($foto->foto_checkout_path) : asset('storage/' . $foto->foto_checkout_path);
+                                            @endphp
+                                            <div class="text-center">
+                                                <a href="{{ $imgOut }}" target="_blank" title="Foto Check-out (Pulang/Akhir)" class="w-14 h-14 rounded-lg overflow-hidden bg-slate-200 block border border-emerald-300 relative group">
+                                                    <img src="{{ $imgOut }}" alt="Bukti Checkout {{ $foto->siswa->name }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform">
+                                                    <span class="absolute bottom-0 inset-x-0 bg-emerald-700/80 text-[9px] text-white py-0.5 text-center font-bold">Keluar</span>
+                                                </a>
+                                            </div>
+                                        @endif
                                     </div>
-                                </a>
-                                <div class="min-w-0 flex-1 space-y-0.5">
-                                    <p class="text-xs font-bold text-slate-800 truncate">{{ $foto->siswa->name }}</p>
-                                    <p class="text-[11px] text-slate-500">Status Lapor: <span class="font-semibold {{ $foto->status_guru_dilaporkan === 'hadir' ? 'text-emerald-700' : 'text-red-600' }}">{{ ucfirst($foto->status_guru_dilaporkan) }}</span></p>
-                                    @if($foto->alasan_tidak_hadir)
-                                        <p class="text-[10px] text-red-600 font-medium truncate">Alasan: {{ match($foto->alasan_tidak_hadir) {
-                                            'sakit' => 'Sakit',
-                                            'izin' => 'Izin',
-                                            'rapat_dinas' => 'Rapat Dinas',
-                                            'dinas_luar' => 'Dinas Luar',
-                                            'tugas_luar' => 'Tugas Luar',
-                                            'tanpa_keterangan' => 'Tanpa Keterangan',
-                                            default => ucfirst($foto->alasan_tidak_hadir)
-                                        } }}</p>
-                                    @endif
+                                    <div class="min-w-0 flex-1 space-y-0.5">
+                                        <p class="text-xs font-bold text-slate-800 truncate">{{ $foto->siswa->name }}</p>
+                                        <p class="text-[11px] text-slate-500">Status: <span class="font-semibold {{ $foto->status_guru_dilaporkan === 'hadir' ? 'text-emerald-700' : 'text-red-600' }}">{{ ucfirst($foto->status_guru_dilaporkan) }}</span></p>
+                                        @if($foto->checkout_at)
+                                            <p class="text-[10px] text-emerald-700 font-medium">Check-out: {{ $foto->checkout_at->format('H:i') }} WIB</p>
+                                        @endif
+                                        @if($foto->alasan_tidak_hadir)
+                                            <p class="text-[10px] text-red-600 font-medium truncate">Alasan: {{ match($foto->alasan_tidak_hadir) {
+                                                'sakit' => 'Sakit',
+                                                'izin' => 'Izin',
+                                                'rapat_dinas' => 'Rapat Dinas',
+                                                'dinas_luar' => 'Dinas Luar',
+                                                'tugas_luar' => 'Tugas Luar',
+                                                'tanpa_keterangan' => 'Tanpa Keterangan',
+                                                default => ucfirst($foto->alasan_tidak_hadir)
+                                            } }}</p>
+                                        @endif
+                                    </div>
                                 </div>
                             </div>
                             @endforeach

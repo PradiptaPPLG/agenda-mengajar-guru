@@ -41,17 +41,25 @@
                 $jadwal = $item['jadwal'];
                 $pertemuan = $item['pertemuan'];
                 $sudahCapture = $item['sudahCapture'];
+                $sudahCheckout = $item['sudahCheckout'];
                 $isStarted = $item['isStarted'];
                 $isActiveNow = $item['isActiveNow'];
                 $jamMulai = $item['jamMulai'];
                 $jamSelesai = $item['jamSelesai'];
+                $totalJp = $item['totalJp'];
+                $isMultiJam = $item['isMultiJam'];
             @endphp
-            <div class="bg-white rounded-2xl border {{ $sudahCapture ? 'border-emerald-200' : ($isActiveNow ? 'border-emerald-500 ring-2 ring-emerald-500/20' : 'border-slate-200') }} overflow-hidden transition-all">
+            <div class="bg-white rounded-2xl border {{ $sudahCheckout ? 'border-emerald-300 ring-1 ring-emerald-400/30' : ($sudahCapture ? 'border-blue-200' : ($isActiveNow ? 'border-emerald-500 ring-2 ring-emerald-500/20' : 'border-slate-200')) }} overflow-hidden transition-all">
                 <div class="p-4">
                     <div class="flex items-start justify-between gap-3">
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-2 flex-wrap">
                                 <p class="font-semibold text-slate-900">{{ $jadwal->mataPelajaran->nama }}</p>
+                                @if($isMultiJam)
+                                    <span class="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-bold shrink-0">
+                                        {{ $totalJp }} JP
+                                    </span>
+                                @endif
                                 @if($isActiveNow && !$sudahCapture)
                                 <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold flex items-center gap-1 shrink-0">
                                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
@@ -60,14 +68,20 @@
                                 @endif
                             </div>
                             <p class="text-sm text-slate-500 mt-0.5">
-                                {{ $jamMulai }} – {{ $jamSelesai }}
+                                {{ $jamMulai }} – {{ $jamSelesai }} WIB
                             </p>
                             <p class="text-xs text-slate-400 mt-1">{{ $jadwal->guru->name }}</p>
                         </div>
-                        @if($sudahCapture)
+
+                        @if($enableCheckout && $sudahCheckout)
+                        <div class="shrink-0 flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <span class="text-xs font-bold">Check-out Selesai</span>
+                        </div>
+                        @elseif($sudahCapture)
                         <div class="shrink-0 flex items-center gap-1 text-emerald-600">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                            <span class="text-xs font-medium">Terkirim</span>
+                            <span class="text-xs font-medium">{{ $enableCheckout ? 'Masuk Terkirim' : 'Terkirim' }}</span>
                         </div>
                         @elseif(!$isStarted)
                         <div class="shrink-0 flex items-center gap-1 text-slate-400 bg-slate-100 px-2.5 py-1 rounded-lg text-xs font-medium">
@@ -77,28 +91,39 @@
                         @endif
                     </div>
 
-                    <div class="mt-3">
-                        @if($sudahCapture)
-                        {{-- Already captured --}}
-                        <a href="{{ route('siswa.capture.show', ['jadwal' => $jadwal->id, 'tanggal' => $today->toDateString()]) }}"
-                           class="flex items-center justify-center gap-2 w-full py-2.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm font-medium rounded-xl hover:bg-emerald-100 transition-colors">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                            Ubah Foto Bukti
-                        </a>
+                    <div class="mt-3 space-y-2">
+                        @if($enableCheckout && $sudahCapture && !$sudahCheckout)
+                            {{-- Foto Masuk Sudah, Foto Checkout Belum --}}
+                            <a href="{{ route('siswa.capture.show', ['jadwal' => $jadwal->id, 'tanggal' => $today->toDateString()]) }}#section-checkout"
+                               class="flex items-center justify-center gap-2 w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                Ambil Foto Check-out (Akhir Jam)
+                            </a>
+                            <a href="{{ route('siswa.capture.show', ['jadwal' => $jadwal->id, 'tanggal' => $today->toDateString()]) }}"
+                               class="flex items-center justify-center gap-1.5 w-full py-1.5 text-xs text-slate-500 hover:text-slate-700 font-medium">
+                                Ubah Foto Masuk
+                            </a>
+                        @elseif($sudahCapture)
+                            {{-- Already captured or Checkout complete --}}
+                            <a href="{{ route('siswa.capture.show', ['jadwal' => $jadwal->id, 'tanggal' => $today->toDateString()]) }}"
+                               class="flex items-center justify-center gap-2 w-full py-2.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm font-medium rounded-xl hover:bg-emerald-100 transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                {{ $sudahCheckout ? 'Lihat / Perbarui Foto Bukti' : 'Ubah Foto Bukti' }}
+                            </a>
                         @elseif($isStarted)
-                        {{-- Jam pelajaran sudah dimulai --}}
-                        <a href="{{ route('siswa.capture.show', ['jadwal' => $jadwal->id, 'tanggal' => $today->toDateString()]) }}"
-                           class="flex items-center justify-center gap-2 w-full py-2.5 {{ $isActiveNow ? 'bg-emerald-600 hover:bg-emerald-700 shadow-sm' : 'bg-slate-800 hover:bg-slate-900' }} text-white text-sm font-semibold rounded-xl transition-colors">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                            Ambil Foto Bukti {{ $isActiveNow ? '(Sedang Berlangsung)' : '' }}
-                        </a>
+                            {{-- Jam pelajaran sudah dimulai --}}
+                            <a href="{{ route('siswa.capture.show', ['jadwal' => $jadwal->id, 'tanggal' => $today->toDateString()]) }}"
+                               class="flex items-center justify-center gap-2 w-full py-2.5 {{ $isActiveNow ? 'bg-emerald-600 hover:bg-emerald-700 shadow-sm' : 'bg-slate-800 hover:bg-slate-900' }} text-white text-sm font-semibold rounded-xl transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                Ambil Foto Bukti {{ $isActiveNow ? '(Sedang Berlangsung)' : '' }}
+                            </a>
                         @else
-                        {{-- Jam pelajaran belum dimulai --}}
-                        <button type="button" disabled
-                                class="flex items-center justify-center gap-2 w-full py-2.5 bg-slate-100 text-slate-400 text-xs font-semibold rounded-xl border border-slate-200 cursor-not-allowed opacity-80">
-                            <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                            Belum Jam Pelajaran (Mulai {{ $jamMulai }} WIB)
-                        </button>
+                            {{-- Jam pelajaran belum dimulai --}}
+                            <button type="button" disabled
+                                    class="flex items-center justify-center gap-2 w-full py-2.5 bg-slate-100 text-slate-400 text-xs font-semibold rounded-xl border border-slate-200 cursor-not-allowed opacity-80">
+                                <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                Belum Jam Pelajaran (Mulai {{ $jamMulai }} WIB)
+                            </button>
                         @endif
                     </div>
                 </div>

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\HariLibur;
 use App\Models\JadwalPelajaran;
 use App\Models\Pertemuan;
+use App\Models\Setting;
 use App\Services\JadwalBlokResolverService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -36,16 +37,26 @@ class DashboardController extends Controller
             });
         }
 
+        // Group continuous schedules in the same session
+        $groupedJadwals = JadwalPelajaran::groupContinuousSchedules($jadwals);
+        $enableCheckout = (Setting::get('enable_checkout_foto', '0') == '1');
+
         // For each jadwal, calculate whether lesson start time has been reached
-        $jadwalsWithStatus = $jadwals->map(function (JadwalPelajaran $jadwal) use ($today, $user, $nowTime) {
+        $jadwalsWithStatus = $groupedJadwals->map(function (JadwalPelajaran $jadwal) use ($today, $user, $nowTime) {
+            $subIds = $jadwal->sub_jadwal_ids ?? [$jadwal->id];
+
             $pertemuan = Pertemuan::with(['fotoBuktis' => function ($q) use ($user) {
                 $q->where('siswa_id', $user->id);
-            }])->where('jadwal_id', $jadwal->id)
+            }])->whereIn('jadwal_id', $subIds)
                 ->whereDate('tanggal', $today)
                 ->first();
 
-            $jamMulai = substr($jadwal->jam_mulai, 0, 5);
-            $jamSelesai = substr($jadwal->jam_selesai, 0, 5);
+            $fotoBukti = $pertemuan?->fotoBuktis->first();
+            $sudahCapture = ($fotoBukti !== null && ! empty($fotoBukti->foto_path));
+            $sudahCheckout = ($fotoBukti !== null && ! empty($fotoBukti->foto_checkout_path));
+
+            $jamMulai = $jadwal->jam_mulai_formatted ?? substr($jadwal->jam_mulai, 0, 5);
+            $jamSelesai = $jadwal->jam_selesai_formatted ?? substr($jadwal->jam_selesai, 0, 5);
 
             $isStarted = ($nowTime >= $jamMulai);
             $isActiveNow = ($nowTime >= $jamMulai && $nowTime <= $jamSelesai);
@@ -53,11 +64,15 @@ class DashboardController extends Controller
             return [
                 'jadwal' => $jadwal,
                 'pertemuan' => $pertemuan,
-                'sudahCapture' => $pertemuan?->fotoBuktis->isNotEmpty() ?? false,
+                'fotoBukti' => $fotoBukti,
+                'sudahCapture' => $sudahCapture,
+                'sudahCheckout' => $sudahCheckout,
                 'isStarted' => $isStarted,
                 'isActiveNow' => $isActiveNow,
                 'jamMulai' => $jamMulai,
                 'jamSelesai' => $jamSelesai,
+                'totalJp' => $jadwal->total_jp ?? 1,
+                'isMultiJam' => ! empty($jadwal->is_multi_jam),
             ];
         });
 
@@ -68,6 +83,7 @@ class DashboardController extends Controller
             'today' => $today,
             'nowTime' => $nowTime,
             'hariLiburHariIni' => $hariLiburHariIni,
+            'enableCheckout' => $enableCheckout,
         ]);
     }
 }
