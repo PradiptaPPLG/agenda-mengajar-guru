@@ -80,6 +80,8 @@ Route::middleware(['auth', 'role:siswa'])->prefix('siswa')->name('siswa.')->grou
         ->name('capture.show');
     Route::post('/jadwal/{jadwal}/capture/{tanggal}', [SiswaCaptureController::class, 'store'])
         ->name('capture.store');
+    Route::post('/jadwal/{jadwal}/checkout/{tanggal}', [SiswaCaptureController::class, 'storeCheckout'])
+        ->name('capture.checkout');
 });
 
 // ─── Admin ───────────────────────────────────────────────────────────────────
@@ -126,6 +128,7 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
     Route::get('jadwal/export/pdf', [AdminJadwalController::class, 'exportPdf'])->name('jadwal.export.pdf');
     Route::get('jadwal/template', [AdminJadwalController::class, 'downloadTemplate'])->name('jadwal.template');
     Route::post('jadwal/import', [AdminJadwalController::class, 'import'])->name('jadwal.import');
+    Route::post('jadwal/salin-semester', [AdminJadwalController::class, 'salinSemester'])->name('jadwal.salin-semester');
     Route::post('jadwal/bulk-destroy', [AdminJadwalController::class, 'bulkDestroy'])->name('jadwal.bulk-destroy');
     Route::resource('jadwal', AdminJadwalController::class)->except(['show']);
     Route::resource('hari-libur', AdminHariLiburController::class)->only(['index', 'store', 'destroy']);

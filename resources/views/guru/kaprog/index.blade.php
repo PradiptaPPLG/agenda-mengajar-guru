@@ -12,6 +12,113 @@
             <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition-colors">Tampilkan Laporan</button>
         </form>
 
+        {{-- Pemantauan Guru Mengajar di Jurusan --}}
+        <div class="space-y-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="font-bold text-slate-800 text-lg">Pemantauan Guru Mengajar Jurusan {{ $jurusan ?? '' }}</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">Kehadiran dan agenda mengajar guru di seluruh kelas jurusan Anda hari ini</p>
+                </div>
+                <span class="text-xs font-semibold bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full border border-indigo-200">
+                    {{ $rekapGuru['total'] }} Sesi KBM
+                </span>
+            </div>
+
+            {{-- Summary Cards Guru --}}
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div class="bg-white rounded-xl border border-slate-200 p-3.5 shadow-2xs">
+                    <p class="text-[11px] font-bold text-emerald-600 uppercase tracking-wider">Guru Hadir</p>
+                    <p class="text-2xl font-black text-emerald-700 mt-1">{{ $rekapGuru['hadir'] }}</p>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-3.5 shadow-2xs">
+                    <p class="text-[11px] font-bold text-amber-600 uppercase tracking-wider">Terlambat</p>
+                    <p class="text-2xl font-black text-amber-700 mt-1">{{ $rekapGuru['terlambat'] }}</p>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-3.5 shadow-2xs">
+                    <p class="text-[11px] font-bold text-red-600 uppercase tracking-wider">Tidak Hadir / Izin</p>
+                    <p class="text-2xl font-black text-red-700 mt-1">{{ $rekapGuru['tidak_hadir'] }}</p>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-3.5 shadow-2xs">
+                    <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Belum Mulai</p>
+                    <p class="text-2xl font-black text-slate-700 mt-1">{{ $rekapGuru['belum_hadir'] }}</p>
+                </div>
+            </div>
+
+            {{-- Tabel Pemantauan Guru --}}
+            <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+                            <tr>
+                                <th class="px-4 py-3">Guru & NIP</th>
+                                <th class="px-4 py-3">Kelas & Mapel</th>
+                                <th class="px-4 py-3">Jam KBM</th>
+                                <th class="px-4 py-3">Status</th>
+                                <th class="px-4 py-3">Materi / Keterangan</th>
+                                <th class="px-4 py-3 text-center">Bukti</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            @forelse($monitoringGuru as $item)
+                            <tr class="hover:bg-slate-50/70 transition-colors">
+                                <td class="px-4 py-3">
+                                    <p class="font-semibold text-slate-900 leading-tight">{{ $item['guru']->name ?? '-' }}</p>
+                                    <p class="text-[10px] text-slate-500 font-mono mt-0.5">NIP: {{ $item['guru']?->guruProfile?->nip ?? '-' }}</p>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <span class="inline-block px-2 py-0.5 bg-purple-50 text-purple-700 text-xs font-semibold rounded border border-purple-200 mb-0.5">
+                                        {{ $item['kelas']->nama }}
+                                    </span>
+                                    <p class="text-xs text-slate-700">{{ $item['mapel']->nama }}</p>
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap">
+                                    <p class="text-xs font-medium text-slate-800">
+                                        {{ substr($item['jadwal']->jam_mulai, 0, 5) }} – {{ substr($item['jadwal']->jam_selesai, 0, 5) }}
+                                    </p>
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap">
+                                    @if($item['status'] === 'hadir')
+                                        <span class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Hadir
+                                        </span>
+                                    @elseif($item['status'] === 'terlambat')
+                                        <span class="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Terlambat
+                                        </span>
+                                    @elseif(in_array($item['status'], ['tidak_hadir', 'sakit', 'alpa', 'dispensasi']))
+                                        <span class="inline-flex items-center gap-1 text-[11px] font-bold text-red-700 bg-red-50 border border-red-200 px-2.5 py-1 rounded-lg">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> {{ $item['status_label'] }}
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center gap-1 text-[11px] font-medium text-slate-600 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg">
+                                            Belum Mulai
+                                        </span>
+                                    @endif
+                                </td>
+                                <td class="px-4 py-3">
+                                    <p class="text-xs text-slate-700 line-clamp-2 max-w-xs">{{ $item['keterangan'] ?? '—' }}</p>
+                                </td>
+                                <td class="px-4 py-3 text-center">
+                                    @if(!empty($item['foto']))
+                                        <a href="{{ $item['foto'] }}" target="_blank" class="inline-block hover:opacity-80 transition-opacity">
+                                            <img src="{{ $item['foto'] }}" alt="Bukti" class="w-8 h-8 rounded-lg object-cover border border-slate-200 mx-auto">
+                                        </a>
+                                    @else
+                                        <span class="text-slate-300 text-xs">—</span>
+                                    @endif
+                                </td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="6" class="px-4 py-8 text-center text-slate-400 text-sm">Tidak ada jadwal KBM guru pada tanggal ini.</td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
         <div class="space-y-4">
             <div class="flex items-center justify-between">
                 <h2 class="font-bold text-slate-800 text-lg">Rekap KBM Jurusan {{ $jurusan ?? '' }} ({{ $date->translatedFormat('d F Y') }})</h2>
