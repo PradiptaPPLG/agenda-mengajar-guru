@@ -78,6 +78,7 @@
                 <input type="hidden" name="search" value="{{ request('search') }}">
                 <input type="hidden" name="role_filter" value="{{ request('role_filter') }}">
                 <input type="hidden" name="mapel_id" value="{{ request('mapel_id') }}">
+            </form>
             <table class="w-full text-sm">
                 <thead class="bg-slate-50/80 border-b border-slate-200">
                     <tr>
@@ -108,7 +109,7 @@
                     @endphp
                     <tr class="hover:bg-slate-50/80 transition-colors">
                         <td class="px-5 py-4 align-middle">
-                            <input type="checkbox" name="ids[]" value="{{ $user->id }}" class="row-checkbox rounded border-slate-300 text-blue-600 shadow-sm focus:ring-blue-500">
+                            <input type="checkbox" name="ids[]" value="{{ $user->id }}" form="bulk-delete-form" class="row-checkbox rounded border-slate-300 text-blue-600 shadow-sm focus:ring-blue-500">
                         </td>
                         {{-- Nama & NIP --}}
                         <td class="px-5 py-4 align-middle">
@@ -222,7 +223,6 @@
                     @endforelse
                 </tbody>
             </table>
-            </form>
             @if($users->hasPages())
             <div class="px-4 py-3 border-t border-slate-100">{{ $users->links() }}</div>
             @endif

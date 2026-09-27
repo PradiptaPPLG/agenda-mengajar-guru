@@ -47,6 +47,7 @@
             <input type="hidden" name="delete_all" id="delete-all-input" value="0">
             <input type="hidden" name="search" value="{{ request('search') }}">
             <input type="hidden" name="jenis" value="{{ request('jenis') }}">
+        </form>
         <table class="w-full text-sm">
             <thead class="bg-slate-50 border-b border-slate-200">
                 <tr>
@@ -63,7 +64,7 @@
                 @forelse($mataPelajarans as $mp)
                 <tr class="hover:bg-slate-50">
                     <td class="px-4 py-3">
-                        <input type="checkbox" name="ids[]" value="{{ $mp->id }}" class="row-checkbox rounded border-slate-300 text-blue-600 shadow-sm focus:ring-blue-500">
+                        <input type="checkbox" name="ids[]" value="{{ $mp->id }}" form="bulk-delete-form" class="row-checkbox rounded border-slate-300 text-blue-600 shadow-sm focus:ring-blue-500">
                     </td>
                     <td class="px-4 py-3">
                         <p class="font-medium text-slate-900">{{ $mp->nama }}</p>
@@ -100,7 +101,6 @@
         @if($mataPelajarans->hasPages())
         <div class="px-4 py-3 border-t border-slate-100">{{ $mataPelajarans->links() }}</div>
         @endif
-        </form>
         </div>
     </div>
     

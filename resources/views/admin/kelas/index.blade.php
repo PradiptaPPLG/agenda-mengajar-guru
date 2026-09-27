@@ -37,6 +37,7 @@
             @csrf
             <input type="hidden" name="delete_all" id="delete-all-input" value="0">
             <input type="hidden" name="search" value="{{ request('search') }}">
+        </form>
         <table class="w-full text-sm">
             <thead class="bg-slate-50 border-b border-slate-200">
                 <tr>
@@ -56,7 +57,7 @@
                 @forelse($kelas as $k)
                 <tr class="hover:bg-slate-50">
                     <td class="px-4 py-3">
-                        <input type="checkbox" name="ids[]" value="{{ $k->id }}" class="row-checkbox rounded border-slate-300 text-blue-600 shadow-sm focus:ring-blue-500">
+                        <input type="checkbox" name="ids[]" value="{{ $k->id }}" form="bulk-delete-form" class="row-checkbox rounded border-slate-300 text-blue-600 shadow-sm focus:ring-blue-500">
                     </td>
                     <td class="px-4 py-3 font-medium text-slate-900">
                         <a href="{{ route('admin.kelas.show', $k) }}" class="text-blue-600 hover:text-blue-800 font-bold hover:underline" title="Lihat Detail Kelas (Wali Kelas, BK, Siswa, Jadwal)">
@@ -127,7 +128,6 @@
                 @endforelse
             </tbody>
         </table>
-        </form>
 
         @if($kelas->hasPages())
         <div class="px-4 py-3 border-t border-slate-200">

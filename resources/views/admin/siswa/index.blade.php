@@ -47,6 +47,7 @@
                 <input type="hidden" name="delete_all" id="delete-all-input" value="0">
                 <input type="hidden" name="search" value="{{ request('search') }}">
                 <input type="hidden" name="kelas_id" value="{{ request('kelas_id') }}">
+            </form>
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm whitespace-nowrap">
                     <thead class="bg-slate-50 border-b border-slate-200 text-slate-500">
@@ -65,7 +66,7 @@
                         @forelse($siswa as $s)
                         <tr class="hover:bg-slate-50 transition-colors">
                             <td class="px-6 py-4">
-                                <input type="checkbox" name="ids[]" value="{{ $s->user->id }}" class="row-checkbox rounded border-slate-300 text-blue-600 shadow-sm focus:ring-blue-500">
+                                <input type="checkbox" name="ids[]" value="{{ $s->user->id }}" form="bulk-delete-form" class="row-checkbox rounded border-slate-300 text-blue-600 shadow-sm focus:ring-blue-500">
                             </td>
                             <td class="px-6 py-4">
                                 <div class="font-medium text-slate-900 flex items-center gap-2">
@@ -124,7 +125,6 @@
                     </tbody>
                 </table>
             </div>
-            </form>
             @if($siswa->hasPages())
             <div class="px-6 py-4 border-t border-slate-200 bg-slate-50">
                 {{ $siswa->links() }}
