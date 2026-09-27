@@ -67,6 +67,6 @@ class DatabaseSeeder extends Seeder
         $this->command->info('   Admin         : admin@sekolah.sch.id');
         $this->command->info('   Kepala Sekolah: kepsek@sekolah.sch.id');
         $this->command->info('   Petugas Piket : piket@sekolah.sch.id');
-        $this->command->info('   Guru Reviewer : NIP 198909242014012001 / password  (Nastiti, S.Pd.)');
+        $this->command->info('   Guru Reviewer : NIP 198909242014012001 / password: NIP (198909242014012001) (Nastiti, S.Pd.)');
     }
 }

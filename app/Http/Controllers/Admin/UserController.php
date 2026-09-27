@@ -83,7 +83,13 @@ class UserController extends Controller
                 'email',
                 'unique:users,email',
             ],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'password' => [
+                Rule::requiredIf(fn () => ! in_array($request->input('role'), ['guru', 'siswa'])),
+                'nullable',
+                'string',
+                'min:8',
+                'confirmed',
+            ],
             'role' => ['required', 'in:guru,siswa,piket,tu'],
             'spatie_roles' => ['nullable', 'array'],
             'spatie_roles.*' => ['exists:roles,name'],
@@ -98,10 +104,21 @@ class UserController extends Controller
             'mapel_ids.*' => ['exists:mata_pelajarans,id'],
         ]);
 
+        $rawPassword = $validated['password'] ?? null;
+        if (! $rawPassword) {
+            if ($validated['role'] === 'guru' && ! empty($validated['nip'])) {
+                $rawPassword = preg_replace('/\s+/', '', $validated['nip']);
+            } elseif ($validated['role'] === 'siswa' && ! empty($validated['nis'])) {
+                $rawPassword = preg_replace('/\s+/', '', $validated['nis']);
+            } else {
+                $rawPassword = 'password123';
+            }
+        }
+
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
+            'password' => Hash::make($rawPassword),
             'role' => $validated['role'],
         ]);
 
@@ -398,20 +415,22 @@ class UserController extends Controller
                         $email = ($cleanPrefix ?: 'guru').rand(10, 999).'@sekolah.sch.id';
                     }
 
-                    $user = User::create([
-                        'name' => $name,
-                        'email' => $email,
-                        'password' => $defaultPassword,
-                        'role' => 'guru',
-                    ]);
-
                     $nipToSave = null;
                     if ($nip && $nip !== '-') {
                         $nipTaken = GuruProfile::where('nip', $nip)->exists();
                         if (! $nipTaken) {
-                            $nipToSave = $nip;
+                            $nipToSave = preg_replace('/\s+/', '', $nip);
                         }
                     }
+
+                    $guruPassword = $nipToSave ? Hash::make($nipToSave) : $defaultPassword;
+
+                    $user = User::create([
+                        'name' => $name,
+                        'email' => $email,
+                        'password' => $guruPassword,
+                        'role' => 'guru',
+                    ]);
 
                     $user->guruProfile()->create([
                         'nip' => $nipToSave,
@@ -606,5 +625,37 @@ class UserController extends Controller
         $default = ['AKL', 'PPLG', 'RPL', 'DKV', 'PM', 'MPLB', 'HTL', 'KLN', 'ITL'];
 
         return array_values(array_unique(array_merge($default, $fromKelas)));
+    }
+
+    public function resetPasswordToNip(User $user): RedirectResponse
+    {
+        $nip = trim((string) ($user->guruProfile?->nip ?? ''));
+        if (! $nip || $nip === '-') {
+            return back()->with('error', "Gagal reset password: Guru {$user->name} belum memiliki NIP.");
+        }
+
+        $cleanNip = preg_replace('/\s+/', '', $nip);
+        $user->password = Hash::make($cleanNip);
+        $user->save();
+
+        return back()->with('success', "Password untuk {$user->name} berhasil direset ke NIP ({$cleanNip}).");
+    }
+
+    public function resetAllPasswordToNip(): RedirectResponse
+    {
+        $gurus = User::where('role', 'guru')->with('guruProfile')->get();
+        $count = 0;
+
+        foreach ($gurus as $guru) {
+            $nip = trim((string) ($guru->guruProfile?->nip ?? ''));
+            if ($nip && $nip !== '-') {
+                $cleanNip = preg_replace('/\s+/', '', $nip);
+                $guru->password = Hash::make($cleanNip);
+                $guru->save();
+                $count++;
+            }
+        }
+
+        return back()->with('success', "Berhasil mereset password {$count} guru menjadi NIP masing-masing.");
     }
 }

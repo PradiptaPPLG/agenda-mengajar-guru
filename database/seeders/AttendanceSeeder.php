@@ -95,7 +95,7 @@ class AttendanceSeeder extends Seeder
                 ['name' => $gData['name'], 'role' => 'guru'],
                 [
                     'email' => $cleanEmail,
-                    'password' => $passwordHash,
+                    'password' => Hash::make($gData['nip']),
                     'is_active' => true,
                 ]
             );

@@ -14,7 +14,7 @@
              x-transition:leave="transition ease-in duration-75" 
              x-transition:leave-start="transform opacity-100 scale-100" 
              x-transition:leave-end="transform opacity-0 scale-95" 
-             class="absolute z-[100] w-36 rounded-xl bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none" 
+             class="absolute z-[100] w-44 rounded-xl bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none" 
              role="menu" aria-orientation="vertical" tabindex="-1" style="display: none;">
         <div class="py-1" role="none">
             @if($detailUrl)
