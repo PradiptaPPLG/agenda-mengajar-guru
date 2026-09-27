@@ -212,6 +212,15 @@
                                             </button>
                                         </form>
                                     @endif
+                                    @if($user->siswaProfile && $user->siswaProfile->nis)
+                                        <form action="{{ route('admin.siswa.reset-password-nis', $user) }}" method="POST" onsubmit="return confirm('Reset password siswa {{ $user->name }} menjadi NIS ({{ $user->siswaProfile->nis }})?')">
+                                            @csrf
+                                            <button type="submit" class="group flex w-full items-center px-4 py-2 text-sm text-slate-700 hover:bg-amber-50 hover:text-amber-700" role="menuitem">
+                                                <svg class="mr-3 h-4 w-4 text-slate-400 group-hover:text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
+                                                Reset ke NIS
+                                            </button>
+                                        </form>
+                                    @endif
                                 </x-action-dropdown>
                             </div>
                         </td>

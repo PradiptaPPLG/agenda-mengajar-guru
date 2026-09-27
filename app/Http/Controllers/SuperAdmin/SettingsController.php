@@ -4,8 +4,10 @@ namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
 
 class SettingsController extends Controller
@@ -19,16 +21,21 @@ class SettingsController extends Controller
         'semester',
         'phone',
         'enable_checkout_foto',
+        'default_siswa_status',
     ];
 
     public function index(): View
     {
         $settings = [];
         foreach ($this->settingKeys as $key) {
-            $settings[$key] = Setting::get($key, '');
+            $defaultVal = $key === 'default_siswa_status' ? 'aktif' : '';
+            $settings[$key] = Setting::get($key, $defaultVal);
         }
 
-        return view('super-admin.settings', compact('settings'));
+        $totalSiswa = User::where('role', 'siswa')->count();
+        $totalSiswaAktif = User::where('role', 'siswa')->where('is_active', true)->count();
+
+        return view('super-admin.settings', compact('settings', 'totalSiswa', 'totalSiswaAktif'));
     }
 
     public function update(Request $request): RedirectResponse
@@ -41,12 +48,46 @@ class SettingsController extends Controller
             'semester' => ['required', 'in:1,2'],
             'phone' => ['nullable', 'string', 'max:20'],
             'enable_checkout_foto' => ['nullable', 'in:0,1'],
+            'default_siswa_status' => ['required', 'in:aktif,nonaktif'],
+            'apply_to_existing_siswa' => ['nullable', 'in:0,1'],
         ]);
 
         $validated['enable_checkout_foto'] = $request->has('enable_checkout_foto') ? '1' : '0';
+        $applyToExisting = $request->has('apply_to_existing_siswa');
+        $resetPasswords = $request->has('reset_passwords_to_nis');
+        unset($validated['apply_to_existing_siswa']);
 
         foreach ($validated as $key => $value) {
             Setting::set($key, $value);
+        }
+
+        $messages = [];
+
+        if ($applyToExisting) {
+            $isActive = $validated['default_siswa_status'] === 'aktif';
+            $count = User::where('role', 'siswa')->update(['is_active' => $isActive]);
+            $statusLabel = $isActive ? 'diaktifkan' : 'dinonaktifkan';
+            $messages[] = "seluruh {$count} akun siswa berhasil {$statusLabel}";
+        }
+
+        if ($resetPasswords) {
+            set_time_limit(600);
+            $siswas = User::where('role', 'siswa')->with('siswaProfile')->get();
+            $pwCount = 0;
+            foreach ($siswas as $siswa) {
+                $nis = trim((string) ($siswa->siswaProfile?->nis ?? ''));
+                if ($nis !== '' && $nis !== '-') {
+                    $cleanNis = preg_replace('/\s+/', '', $nis);
+                    $siswa->password = Hash::make($cleanNis);
+                    $siswa->save();
+                    $pwCount++;
+                }
+            }
+            $messages[] = "password {$pwCount} siswa berhasil direset ke NIS masing-masing";
+        }
+
+        if (! empty($messages)) {
+            return back()->with('success', 'Pengaturan berhasil disimpan dan '.implode(' serta ', $messages).'.');
         }
 
         return back()->with('success', 'Pengaturan berhasil disimpan.');

@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Kelas;
+use App\Models\Setting;
 use App\Models\SiswaProfile;
 use App\Models\User;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -25,13 +27,18 @@ class SiswaController extends Controller
         return back()->with('success', 'Status siswa berhasil diperbarui.');
     }
 
+    public function activateAll()
+    {
+        $count = User::where('role', 'siswa')->update(['is_active' => true]);
+
+        return back()->with('success', "Seluruh {$count} akun siswa berhasil diaktifkan.");
+    }
+
     public function deactivateAll()
     {
-        DB::transaction(function () {
-            User::where('role', 'siswa')->update(['is_active' => false]);
-        });
+        $count = User::where('role', 'siswa')->update(['is_active' => false]);
 
-        return back()->with('success', 'Seluruh akun siswa berhasil dinonaktifkan.');
+        return back()->with('success', "Seluruh {$count} akun siswa berhasil dinonaktifkan.");
     }
 
     public function bulkDestroy(Request $request)
@@ -117,10 +124,11 @@ class SiswaController extends Controller
         $spoutReader = $reader->getReader();
 
         $imported = 0;
-        $defaultPassword = Hash::make('password');
+        $defaultPassword = Hash::make('password123');
+        $defaultIsActive = Setting::isDefaultSiswaActive();
         set_time_limit(300); // Allow up to 5 minutes for large files
 
-        $processRow = function (array $rowProperties, &$headerFound, &$nameIndex, &$nisIndex, &$nisnIndex, &$kelasIndex) use (&$imported, $defaultPassword) {
+        $processRow = function (array $rowProperties, &$headerFound, &$nameIndex, &$nisIndex, &$nisnIndex, &$kelasIndex) use (&$imported, $defaultPassword, $defaultIsActive) {
             if (! $headerFound) {
                 foreach ($rowProperties as $index => $value) {
                     if (is_string($value)) {
@@ -158,7 +166,7 @@ class SiswaController extends Controller
 
             $kelasName = ($kelasIndex !== -1 && ! empty($rowProperties[$kelasIndex])) ? trim((string) $rowProperties[$kelasIndex]) : null;
 
-            DB::transaction(function () use ($nis, $nama, $defaultPassword, $kelasName, &$imported) {
+            DB::transaction(function () use ($nis, $nama, $defaultPassword, $defaultIsActive, $kelasName, &$imported) {
                 $user = null;
 
                 // 1. Cari berdasarkan NIS via SiswaProfile (termasuk trashed)
@@ -197,12 +205,15 @@ class SiswaController extends Controller
                         'email' => null, // Siswa tidak menggunakan email
                     ]);
                 } else {
+                    $cleanNis = $nis ? preg_replace('/\s+/', '', (string) $nis) : null;
+                    $studentPassword = (! empty($cleanNis)) ? Hash::make($cleanNis) : $defaultPassword;
+
                     $user = User::create([
                         'name' => $nama,
                         'email' => null, // Siswa tidak menggunakan email
-                        'password' => $defaultPassword,
+                        'password' => $studentPassword,
                         'role' => 'siswa',
-                        'is_active' => false,
+                        'is_active' => $defaultIsActive,
                     ]);
                 }
 
@@ -311,5 +322,38 @@ class SiswaController extends Controller
         $writer->close();
 
         return response()->download($tempPath, 'template-import-siswa.xlsx')->deleteFileAfterSend(true);
+    }
+
+    public function resetPasswordToNis(User $user): RedirectResponse
+    {
+        $nis = trim((string) ($user->siswaProfile?->nis ?? ''));
+        if (! $nis || $nis === '-') {
+            return back()->with('error', "Gagal reset password: Siswa {$user->name} belum memiliki NIS.");
+        }
+
+        $cleanNis = preg_replace('/\s+/', '', $nis);
+        $user->password = Hash::make($cleanNis);
+        $user->save();
+
+        return back()->with('success', "Password untuk {$user->name} berhasil direset ke NIS ({$cleanNis}).");
+    }
+
+    public function resetAllPasswordToNis(): RedirectResponse
+    {
+        set_time_limit(600);
+        $siswas = User::where('role', 'siswa')->with('siswaProfile')->get();
+        $count = 0;
+
+        foreach ($siswas as $siswa) {
+            $nis = trim((string) ($siswa->siswaProfile?->nis ?? ''));
+            if ($nis !== '' && $nis !== '-') {
+                $cleanNis = preg_replace('/\s+/', '', $nis);
+                $siswa->password = Hash::make($cleanNis);
+                $siswa->save();
+                $count++;
+            }
+        }
+
+        return back()->with('success', "Berhasil mereset password {$count} siswa menjadi NIS masing-masing.");
     }
 }

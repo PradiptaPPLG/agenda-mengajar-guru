@@ -81,6 +81,77 @@
                     </div>
                 </div>
 
+                <hr class="border-slate-200">
+
+                <div>
+                    <div class="flex items-center justify-between mb-1.5">
+                        <h3 class="text-sm font-semibold text-slate-900">Status Akun Siswa Default</h3>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                            Saat ini: {{ $totalSiswaAktif }} aktif / {{ $totalSiswa }} siswa
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-500 mb-3">
+                        Pilih status awal akun siswa baru (saat siswa diimpor melalui Excel atau ditambahkan ke sistem).
+                    </p>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                        <label class="relative flex items-center p-3.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 cursor-pointer transition-colors has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50/50 has-[:checked]:ring-1 has-[:checked]:ring-blue-600">
+                            <input type="radio" name="default_siswa_status" value="aktif"
+                                   {{ old('default_siswa_status', $settings['default_siswa_status']) === 'aktif' ? 'checked' : '' }}
+                                   class="h-4 w-4 text-blue-600 border-slate-300 focus:ring-blue-500">
+                            <div class="ml-3">
+                                <span class="block text-sm font-semibold text-slate-900 flex items-center gap-1.5">
+                                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                    Aktif (Rekomendasi Testing)
+                                </span>
+                                <span class="block text-xs text-slate-500 mt-0.5">Siswa baru langsung bisa login tanpa perlu diaktifkan manual.</span>
+                            </div>
+                        </label>
+
+                        <label class="relative flex items-center p-3.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 cursor-pointer transition-colors has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50/50 has-[:checked]:ring-1 has-[:checked]:ring-blue-600">
+                            <input type="radio" name="default_siswa_status" value="nonaktif"
+                                   {{ old('default_siswa_status', $settings['default_siswa_status']) === 'nonaktif' ? 'checked' : '' }}
+                                   class="h-4 w-4 text-blue-600 border-slate-300 focus:ring-blue-500">
+                            <div class="ml-3">
+                                <span class="block text-sm font-semibold text-slate-900 flex items-center gap-1.5">
+                                    <span class="w-2 h-2 rounded-full bg-red-400"></span>
+                                    Nonaktif
+                                </span>
+                                <span class="block text-xs text-slate-500 mt-0.5">Akun dibuat dalam keadaan mati dan harus diaktifkan admin.</span>
+                            </div>
+                        </label>
+                    </div>
+
+                    {{-- Opsi Massal ke Seluruh Akun yang Ada --}}
+                    <div class="space-y-3">
+                        <div class="p-3.5 bg-amber-50/70 border border-amber-200/80 rounded-xl">
+                            <label class="flex items-start gap-3 cursor-pointer">
+                                <input type="checkbox" name="apply_to_existing_siswa" value="1"
+                                       class="mt-1 h-4 w-4 rounded border-amber-300 text-amber-600 focus:ring-amber-500">
+                                <div>
+                                    <span class="text-sm font-semibold text-amber-900">Terapkan status ke seluruh {{ $totalSiswa }} akun siswa yang sudah ada saat ini</span>
+                                    <p class="text-xs text-amber-700 mt-0.5">
+                                        Centang ini jika Anda ingin langsung mengubah status semua {{ $totalSiswa }} siswa yang ada di sistem sekaligus sesuai pilihan di atas tanpa perlu klik satu per satu.
+                                    </p>
+                                </div>
+                            </label>
+                        </div>
+
+                        <div class="p-3.5 bg-blue-50/70 border border-blue-200/80 rounded-xl">
+                            <label class="flex items-start gap-3 cursor-pointer">
+                                <input type="checkbox" name="reset_passwords_to_nis" value="1"
+                                       class="mt-1 h-4 w-4 rounded border-blue-300 text-blue-600 focus:ring-blue-500">
+                                <div>
+                                    <span class="text-sm font-semibold text-blue-900">Reset password seluruh {{ $totalSiswa }} akun siswa menjadi NIS masing-masing</span>
+                                    <p class="text-xs text-blue-700 mt-0.5">
+                                        Default password siswa baru adalah NIS masing-masing. Centang opsi ini jika Anda ingin menyinkronkan/mereset password seluruh {{ $totalSiswa }} siswa yang sudah ada di database agar langsung menggunakan NIS mereka untuk kemudahan login saat testing.
+                                    </p>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="pt-2">
                     <button type="submit" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors">
                         Simpan Pengaturan

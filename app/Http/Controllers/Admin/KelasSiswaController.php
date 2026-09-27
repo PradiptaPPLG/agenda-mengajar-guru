@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Kelas;
+use App\Models\Setting;
 use App\Models\SiswaProfile;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -65,10 +66,11 @@ class KelasSiswaController extends Controller
 
         $importedCount = 0;
 
-        $defaultPassword = Hash::make('password');
+        $defaultPassword = Hash::make('password123');
+        $defaultIsActive = Setting::isDefaultSiswaActive();
         set_time_limit(300); // Allow up to 5 minutes for large files
 
-        $processRow = function (array $rowProperties, &$headerFound, &$nameIndex, &$nisIndex) use ($kelas, &$importedCount, $defaultPassword) {
+        $processRow = function (array $rowProperties, &$headerFound, &$nameIndex, &$nisIndex) use ($kelas, &$importedCount, $defaultPassword, $defaultIsActive) {
             if (! $headerFound) {
                 foreach ($rowProperties as $index => $value) {
                     if (is_string($value)) {
@@ -95,7 +97,7 @@ class KelasSiswaController extends Controller
 
             $nis = ($nisIndex !== -1 && isset($rowProperties[$nisIndex])) ? trim($rowProperties[$nisIndex]) : null;
 
-            DB::transaction(function () use ($nis, $name, $defaultPassword, $kelas, &$importedCount) {
+            DB::transaction(function () use ($nis, $name, $defaultPassword, $defaultIsActive, $kelas, &$importedCount) {
                 $user = null;
 
                 // 1. Cari berdasarkan NIS via SiswaProfile (termasuk trashed)
@@ -134,11 +136,15 @@ class KelasSiswaController extends Controller
                         'email' => null, // Siswa tidak menggunakan email
                     ]);
                 } else {
+                    $cleanNis = $nis ? preg_replace('/\s+/', '', (string) $nis) : null;
+                    $studentPassword = (! empty($cleanNis)) ? Hash::make($cleanNis) : $defaultPassword;
+
                     $user = User::create([
                         'name' => $name,
                         'email' => null, // Siswa tidak menggunakan email
-                        'password' => $defaultPassword,
+                        'password' => $studentPassword,
                         'role' => 'siswa',
+                        'is_active' => $defaultIsActive,
                     ]);
                 }
 

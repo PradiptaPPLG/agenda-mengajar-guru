@@ -118,6 +118,9 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
     Route::get('siswa/template', [SiswaController::class, 'downloadTemplate'])->name('siswa.template');
     Route::post('siswa/import', [SiswaController::class, 'import'])->name('siswa.import');
     Route::post('siswa/deactivate-all', [SiswaController::class, 'deactivateAll'])->name('siswa.deactivate-all');
+    Route::post('siswa/activate-all', [SiswaController::class, 'activateAll'])->name('siswa.activate-all');
+    Route::post('siswa/reset-all-password-nis', [SiswaController::class, 'resetAllPasswordToNis'])->name('siswa.reset-all-password-nis');
+    Route::post('siswa/{user}/reset-password-nis', [SiswaController::class, 'resetPasswordToNis'])->name('siswa.reset-password-nis');
     Route::post('siswa/{user}/toggle-active', [SiswaController::class, 'toggleActive'])->name('siswa.toggle-active');
 
     Route::get('mata-pelajaran/template', [AdminMataPelajaranController::class, 'downloadTemplate'])->name('mata-pelajaran.template');

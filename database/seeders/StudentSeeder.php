@@ -1455,18 +1455,17 @@ class StudentSeeder extends Seeder
             $kelasMap[$namaKelas] = $kelas->id;
         }
 
-        $defaultPassword = Hash::make('password');
-
         foreach ($students as [$nis, $name, $gender, $age, $namaKelas]) {
             // Skip if this NIS already exists (idempotent re-run safety)
             if (SiswaProfile::where('nis', $nis)->exists()) {
                 continue;
             }
 
+            $cleanNis = preg_replace('/\s+/', '', (string) $nis);
             $siswa = User::create([
                 'name' => $name,
                 'email' => null,
-                'password' => $defaultPassword,
+                'password' => Hash::make($cleanNis ?: 'password123'),
                 'role' => 'siswa',
                 'is_active' => false,
             ]);

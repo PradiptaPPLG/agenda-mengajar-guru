@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\GuruProfile;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
+use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -117,9 +118,10 @@ class UserController extends Controller
 
         $user = User::create([
             'name' => $validated['name'],
-            'email' => $validated['email'],
+            'email' => $validated['email'] ?? null,
             'password' => Hash::make($rawPassword),
             'role' => $validated['role'],
+            'is_active' => $validated['role'] === 'siswa' ? Setting::isDefaultSiswaActive() : true,
         ]);
 
         if (! empty($validated['spatie_roles'])) {

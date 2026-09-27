@@ -121,4 +121,20 @@ class Setting extends Model
             'end' => Carbon::createFromDate($tahunAwal, 12, 31)->endOfDay(),
         ];
     }
+
+    /**
+     * Dapatkan status default akun siswa ('aktif' atau 'nonaktif').
+     */
+    public static function getDefaultSiswaStatus(): string
+    {
+        return (string) static::get('default_siswa_status', 'aktif');
+    }
+
+    /**
+     * Apakah akun siswa default-nya aktif secara boolean.
+     */
+    public static function isDefaultSiswaActive(): bool
+    {
+        return static::getDefaultSiswaStatus() === 'aktif';
+    }
 }
