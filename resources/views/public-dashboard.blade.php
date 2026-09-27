@@ -10,6 +10,8 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <!-- Alpine Core -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <!-- PWA Manifest & Icons -->
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#2563eb">
@@ -33,7 +35,7 @@
             </div>
 
             {{-- Right Navigation / Menu 3-Dots --}}
-            <div class="flex items-center gap-3" x-data="{ openMenu: false }">
+            <div class="flex items-center gap-3">
                 @auth
                     @php
                         $user = auth()->user();
@@ -53,8 +55,8 @@
                 @endauth
 
                 {{-- Dropdown Menu Titik Tiga (3 Dots) --}}
-                <div class="relative">
-                    <button @click="openMenu = !openMenu" @click.away="openMenu = false" class="p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors focus:outline-none" title="Menu Options">
+                <div class="relative" x-data="{ openMenu: false }" @click.outside="openMenu = false">
+                    <button @click="openMenu = !openMenu" class="p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors focus:outline-none" title="Menu Options">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/>
                         </svg>
