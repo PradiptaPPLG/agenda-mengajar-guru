@@ -8,10 +8,11 @@
                 <form action="{{ route('admin.siswa.index') }}" method="GET" class="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 w-full sm:w-auto" id="siswa-filter-form">
                     <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama atau NIS..."
                            id="siswa-search-input"
+                           autocomplete="off"
                            class="w-full sm:w-64 px-4 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500"
-                           oninput="debouncedFilterSubmit('siswa-filter-form', 'siswa-search-input')">
+                           oninput="liveSearchFilter('siswa-filter-form', 'siswa-table-container', 'siswa-search-input')">
                     <select name="kelas_id" class="w-full sm:w-auto px-4 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 bg-white"
-                            onchange="document.getElementById('siswa-filter-form').submit()">
+                            onchange="liveSearchFilter('siswa-filter-form', 'siswa-table-container', 'siswa-search-input')">
                         <option value="">Semua Kelas</option>
                         @foreach($kelasList as $kelas)
                             <option value="{{ $kelas->id }}" {{ request('kelas_id') == $kelas->id ? 'selected' : '' }}>
@@ -40,8 +41,8 @@
         </div>
 
         <!-- Table -->
-        <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-            <form action="{{ route('admin.siswa.bulk-destroy') }}" method="POST" id="bulk-delete-form">
+        <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm" id="siswa-table-container">
+            <form action="{{ route('admin.siswa.bulk-destroy') }}" method="POST" id="bulk-delete-form" data-total="{{ $siswa->total() }}">
                 @csrf
                 <input type="hidden" name="delete_all" id="delete-all-input" value="0">
                 <input type="hidden" name="search" value="{{ request('search') }}">
@@ -225,64 +226,72 @@
     
     @push('scripts')
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        window.initBulkDelete = function() {
             const selectAll = document.getElementById('select-all');
             const rowCheckboxes = document.querySelectorAll('.row-checkbox');
             const btnBulkDelete = document.getElementById('btn-bulk-delete');
             const selectedCount = document.getElementById('selected-count');
             const deleteAllInput = document.getElementById('delete-all-input');
-            const totalDataCount = {{ $siswa->total() }};
+            const bulkDeleteForm = document.getElementById('bulk-delete-form');
+            const totalDataCount = bulkDeleteForm && bulkDeleteForm.dataset.total ? parseInt(bulkDeleteForm.dataset.total, 10) : {{ $siswa->total() }};
 
             function updateBulkDeleteButton() {
                 const checkedCount = document.querySelectorAll('.row-checkbox:checked').length;
                 
-                if (deleteAllInput.value === '1') {
-                    selectedCount.textContent = `Semua ${totalDataCount}`;
-                } else {
+                if (deleteAllInput && deleteAllInput.value === '1') {
+                    if (selectedCount) selectedCount.textContent = `Semua ${totalDataCount}`;
+                } else if (selectedCount) {
                     selectedCount.textContent = checkedCount;
                 }
                 
-                if (checkedCount > 0) {
-                    btnBulkDelete.classList.remove('hidden');
-                } else {
-                    btnBulkDelete.classList.add('hidden');
+                if (btnBulkDelete) {
+                    if (checkedCount > 0) {
+                        btnBulkDelete.classList.remove('hidden');
+                    } else {
+                        btnBulkDelete.classList.add('hidden');
+                    }
                 }
             }
 
             if (selectAll) {
-                selectAll.addEventListener('change', function() {
+                selectAll.onchange = function() {
                     const isChecked = this.checked;
                     rowCheckboxes.forEach(cb => cb.checked = isChecked);
                     
-                    if (isChecked && totalDataCount > rowCheckboxes.length) {
-                        deleteAllInput.value = '1';
-                    } else {
-                        deleteAllInput.value = '0';
+                    if (deleteAllInput) {
+                        if (isChecked && totalDataCount > rowCheckboxes.length) {
+                            deleteAllInput.value = '1';
+                        } else {
+                            deleteAllInput.value = '0';
+                        }
                     }
                     
                     updateBulkDeleteButton();
-                });
+                };
             }
 
             rowCheckboxes.forEach(cb => {
-                cb.addEventListener('change', function() {
+                cb.onchange = function() {
                     const allChecked = document.querySelectorAll('.row-checkbox:checked').length === rowCheckboxes.length;
-                    selectAll.checked = allChecked && rowCheckboxes.length > 0;
+                    if (selectAll) selectAll.checked = allChecked && rowCheckboxes.length > 0;
                     
-                    if (!this.checked) {
-                        deleteAllInput.value = '0';
-                    } else if (selectAll.checked && totalDataCount > rowCheckboxes.length) {
-                        deleteAllInput.value = '1';
+                    if (deleteAllInput) {
+                        if (!this.checked) {
+                            deleteAllInput.value = '0';
+                        } else if (selectAll && selectAll.checked && totalDataCount > rowCheckboxes.length) {
+                            deleteAllInput.value = '1';
+                        }
                     }
                     
                     updateBulkDeleteButton();
-                });
+                };
             });
 
             const bulkDeleteForm = document.getElementById('bulk-delete-form');
-            if (bulkDeleteForm) {
+            if (bulkDeleteForm && !bulkDeleteForm.dataset.bound) {
+                bulkDeleteForm.dataset.bound = 'true';
                 bulkDeleteForm.addEventListener('submit', function(e) {
-                    const msg = deleteAllInput.value === '1' 
+                    const msg = (deleteAllInput && deleteAllInput.value === '1') 
                         ? `PERHATIAN: Anda akan menghapus SELURUH ${totalDataCount} siswa (termasuk di halaman lain). Yakin ingin melanjutkan?` 
                         : 'Yakin ingin menghapus siswa yang Anda centang?';
                         
@@ -291,7 +300,9 @@
                     }
                 });
             }
-        });
+        };
+
+        document.addEventListener('DOMContentLoaded', window.initBulkDelete);
     </script>
     @endpush
 </x-layouts.admin>

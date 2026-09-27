@@ -26,10 +26,11 @@
                     </div>
                     <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari pelajaran..."
                            id="mapel-search-input"
+                           autocomplete="off"
                            class="w-full sm:w-64 pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                           oninput="debouncedFilterSubmit('mapel-filter-form', 'mapel-search-input')">
+                           oninput="liveSearchFilter('mapel-filter-form', 'mapel-table-container', 'mapel-search-input')">
                 </div>
-                <select name="jenis" onchange="this.form.submit()" class="px-3.5 py-2 border border-slate-200 rounded-xl text-sm font-semibold bg-white focus:ring-2 focus:ring-blue-500 text-slate-700">
+                <select name="jenis" onchange="liveSearchFilter('mapel-filter-form', 'mapel-table-container', 'mapel-search-input')" class="px-3.5 py-2 border border-slate-200 rounded-xl text-sm font-semibold bg-white focus:ring-2 focus:ring-blue-500 text-slate-700">
                     <option value="">Semua Kategori (Umum & Kejuruan)</option>
                     <option value="umum" {{ request('jenis') === 'umum' ? 'selected' : '' }}>Kelompok Umum (Normatif & Adaptif)</option>
                     <option value="produktif" {{ request('jenis') === 'produktif' ? 'selected' : '' }}>Kelompok Kejuruan (Produktif)</option>
@@ -40,7 +41,8 @@
             </form>
         </div>
 
-        <form action="{{ route('admin.mata-pelajaran.bulk-destroy') }}" method="POST" id="bulk-delete-form">
+        <div id="mapel-table-container">
+        <form action="{{ route('admin.mata-pelajaran.bulk-destroy') }}" method="POST" id="bulk-delete-form" data-total="{{ $mataPelajarans->total() }}">
             @csrf
             <input type="hidden" name="delete_all" id="delete-all-input" value="0">
             <input type="hidden" name="search" value="{{ request('search') }}">
@@ -99,6 +101,7 @@
         <div class="px-4 py-3 border-t border-slate-100">{{ $mataPelajarans->links() }}</div>
         @endif
         </form>
+        </div>
     </div>
     
     <!-- Import Modal -->
@@ -173,13 +176,16 @@
     
     @push('scripts')
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        window.initBulkDelete = function() {
             const selectAll = document.getElementById('select-all');
             const rowCheckboxes = document.querySelectorAll('.row-checkbox');
             const btnBulkDelete = document.getElementById('btn-bulk-delete');
             const selectedCount = document.getElementById('selected-count');
             const deleteAllInput = document.getElementById('delete-all-input');
-            const totalDataCount = {{ $mataPelajarans->total() }};
+            const bulkDeleteForm = document.getElementById('bulk-delete-form');
+            const totalDataCount = bulkDeleteForm && bulkDeleteForm.dataset.total ? parseInt(bulkDeleteForm.dataset.total, 10) : {{ $mataPelajarans->total() }};
+
+            if (!selectAll || !btnBulkDelete || !selectedCount || !deleteAllInput) return;
 
             function updateBulkDeleteButton() {
                 const checkedCount = document.querySelectorAll('.row-checkbox:checked').length;
@@ -197,38 +203,38 @@
                 }
             }
 
-            if (selectAll) {
-                selectAll.addEventListener('change', function() {
-                    const isChecked = this.checked;
-                    rowCheckboxes.forEach(cb => cb.checked = isChecked);
-                    
-                    if (isChecked && totalDataCount > rowCheckboxes.length) {
-                        deleteAllInput.value = '1';
-                    } else {
-                        deleteAllInput.value = '0';
-                    }
-                    
-                    updateBulkDeleteButton();
-                });
-            }
+            selectAll.onclick = function() {
+                const isChecked = this.checked;
+                document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = isChecked);
+                
+                if (isChecked && totalDataCount > document.querySelectorAll('.row-checkbox').length) {
+                    deleteAllInput.value = '1';
+                } else {
+                    deleteAllInput.value = '0';
+                }
+                
+                updateBulkDeleteButton();
+            };
 
-            rowCheckboxes.forEach(cb => {
-                cb.addEventListener('change', function() {
-                    const allChecked = document.querySelectorAll('.row-checkbox:checked').length === rowCheckboxes.length;
-                    selectAll.checked = allChecked && rowCheckboxes.length > 0;
+            document.querySelectorAll('.row-checkbox').forEach(cb => {
+                cb.onclick = function() {
+                    const allCheckboxes = document.querySelectorAll('.row-checkbox');
+                    const allChecked = document.querySelectorAll('.row-checkbox:checked').length === allCheckboxes.length;
+                    selectAll.checked = allChecked && allCheckboxes.length > 0;
                     
                     if (!this.checked) {
                         deleteAllInput.value = '0';
-                    } else if (selectAll.checked && totalDataCount > rowCheckboxes.length) {
+                    } else if (selectAll.checked && totalDataCount > allCheckboxes.length) {
                         deleteAllInput.value = '1';
                     }
                     
                     updateBulkDeleteButton();
-                });
+                };
             });
 
             const bulkDeleteForm = document.getElementById('bulk-delete-form');
-            if (bulkDeleteForm) {
+            if (bulkDeleteForm && !bulkDeleteForm.dataset.hasListener) {
+                bulkDeleteForm.dataset.hasListener = 'true';
                 bulkDeleteForm.addEventListener('submit', function(e) {
                     const msg = deleteAllInput.value === '1' 
                         ? `PERHATIAN: Anda akan menghapus SELURUH ${totalDataCount} mata pelajaran (termasuk di halaman lain). Jadwal yang terkait dengan mapel ini juga akan terhapus. Yakin?` 
@@ -239,6 +245,10 @@
                     }
                 });
             }
+        };
+
+        document.addEventListener('DOMContentLoaded', function() {
+            window.initBulkDelete();
         });
     </script>
     @endpush

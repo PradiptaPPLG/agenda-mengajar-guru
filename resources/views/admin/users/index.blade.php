@@ -1,18 +1,6 @@
 <x-layouts.admin>
     <x-slot:title>Manajemen Guru</x-slot:title>
     
-    @push('scripts')
-    <script>
-        let filterTimeout;
-        function debouncedFilterSubmit(formId, inputId) {
-            clearTimeout(filterTimeout);
-            filterTimeout = setTimeout(() => {
-                const f = document.getElementById(formId);
-                if (f) f.submit();
-            }, 500);
-        }
-    </script>
-    @endpush
 
     <div x-data="{ showImport: false, isSubmitting: false }">
         <!-- Header & Actions -->
@@ -28,12 +16,13 @@
                         </div>
                         <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama atau NIP guru..."
                                id="users-search-input"
+                               autocomplete="off"
                                class="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 bg-white"
-                               oninput="debouncedFilterSubmit('users-filter-form', 'users-search-input')">
+                               oninput="liveSearchFilter('users-filter-form', 'users-table-container', 'users-search-input')">
                     </div>
 
                     {{-- Dropdown 1: Role / Akses --}}
-                    <select name="role_filter" onchange="document.getElementById('users-filter-form').submit()" class="w-full sm:w-auto px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 bg-white text-slate-700">
+                    <select name="role_filter" onchange="liveSearchFilter('users-filter-form', 'users-table-container', 'users-search-input')" class="w-full sm:w-auto px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 bg-white text-slate-700">
                         <option value="">Semua Role / Akses</option>
                         <option value="guru" {{ request('role_filter') == 'guru' ? 'selected' : '' }}>Guru Pengajar</option>
                         <option value="bk" {{ request('role_filter') == 'bk' ? 'selected' : '' }}>Guru BK</option>
@@ -42,7 +31,7 @@
                     </select>
 
                     {{-- Dropdown 2: Mata Pelajaran --}}
-                    <select name="mapel_id" onchange="document.getElementById('users-filter-form').submit()" class="w-full sm:w-auto px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 bg-white text-slate-700">
+                    <select name="mapel_id" onchange="liveSearchFilter('users-filter-form', 'users-table-container', 'users-search-input')" class="w-full sm:w-auto px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 bg-white text-slate-700">
                         <option value="">Semua Mata Pelajaran</option>
                         @foreach($mataPelajarans as $mp)
                             <option value="{{ $mp->id }}" {{ request('mapel_id') == $mp->id ? 'selected' : '' }}>
@@ -82,8 +71,8 @@
             </div>
         </div>
 
-        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
-            <form action="{{ route('admin.users.bulk-destroy') }}" method="POST" id="bulk-delete-form">
+        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs" id="users-table-container">
+            <form action="{{ route('admin.users.bulk-destroy') }}" method="POST" id="bulk-delete-form" data-total="{{ $users->total() }}">
                 @csrf
                 <input type="hidden" name="delete_all" id="delete-all-input" value="0">
                 <input type="hidden" name="search" value="{{ request('search') }}">
@@ -334,64 +323,72 @@
     
     @push('scripts')
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        window.initBulkDelete = function() {
             const selectAll = document.getElementById('select-all');
             const rowCheckboxes = document.querySelectorAll('.row-checkbox');
             const btnBulkDelete = document.getElementById('btn-bulk-delete');
             const selectedCount = document.getElementById('selected-count');
             const deleteAllInput = document.getElementById('delete-all-input');
-            const totalDataCount = {{ $users->total() }};
+            const bulkDeleteForm = document.getElementById('bulk-delete-form');
+            const totalDataCount = bulkDeleteForm && bulkDeleteForm.dataset.total ? parseInt(bulkDeleteForm.dataset.total, 10) : {{ $users->total() }};
 
             function updateBulkDeleteButton() {
                 const checkedCount = document.querySelectorAll('.row-checkbox:checked').length;
                 
-                if (deleteAllInput.value === '1') {
-                    selectedCount.textContent = `Semua ${totalDataCount}`;
-                } else {
+                if (deleteAllInput && deleteAllInput.value === '1') {
+                    if (selectedCount) selectedCount.textContent = `Semua ${totalDataCount}`;
+                } else if (selectedCount) {
                     selectedCount.textContent = checkedCount;
                 }
                 
-                if (checkedCount > 0) {
-                    btnBulkDelete.classList.remove('hidden');
-                } else {
-                    btnBulkDelete.classList.add('hidden');
+                if (btnBulkDelete) {
+                    if (checkedCount > 0) {
+                        btnBulkDelete.classList.remove('hidden');
+                    } else {
+                        btnBulkDelete.classList.add('hidden');
+                    }
                 }
             }
 
             if (selectAll) {
-                selectAll.addEventListener('change', function() {
+                selectAll.onchange = function() {
                     const isChecked = this.checked;
                     rowCheckboxes.forEach(cb => cb.checked = isChecked);
                     
-                    if (isChecked && totalDataCount > rowCheckboxes.length) {
-                        deleteAllInput.value = '1';
-                    } else {
-                        deleteAllInput.value = '0';
+                    if (deleteAllInput) {
+                        if (isChecked && totalDataCount > rowCheckboxes.length) {
+                            deleteAllInput.value = '1';
+                        } else {
+                            deleteAllInput.value = '0';
+                        }
                     }
                     
                     updateBulkDeleteButton();
-                });
+                };
             }
 
             rowCheckboxes.forEach(cb => {
-                cb.addEventListener('change', function() {
+                cb.onchange = function() {
                     const allChecked = document.querySelectorAll('.row-checkbox:checked').length === rowCheckboxes.length;
-                    selectAll.checked = allChecked && rowCheckboxes.length > 0;
+                    if (selectAll) selectAll.checked = allChecked && rowCheckboxes.length > 0;
                     
-                    if (!this.checked) {
-                        deleteAllInput.value = '0';
-                    } else if (selectAll.checked && totalDataCount > rowCheckboxes.length) {
-                        deleteAllInput.value = '1';
+                    if (deleteAllInput) {
+                        if (!this.checked) {
+                            deleteAllInput.value = '0';
+                        } else if (selectAll && selectAll.checked && totalDataCount > rowCheckboxes.length) {
+                            deleteAllInput.value = '1';
+                        }
                     }
                     
                     updateBulkDeleteButton();
-                });
+                };
             });
 
             const bulkDeleteForm = document.getElementById('bulk-delete-form');
-            if (bulkDeleteForm) {
+            if (bulkDeleteForm && !bulkDeleteForm.dataset.bound) {
+                bulkDeleteForm.dataset.bound = 'true';
                 bulkDeleteForm.addEventListener('submit', function(e) {
-                    const msg = deleteAllInput.value === '1' 
+                    const msg = (deleteAllInput && deleteAllInput.value === '1') 
                         ? `PERHATIAN: Anda akan menghapus SELURUH ${totalDataCount} pengguna (termasuk di halaman lain). Yakin ingin melanjutkan?` 
                         : 'Yakin ingin menghapus pengguna yang Anda centang?';
                         
@@ -400,7 +397,9 @@
                     }
                 });
             }
-        });
+        };
+
+        document.addEventListener('DOMContentLoaded', window.initBulkDelete);
     </script>
     @endpush
 </x-layouts.admin>

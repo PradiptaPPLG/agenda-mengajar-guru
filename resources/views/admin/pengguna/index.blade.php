@@ -1,25 +1,13 @@
 <x-layouts.admin>
     <x-slot:title>Manajemen Semua Pengguna</x-slot:title>
     
-    @push('scripts')
-    <script>
-        let filterTimeout;
-        function debouncedFilterSubmit(formId, inputId) {
-            clearTimeout(filterTimeout);
-            filterTimeout = setTimeout(() => {
-                document.getElementById(formId).submit();
-            }, 500);
-        }
-    </script>
-    @endpush
-
     <div>
         <!-- Header & Actions -->
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <div class="w-full">
                 <form action="{{ route('admin.pengguna.index') }}" method="GET" class="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2.5 w-full" id="pengguna-filter-form">
                     {{-- Role Utama --}}
-                    <select name="role" onchange="document.getElementById('pengguna-filter-form').submit()" class="w-full sm:w-auto px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 bg-white">
+                    <select name="role" onchange="liveSearchFilter('pengguna-filter-form', 'pengguna-table-container', 'pengguna-search-input')" class="w-full sm:w-auto px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 bg-white">
                         <option value="">Semua Role Sistem</option>
                         <option value="admin" {{ request('role') == 'admin' ? 'selected' : '' }}>Admin</option>
                         <option value="kepala_sekolah" {{ request('role') == 'kepala_sekolah' ? 'selected' : '' }}>Kepala Sekolah</option>
@@ -29,7 +17,7 @@
                     </select>
 
                     {{-- Jabatan / Role Tambahan --}}
-                    <select name="jabatan" onchange="document.getElementById('pengguna-filter-form').submit()" class="w-full sm:w-auto px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 bg-white">
+                    <select name="jabatan" onchange="liveSearchFilter('pengguna-filter-form', 'pengguna-table-container', 'pengguna-search-input')" class="w-full sm:w-auto px-3.5 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 bg-white">
                         <option value="">Semua Jabatan / Akses</option>
                         <option value="kaprog" {{ request('jabatan') == 'kaprog' ? 'selected' : '' }}>Kepala Program (Kaprog)</option>
                         <option value="bk" {{ request('jabatan') == 'bk' ? 'selected' : '' }}>Guru BK</option>
@@ -47,8 +35,9 @@
                             </div>
                             <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama, NIP, atau email..."
                                    id="pengguna-search-input"
+                                   autocomplete="off"
                                    class="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 bg-white"
-                                   oninput="debouncedFilterSubmit('pengguna-filter-form', 'pengguna-search-input')">
+                                   oninput="liveSearchFilter('pengguna-filter-form', 'pengguna-table-container', 'pengguna-search-input')">
                         </div>
                         <button type="submit" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-sm font-medium transition-colors shrink-0">
                             Cari
@@ -64,6 +53,7 @@
             </div>
         </div>
 
+        <div id="pengguna-table-container">
         <!-- Desktop Table (Hidden on Mobile) -->
         <div class="hidden md:block bg-white rounded-2xl border border-slate-200 overflow-hidden">
             <div class="overflow-x-auto">
@@ -185,6 +175,7 @@
 
         <div class="mt-6">
             {{ $users->links() }}
+        </div>
         </div>
     </div>
 </x-layouts.admin>

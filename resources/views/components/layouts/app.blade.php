@@ -157,14 +157,165 @@
 
     <script>
         window.filterSubmitTimer = null;
+        window.activeSearchAbort = null;
+
+        /**
+         * Global Real-time Live Search & Filter
+         * 1. Instant client-side DOM filtering on keypress (0ms feedback)
+         * 2. Debounced background AJAX fetch (300ms) to sync full database results & pagination
+         * 3. Zero page reload, cursor never leaves search box!
+         */
+        function liveSearchFilter(formOrId, tableContainerId, searchInputId) {
+            const form = typeof formOrId === 'string' ? document.getElementById(formOrId) : formOrId;
+            const searchInput = typeof searchInputId === 'string' ? document.getElementById(searchInputId) : searchInputId;
+            const tableContainer = typeof tableContainerId === 'string' ? document.getElementById(tableContainerId) : tableContainerId;
+
+            if (!form || !searchInput || !tableContainer) {
+                if (window.filterSubmitTimer) clearTimeout(window.filterSubmitTimer);
+                window.filterSubmitTimer = setTimeout(() => {
+                    if (form && typeof form.submit === 'function') form.submit();
+                }, 400);
+                return;
+            }
+
+            const query = (searchInput.value || '').trim().toLowerCase();
+
+            // 1. Instant client-side row filtering (0ms latency)
+            const tbody = tableContainer.querySelector('tbody');
+            if (tbody) {
+                const rows = tbody.querySelectorAll('tr:not(.empty-state-row)');
+                let visibleCount = 0;
+                rows.forEach(row => {
+                    const text = row.innerText.toLowerCase();
+                    if (!query || text.includes(query)) {
+                        row.style.display = '';
+                        visibleCount++;
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+
+                let emptyRow = tbody.querySelector('.empty-state-row');
+                if (visibleCount === 0 && rows.length > 0 && query !== '') {
+                    if (!emptyRow) {
+                        const tr = document.createElement('tr');
+                        tr.className = 'empty-state-row';
+                        tr.innerHTML = `<td colspan="100" class="px-6 py-8 text-center text-slate-400 text-sm">
+                            <div class="flex items-center justify-center gap-2">
+                                <svg class="w-4 h-4 text-blue-500 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                                <span>Mencari di seluruh database...</span>
+                            </div>
+                        </td>`;
+                        tbody.appendChild(tr);
+                    } else {
+                        emptyRow.style.display = '';
+                    }
+                } else if (emptyRow) {
+                    emptyRow.style.display = 'none';
+                }
+            }
+
+            // Also instant filter mobile view cards if available
+            const mobileContainer = tableContainer.querySelector('.md\\:hidden');
+            if (mobileContainer) {
+                const cards = mobileContainer.querySelectorAll(':scope > div');
+                cards.forEach(card => {
+                    const text = card.innerText.toLowerCase();
+                    if (!query || text.includes(query)) {
+                        card.style.display = '';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            }
+
+            // 2. Debounced background fetch to query full server database and update pagination seamlessly
+            if (window.filterSubmitTimer) clearTimeout(window.filterSubmitTimer);
+            if (window.activeSearchAbort) {
+                window.activeSearchAbort.abort();
+            }
+
+            window.filterSubmitTimer = setTimeout(() => {
+                const formData = new FormData(form);
+                const params = new URLSearchParams();
+                for (const [k, v] of formData.entries()) {
+                    if (v !== '' && v !== null && v !== undefined) {
+                        params.append(k, v);
+                    }
+                }
+                const actionUrl = form.getAttribute('action') || window.location.pathname;
+                const queryString = params.toString();
+                const url = actionUrl + (queryString ? (actionUrl.includes('?') ? '&' : '?') + queryString : '');
+
+                window.history.replaceState({}, '', url);
+
+                const controller = new AbortController();
+                window.activeSearchAbort = controller;
+
+                tableContainer.classList.add('opacity-60', 'transition-opacity', 'duration-150');
+
+                fetch(url, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    signal: controller.signal
+                })
+                .then(res => {
+                    if (!res.ok) {
+                        if (res.status === 401 || res.status === 419) {
+                            window.location.reload();
+                            return '';
+                        }
+                        throw new Error(`HTTP error ${res.status}`);
+                    }
+                    return res.text();
+                })
+                .then(html => {
+                    if (!html) return;
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const newTable = doc.getElementById(tableContainer.id);
+                    if (newTable) {
+                        tableContainer.innerHTML = newTable.innerHTML;
+                        if (window.Alpine && typeof window.Alpine.initTree === 'function') {
+                            window.Alpine.initTree(tableContainer);
+                        }
+                        if (typeof window.initBulkDelete === 'function') {
+                            window.initBulkDelete();
+                        }
+                    }
+                })
+                .catch(err => {
+                    if (err.name !== 'AbortError') console.error('Live search error:', err);
+                })
+                .finally(() => {
+                    tableContainer.classList.remove('opacity-60');
+                });
+            }, 300);
+        }
+
         function debouncedFilterSubmit(formElement, delay = 400) {
             if (window.filterSubmitTimer) clearTimeout(window.filterSubmitTimer);
             window.filterSubmitTimer = setTimeout(() => {
-                if (formElement) {
-                    formElement.submit();
-                }
+                const f = typeof formElement === 'string' ? document.getElementById(formElement) : formElement;
+                if (f && typeof f.submit === 'function') f.submit();
             }, delay);
         }
+
+        // Prevent accidental page reload on pressing Enter in search bar
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && e.target && e.target.matches('input[name="search"]')) {
+                e.preventDefault();
+            }
+        });
+
+        // Auto-focus and place cursor at end of input on initial page load if query is present
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.querySelector('input[name="search"]');
+            if (searchInput && searchInput.value) {
+                searchInput.focus();
+                const len = searchInput.value.length;
+                searchInput.setSelectionRange(len, len);
+            }
+        });
 
         // PWA Service Worker Registration
         if ('serviceWorker' in navigator) {
