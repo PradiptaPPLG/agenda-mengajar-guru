@@ -10,7 +10,7 @@
          class="fixed bottom-4 left-4 right-4 md:left-auto md:right-6 md:max-w-md z-50 bg-slate-900/95 backdrop-blur-md text-white p-4 rounded-2xl shadow-2xl border border-slate-700/80 flex items-center justify-between gap-4">
         
         <div class="flex items-center gap-3 min-w-0">
-            <div class="w-11 h-11 rounded-xl bg-blue-600 p-2 shrink-0 flex items-center justify-center shadow-md">
+            <div class="w-11 h-11 rounded-xl bg-white p-1.5 shrink-0 flex items-center justify-center shadow-md">
                 <img src="{{ asset('images/logo_new.png') }}" alt="Logo App" class="w-full h-full object-contain">
             </div>
             <div class="min-w-0">
@@ -39,8 +39,8 @@
     {{-- iOS / Safari Instructions Modal --}}
     <div x-show="showIosModal" style="display: none;" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-md">
         <div @click.away="showIosModal = false" class="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl text-slate-900 border border-slate-100">
-            <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-4 mx-auto">
-                <img src="{{ asset('images/logo_new.png') }}" alt="Logo" class="w-8 h-8 object-contain">
+            <div class="w-12 h-12 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-center mb-4 mx-auto p-2">
+                <img src="{{ asset('images/logo_new.png') }}" alt="Logo" class="w-full h-full object-contain">
             </div>
             <h3 class="text-base font-bold text-center text-slate-900">Install di HP / Tablet</h3>
             <p class="text-xs text-slate-500 text-center mt-1 leading-relaxed">Ikuti langkah di bawah ini untuk menambahkan aplikasi ke Layar Utama perangkat Anda:</p>
