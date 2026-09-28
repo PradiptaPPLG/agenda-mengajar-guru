@@ -9,44 +9,46 @@
     </x-slot:actions>
 
     <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-        <table class="w-full text-sm">
-            <thead class="bg-slate-50 border-b border-slate-200">
-                <tr>
-                    <th class="text-left px-4 py-3 font-semibold text-slate-600">Nama Role</th>
-                    <th class="text-left px-4 py-3 font-semibold text-slate-600">Total Permission</th>
-                    <th class="text-right px-4 py-3 font-semibold text-slate-600">Aksi</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100">
-                @forelse($roles as $role)
-                    <tr class="hover:bg-slate-50 transition-colors">
-                        <td class="px-4 py-3 font-medium text-slate-900">
-                            <span class="inline-flex items-center gap-1.5 font-semibold text-slate-800">
-                                <span class="w-2 h-2 rounded-full bg-blue-600"></span>
-                                {{ $role->name }}
-                            </span>
-                        </td>
-                        <td class="px-4 py-3 text-slate-600">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                                {{ $role->permissions->count() }} permission
-                            </span>
-                        </td>
-                        <td class="px-4 py-3">
-                            <div class="flex items-center justify-end">
-                                <x-action-dropdown 
-                                    :editUrl="route('admin.roles.edit', $role)" 
-                                    :deleteUrl="route('admin.roles.destroy', $role)" 
-                                    deleteMessage="Yakin ingin menghapus role {{ $role->name }}?"
-                                />
-                            </div>
-                        </td>
-                    </tr>
-                @empty
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm min-w-[500px]">
+                <thead class="bg-slate-50 border-b border-slate-200">
                     <tr>
-                        <td colspan="3" class="px-4 py-10 text-center text-slate-400 text-sm">Belum ada role yang dibuat.</td>
+                        <th class="text-left px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Nama Role</th>
+                        <th class="text-left px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Total Permission</th>
+                        <th class="text-right px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Aksi</th>
                     </tr>
-                @endforelse
-            </tbody>
-        </table>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    @forelse($roles as $role)
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-4 py-3 font-medium text-slate-900 whitespace-nowrap">
+                                <span class="inline-flex items-center gap-1.5 font-semibold text-slate-800">
+                                    <span class="w-2 h-2 rounded-full bg-blue-600"></span>
+                                    {{ $role->name }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-slate-600 whitespace-nowrap">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                                    {{ $role->permissions->count() }} permission
+                                </span>
+                            </td>
+                            <td class="px-4 py-3">
+                                <div class="flex items-center justify-end">
+                                    <x-action-dropdown 
+                                        :editUrl="route('admin.roles.edit', $role)" 
+                                        :deleteUrl="route('admin.roles.destroy', $role)" 
+                                        deleteMessage="Yakin ingin menghapus role {{ $role->name }}?"
+                                    />
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="3" class="px-4 py-10 text-center text-slate-400 text-sm">Belum ada role yang dibuat.</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
     </div>
 </x-layouts.admin>

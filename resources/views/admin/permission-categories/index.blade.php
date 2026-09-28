@@ -9,52 +9,54 @@
     </x-slot:actions>
 
     <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-        <table class="w-full text-sm">
-            <thead class="bg-slate-50 border-b border-slate-200">
-                <tr>
-                    <th class="text-left px-4 py-3 font-semibold text-slate-600">Nama Kategori</th>
-                    <th class="text-left px-4 py-3 font-semibold text-slate-600">Total Permission</th>
-                    <th class="text-right px-4 py-3 font-semibold text-slate-600">Aksi</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100">
-                @forelse($categories as $category)
-                    <tr class="hover:bg-slate-50 transition-colors">
-                        <td class="px-4 py-3 font-medium text-slate-900">
-                            <span class="inline-flex items-center gap-1.5 font-semibold text-slate-800">
-                                <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
-                                {{ $category->name }}
-                            </span>
-                        </td>
-                        <td class="px-4 py-3 text-slate-600">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
-                                {{ \Spatie\Permission\Models\Permission::where('category_id', $category->id)->count() }} item
-                            </span>
-                        </td>
-                        <td class="px-4 py-3">
-                            <div class="flex items-center justify-end">
-                                <x-action-dropdown 
-                                    :deleteUrl="route('admin.permission-categories.destroy', $category)" 
-                                    deleteMessage="Yakin ingin menghapus kategori {{ $category->name }}? (Permission di dalamnya tidak akan terhapus)"
-                                >
-                                    <button type="button" 
-                                            onclick="openEditModal({{ $category->id }}, '{{ addslashes($category->name) }}')" 
-                                            class="group flex w-full items-center px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-blue-600" 
-                                            role="menuitem">
-                                        <svg class="mr-3 h-4 w-4 text-slate-400 group-hover:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                                        Edit
-                                    </button>
-                                </x-action-dropdown>
-                            </div>
-                        </td>
-                    </tr>
-                @empty
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm min-w-[500px]">
+                <thead class="bg-slate-50 border-b border-slate-200">
                     <tr>
-                        <td colspan="3" class="px-4 py-10 text-center text-slate-400 text-sm">Belum ada kategori permission.</td>
+                        <th class="text-left px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Nama Kategori</th>
+                        <th class="text-left px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Total Permission</th>
+                        <th class="text-right px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Aksi</th>
                     </tr>
-                @endforelse
-            </tbody>
-        </table>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    @forelse($categories as $category)
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-4 py-3 font-medium text-slate-900 whitespace-nowrap">
+                                <span class="inline-flex items-center gap-1.5 font-semibold text-slate-800">
+                                    <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+                                    {{ $category->name }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-slate-600 whitespace-nowrap">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
+                                    {{ \Spatie\Permission\Models\Permission::where('category_id', $category->id)->count() }} item
+                                </span>
+                            </td>
+                            <td class="px-4 py-3">
+                                <div class="flex items-center justify-end">
+                                    <x-action-dropdown 
+                                        :deleteUrl="route('admin.permission-categories.destroy', $category)" 
+                                        deleteMessage="Yakin ingin menghapus kategori {{ $category->name }}? (Permission di dalamnya tidak akan terhapus)"
+                                    >
+                                        <button type="button" 
+                                                onclick="openEditModal({{ $category->id }}, '{{ addslashes($category->name) }}')" 
+                                                class="group flex w-full items-center px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-blue-600" 
+                                                role="menuitem">
+                                            <svg class="mr-3 h-4 w-4 text-slate-400 group-hover:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                            Edit
+                                        </button>
+                                    </x-action-dropdown>
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="3" class="px-4 py-10 text-center text-slate-400 text-sm">Belum ada kategori permission.</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
     </div>
 
     {{-- Add Modal --}}

@@ -292,20 +292,21 @@
             <input type="hidden" name="semester" value="{{ $selectedSemester }}">
             <input type="hidden" name="kelas_id" value="{{ request('kelas_id') }}">
             <input type="hidden" name="guru_id" value="{{ request('guru_id') }}">
-        <table class="w-full text-sm">
-            <thead class="bg-slate-50 border-b border-slate-200 text-xs uppercase tracking-wider text-slate-500 font-bold">
-                <tr>
-                    <th class="px-4 py-3 text-left w-10">
-                        <input type="checkbox" id="select-all" class="rounded border-slate-300 text-blue-600 shadow-sm focus:ring-blue-500">
-                    </th>
-                    <th class="text-left px-4 py-3">Hari & Waktu</th>
-                    <th class="text-left px-4 py-3">Mata Pelajaran</th>
-                    <th class="text-left px-4 py-3">Kelas</th>
-                    <th class="text-left px-4 py-3 hidden lg:table-cell">Guru</th>
-                    <th class="text-left px-4 py-3 hidden sm:table-cell">Periode</th>
-                    <th class="text-right px-4 py-3">Aksi</th>
-                </tr>
-            </thead>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm min-w-[750px]">
+                    <thead class="bg-slate-50 border-b border-slate-200 text-xs uppercase tracking-wider text-slate-500 font-bold">
+                        <tr>
+                            <th class="px-4 py-3 text-left w-10">
+                                <input type="checkbox" id="select-all" class="rounded border-slate-300 text-blue-600 shadow-sm focus:ring-blue-500">
+                            </th>
+                            <th class="text-left px-4 py-3 whitespace-nowrap">Hari & Waktu</th>
+                            <th class="text-left px-4 py-3 whitespace-nowrap">Mata Pelajaran</th>
+                            <th class="text-left px-4 py-3 whitespace-nowrap">Kelas</th>
+                            <th class="text-left px-4 py-3 hidden lg:table-cell whitespace-nowrap">Guru</th>
+                            <th class="text-left px-4 py-3 hidden sm:table-cell whitespace-nowrap">Periode</th>
+                            <th class="text-right px-4 py-3 whitespace-nowrap">Aksi</th>
+                        </tr>
+                    </thead>
             <tbody class="divide-y divide-slate-100">
                 @php $hariNames = \App\Models\JadwalPelajaran::$namaHari; @endphp
                 @forelse($jadwals as $j)
@@ -350,7 +351,8 @@
                 <tr><td colspan="7" class="px-4 py-12 text-center text-slate-400 text-sm font-medium">Tidak ada data jadwal yang sesuai filter</td></tr>
                 @endforelse
             </tbody>
-        </table>
+            </table>
+            </div>
         @if($jadwals->hasPages())
         <div class="px-4 py-3 border-t border-slate-100">{{ $jadwals->links() }}</div>
         @endif

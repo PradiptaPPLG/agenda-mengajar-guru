@@ -337,40 +337,42 @@
                 <h3 class="font-semibold text-slate-900">Catatan Kehadiran Guru Terkini (7 Hari)</h3>
                 <a href="{{ route('kepala-sekolah.report.guru') }}" class="text-sm text-blue-600 hover:text-blue-700 font-medium">Lihat Laporan Lengkap →</a>
             </div>
-            <table class="w-full text-sm">
-                <thead class="bg-slate-50 border-b border-slate-200">
-                    <tr>
-                        <th class="text-left px-4 py-3 font-semibold text-slate-600">Guru</th>
-                        <th class="text-left px-4 py-3 font-semibold text-slate-600 hidden md:table-cell">Mata Pelajaran</th>
-                        <th class="text-left px-4 py-3 font-semibold text-slate-600 hidden md:table-cell">Kelas</th>
-                        <th class="text-left px-4 py-3 font-semibold text-slate-600">Status</th>
-                        <th class="text-left px-4 py-3 font-semibold text-slate-600 hidden lg:table-cell">Waktu</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100">
-                    @forelse($recentKehadiran as $kh)
-                    <tr class="hover:bg-slate-50 transition-colors">
-                        <td class="px-4 py-3 font-medium text-slate-900">{{ $kh->guru->name }}</td>
-                        <td class="px-4 py-3 text-slate-500 hidden md:table-cell">{{ $kh->pertemuan?->jadwal?->mataPelajaran?->nama ?? '—' }}</td>
-                        <td class="px-4 py-3 text-slate-500 hidden md:table-cell">{{ $kh->pertemuan?->jadwal?->kelas?->nama ?? '—' }}</td>
-                        <td class="px-4 py-3">
-                            <div class="flex items-center gap-1.5">
-                                <span class="text-xs font-medium px-2.5 py-1 rounded-full
-                                    {{ $kh->status === 'hadir' ? 'badge-hadir' : ($kh->status === 'terlambat' ? 'badge-sakit' : 'badge-alpa') }}">
-                                    {{ $kh->status_label }}
-                                </span>
-                                @if($kh->alasan_tidak_hadir)
-                                    <span class="text-[11px] text-slate-500">({{ $kh->alasan_tidak_hadir_label }})</span>
-                                @endif
-                            </div>
-                        </td>
-                        <td class="px-4 py-3 text-slate-500 text-xs hidden lg:table-cell">{{ $kh->created_at->format('d/m H:i') }}</td>
-                    </tr>
-                    @empty
-                    <tr><td colspan="5" class="px-4 py-8 text-center text-slate-400 text-sm">Belum ada data kehadiran</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm min-w-[600px]">
+                    <thead class="bg-slate-50 border-b border-slate-200">
+                        <tr>
+                            <th class="text-left px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Guru</th>
+                            <th class="text-left px-4 py-3 font-semibold text-slate-600 hidden md:table-cell whitespace-nowrap">Mata Pelajaran</th>
+                            <th class="text-left px-4 py-3 font-semibold text-slate-600 hidden md:table-cell whitespace-nowrap">Kelas</th>
+                            <th class="text-left px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Status</th>
+                            <th class="text-left px-4 py-3 font-semibold text-slate-600 hidden lg:table-cell whitespace-nowrap">Waktu</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        @forelse($recentKehadiran as $kh)
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-4 py-3 font-medium text-slate-900 whitespace-nowrap">{{ $kh->guru->name }}</td>
+                            <td class="px-4 py-3 text-slate-500 hidden md:table-cell">{{ $kh->pertemuan?->jadwal?->mataPelajaran?->nama ?? '—' }}</td>
+                            <td class="px-4 py-3 text-slate-500 hidden md:table-cell">{{ $kh->pertemuan?->jadwal?->kelas?->nama ?? '—' }}</td>
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-xs font-medium px-2.5 py-1 rounded-full
+                                        {{ $kh->status === 'hadir' ? 'badge-hadir' : ($kh->status === 'terlambat' ? 'badge-sakit' : 'badge-alpa') }}">
+                                        {{ $kh->status_label }}
+                                    </span>
+                                    @if($kh->alasan_tidak_hadir)
+                                        <span class="text-[11px] text-slate-500">({{ $kh->alasan_tidak_hadir_label }})</span>
+                                    @endif
+                                </div>
+                            </td>
+                            <td class="px-4 py-3 text-slate-500 text-xs hidden lg:table-cell whitespace-nowrap">{{ $kh->created_at->format('d/m H:i') }}</td>
+                        </tr>
+                        @empty
+                        <tr><td colspan="5" class="px-4 py-8 text-center text-slate-400 text-sm">Belum ada data kehadiran</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
             @if($recentKehadiran->hasPages())
             <div class="px-4 py-3 border-t border-slate-200">
                 {{ $recentKehadiran->links() }}

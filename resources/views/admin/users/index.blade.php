@@ -79,18 +79,19 @@
                 <input type="hidden" name="role_filter" value="{{ request('role_filter') }}">
                 <input type="hidden" name="mapel_id" value="{{ request('mapel_id') }}">
             </form>
-            <table class="w-full text-sm">
-                <thead class="bg-slate-50/80 border-b border-slate-200">
-                    <tr>
-                        <th class="px-5 py-3.5 text-left w-10">
-                            <input type="checkbox" id="select-all" class="rounded border-slate-300 text-blue-600 shadow-sm focus:ring-blue-500">
-                        </th>
-                        <th class="text-left px-5 py-3.5 font-bold text-slate-700">Nama Guru</th>
-                        <th class="text-left px-5 py-3.5 font-bold text-slate-700">Role & Akses</th>
-                        <th class="text-left px-5 py-3.5 font-bold text-slate-700">Mata Pelajaran & Kelas</th>
-                        <th class="text-right px-5 py-3.5 font-bold text-slate-700">Aksi</th>
-                    </tr>
-                </thead>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm min-w-[760px]">
+                    <thead class="bg-slate-50/80 border-b border-slate-200">
+                        <tr>
+                            <th class="px-5 py-3.5 text-left w-10">
+                                <input type="checkbox" id="select-all" class="rounded border-slate-300 text-blue-600 shadow-sm focus:ring-blue-500">
+                            </th>
+                            <th class="text-left px-5 py-3.5 font-bold text-slate-700 whitespace-nowrap">Nama Guru</th>
+                            <th class="text-left px-5 py-3.5 font-bold text-slate-700 whitespace-nowrap">Role & Akses</th>
+                            <th class="text-left px-5 py-3.5 font-bold text-slate-700 whitespace-nowrap">Mata Pelajaran & Kelas</th>
+                            <th class="text-right px-5 py-3.5 font-bold text-slate-700 whitespace-nowrap">Aksi</th>
+                        </tr>
+                    </thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse($users as $user)
                     @php
@@ -112,7 +113,7 @@
                             <input type="checkbox" name="ids[]" value="{{ $user->id }}" form="bulk-delete-form" class="row-checkbox rounded border-slate-300 text-blue-600 shadow-sm focus:ring-blue-500">
                         </td>
                         {{-- Nama & NIP --}}
-                        <td class="px-5 py-4 align-middle">
+                        <td class="px-5 py-4 align-middle whitespace-nowrap">
                             <div class="flex items-center gap-3">
                                 <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center shrink-0 font-bold text-sm shadow-xs">
                                     {{ substr($user->name, 0, 1) }}
@@ -232,6 +233,7 @@
                     @endforelse
                 </tbody>
             </table>
+            </div>
             @if($users->hasPages())
             <div class="px-4 py-3 border-t border-slate-100">{{ $users->links() }}</div>
             @endif

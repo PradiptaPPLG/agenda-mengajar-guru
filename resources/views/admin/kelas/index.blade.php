@@ -38,21 +38,22 @@
             <input type="hidden" name="delete_all" id="delete-all-input" value="0">
             <input type="hidden" name="search" value="{{ request('search') }}">
         </form>
-        <table class="w-full text-sm">
-            <thead class="bg-slate-50 border-b border-slate-200">
-                <tr>
-                    <th class="px-4 py-3 text-left w-10">
-                        <input type="checkbox" id="select-all" class="rounded border-slate-300 text-blue-600 shadow-sm focus:ring-blue-500">
-                    </th>
-                    <th class="text-left px-4 py-3 font-semibold text-slate-600">Nama Kelas</th>
-                    <th class="text-left px-4 py-3 font-semibold text-slate-600 hidden md:table-cell">Tingkat</th>
-                    <th class="text-left px-4 py-3 font-semibold text-slate-600">Sistem Blok</th>
-                    <th class="text-left px-4 py-3 font-semibold text-slate-600 hidden lg:table-cell">Wali Kelas</th>
-                    <th class="text-left px-4 py-3 font-semibold text-slate-600 hidden lg:table-cell">Guru BK</th>
-                    <th class="text-left px-4 py-3 font-semibold text-slate-600">Siswa</th>
-                    <td class="text-right px-4 py-3 font-semibold text-slate-600">Aksi</td>
-                </tr>
-            </thead>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm min-w-[700px]">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="px-4 py-3 text-left w-10">
+                            <input type="checkbox" id="select-all" class="rounded border-slate-300 text-blue-600 shadow-sm focus:ring-blue-500">
+                        </th>
+                        <th class="text-left px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Nama Kelas</th>
+                        <th class="text-left px-4 py-3 font-semibold text-slate-600 hidden md:table-cell whitespace-nowrap">Tingkat</th>
+                        <th class="text-left px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Sistem Blok</th>
+                        <th class="text-left px-4 py-3 font-semibold text-slate-600 hidden lg:table-cell whitespace-nowrap">Wali Kelas</th>
+                        <th class="text-left px-4 py-3 font-semibold text-slate-600 hidden lg:table-cell whitespace-nowrap">Guru BK</th>
+                        <th class="text-left px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Siswa</th>
+                        <th class="text-right px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Aksi</th>
+                    </tr>
+                </thead>
             <tbody class="divide-y divide-slate-100">
                 @forelse($kelas as $k)
                 <tr class="hover:bg-slate-50">
@@ -128,6 +129,7 @@
                 @endforelse
             </tbody>
         </table>
+        </div>
 
         @if($kelas->hasPages())
         <div class="px-4 py-3 border-t border-slate-200">

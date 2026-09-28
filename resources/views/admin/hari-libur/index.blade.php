@@ -70,15 +70,16 @@
 
     {{-- Tabel Daftar Hari Libur --}}
     <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-        <table class="w-full text-sm">
-            <thead class="bg-slate-50 border-b border-slate-200">
-                <tr>
-                    <th class="text-left px-4 py-3 font-semibold text-slate-600">Tanggal</th>
-                    <th class="text-left px-4 py-3 font-semibold text-slate-600">Keterangan</th>
-                    <th class="text-left px-4 py-3 font-semibold text-slate-600">Kategori</th>
-                    <th class="text-right px-4 py-3 font-semibold text-slate-600">Aksi</th>
-                </tr>
-            </thead>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm min-w-[600px]">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="text-left px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Tanggal</th>
+                        <th class="text-left px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Keterangan</th>
+                        <th class="text-left px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Kategori</th>
+                        <th class="text-right px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Aksi</th>
+                    </tr>
+                </thead>
             <tbody class="divide-y divide-slate-100">
                 @forelse($hariLiburs as $hl)
                 <tr class="hover:bg-slate-50 transition-colors">
@@ -125,6 +126,7 @@
                 @endforelse
             </tbody>
         </table>
+        </div>
         @if($hariLiburs->hasPages())
         <div class="px-4 py-3 border-t border-slate-100">{{ $hariLiburs->links() }}</div>
         @endif

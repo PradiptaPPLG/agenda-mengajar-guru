@@ -48,18 +48,19 @@
             <input type="hidden" name="search" value="{{ request('search') }}">
             <input type="hidden" name="jenis" value="{{ request('jenis') }}">
         </form>
-        <table class="w-full text-sm">
-            <thead class="bg-slate-50 border-b border-slate-200">
-                <tr>
-                    <th class="px-4 py-3 text-left w-10">
-                        <input type="checkbox" id="select-all" class="rounded border-slate-300 text-blue-600 shadow-sm focus:ring-blue-500">
-                    </th>
-                    <th class="text-left px-4 py-3 font-semibold text-slate-600">Nama Mata Pelajaran</th>
-                    <th class="text-left px-4 py-3 font-semibold text-slate-600">Kode</th>
-                    <th class="text-left px-4 py-3 font-semibold text-slate-600">Kategori</th>
-                    <th class="text-right px-4 py-3 font-semibold text-slate-600">Aksi</th>
-                </tr>
-            </thead>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm min-w-[650px]">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="px-4 py-3 text-left w-10">
+                            <input type="checkbox" id="select-all" class="rounded border-slate-300 text-blue-600 shadow-sm focus:ring-blue-500">
+                        </th>
+                        <th class="text-left px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Nama Mata Pelajaran</th>
+                        <th class="text-left px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Kode</th>
+                        <th class="text-left px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Kategori</th>
+                        <th class="text-right px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Aksi</th>
+                    </tr>
+                </thead>
             <tbody class="divide-y divide-slate-100">
                 @forelse($mataPelajarans as $mp)
                 <tr class="hover:bg-slate-50">
@@ -98,6 +99,7 @@
                 @endforelse
             </tbody>
         </table>
+        </div>
         @if($mataPelajarans->hasPages())
         <div class="px-4 py-3 border-t border-slate-100">{{ $mataPelajarans->links() }}</div>
         @endif

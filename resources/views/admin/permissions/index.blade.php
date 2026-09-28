@@ -9,53 +9,55 @@
     </x-slot:actions>
 
     <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-        <table class="w-full text-sm">
-            <thead class="bg-slate-50 border-b border-slate-200">
-                <tr>
-                    <th class="text-left px-4 py-3 font-semibold text-slate-600">Deskripsi (Label)</th>
-                    <th class="text-left px-4 py-3 font-semibold text-slate-600">Slug (Name)</th>
-                    <th class="text-left px-4 py-3 font-semibold text-slate-600">Kategori</th>
-                    <th class="text-right px-4 py-3 font-semibold text-slate-600">Aksi</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100">
-                @forelse($permissions as $permission)
-                    <tr class="hover:bg-slate-50 transition-colors">
-                        <td class="px-4 py-3 font-medium text-slate-900">{{ $permission->label ?? '-' }}</td>
-                        <td class="px-4 py-3 text-slate-500 font-mono text-xs">{{ $permission->name }}</td>
-                        <td class="px-4 py-3">
-                            @if($permission->category)
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                                    {{ $permission->category->name }}
-                                </span>
-                            @else
-                                <span class="text-slate-400 italic text-xs">Tanpa Kategori</span>
-                            @endif
-                        </td>
-                        <td class="px-4 py-3">
-                            <div class="flex items-center justify-end">
-                                <x-action-dropdown 
-                                    :deleteUrl="route('admin.permissions.destroy', $permission)" 
-                                    deleteMessage="Yakin ingin menghapus permission {{ $permission->name }}?"
-                                >
-                                    <button type="button" 
-                                            onclick="openEditModal({{ $permission->id }}, '{{ addslashes($permission->name) }}', '{{ addslashes($permission->label) }}', '{{ $permission->category_id }}')" 
-                                            class="group flex w-full items-center px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-blue-600" 
-                                            role="menuitem">
-                                        <svg class="mr-3 h-4 w-4 text-slate-400 group-hover:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                                        Edit
-                                    </button>
-                                </x-action-dropdown>
-                            </div>
-                        </td>
-                    </tr>
-                @empty
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm min-w-[600px]">
+                <thead class="bg-slate-50 border-b border-slate-200">
                     <tr>
-                        <td colspan="4" class="px-4 py-10 text-center text-slate-400 text-sm">Belum ada permission.</td>
+                        <th class="text-left px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Deskripsi (Label)</th>
+                        <th class="text-left px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Slug (Name)</th>
+                        <th class="text-left px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Kategori</th>
+                        <th class="text-right px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Aksi</th>
                     </tr>
-                @endforelse
-            </tbody>
-        </table>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    @forelse($permissions as $permission)
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-4 py-3 font-medium text-slate-900 whitespace-nowrap">{{ $permission->label ?? '-' }}</td>
+                            <td class="px-4 py-3 text-slate-500 font-mono text-xs whitespace-nowrap">{{ $permission->name }}</td>
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                @if($permission->category)
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                                        {{ $permission->category->name }}
+                                    </span>
+                                @else
+                                    <span class="text-slate-400 italic text-xs">Tanpa Kategori</span>
+                                @endif
+                            </td>
+                            <td class="px-4 py-3">
+                                <div class="flex items-center justify-end">
+                                    <x-action-dropdown 
+                                        :deleteUrl="route('admin.permissions.destroy', $permission)" 
+                                        deleteMessage="Yakin ingin menghapus permission {{ $permission->name }}?"
+                                    >
+                                        <button type="button" 
+                                                onclick="openEditModal({{ $permission->id }}, '{{ addslashes($permission->name) }}', '{{ addslashes($permission->label) }}', '{{ $permission->category_id }}')" 
+                                                class="group flex w-full items-center px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-blue-600" 
+                                                role="menuitem">
+                                            <svg class="mr-3 h-4 w-4 text-slate-400 group-hover:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                            Edit
+                                        </button>
+                                    </x-action-dropdown>
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="4" class="px-4 py-10 text-center text-slate-400 text-sm">Belum ada permission.</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
     </div>
 
     {{-- Add Modal --}}

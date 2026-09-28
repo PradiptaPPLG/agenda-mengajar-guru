@@ -112,18 +112,19 @@
             <h3 class="font-semibold text-slate-900">Ringkasan Per Guru</h3>
             <p class="text-sm text-slate-500 mt-0.5">{{ ($selectedTahunAjaran && $selectedTahunAjaran !== 'all') ? $selectedTahunAjaran.' (Semester '.ucfirst($selectedSemester).') • ' : '' }}{{ $startDate->format('d/m/Y') }} – {{ $endDate->format('d/m/Y') }}</p>
         </div>
-        <table class="w-full text-sm">
-            <thead class="bg-slate-50 border-b border-slate-200">
-                <tr>
-                    <th class="text-left px-4 py-3 font-semibold text-slate-600">Guru</th>
-                    <th class="text-center px-4 py-3 font-semibold text-emerald-600">Hadir</th>
-                    <th class="text-center px-4 py-3 font-semibold text-amber-600">Sakit</th>
-                    <th class="text-center px-4 py-3 font-semibold text-purple-600">Dispensasi</th>
-                    <th class="text-center px-4 py-3 font-semibold text-red-600">Alpa</th>
-                    <th class="text-center px-4 py-3 font-semibold text-slate-600">Total</th>
-                    <th class="text-center px-4 py-3 font-semibold text-blue-600">% Hadir</th>
-                </tr>
-            </thead>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm min-w-[650px]">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="text-left px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Guru</th>
+                        <th class="text-center px-4 py-3 font-semibold text-emerald-600 whitespace-nowrap">Hadir</th>
+                        <th class="text-center px-4 py-3 font-semibold text-amber-600 whitespace-nowrap">Sakit</th>
+                        <th class="text-center px-4 py-3 font-semibold text-purple-600 whitespace-nowrap">Dispensasi</th>
+                        <th class="text-center px-4 py-3 font-semibold text-red-600 whitespace-nowrap">Alpa</th>
+                        <th class="text-center px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Total</th>
+                        <th class="text-center px-4 py-3 font-semibold text-blue-600 whitespace-nowrap">% Hadir</th>
+                    </tr>
+                </thead>
             <tbody class="divide-y divide-slate-100">
                 @foreach($summary as $item)
                 <tr class="hover:bg-slate-50">
@@ -152,6 +153,7 @@
                 @endforeach
             </tbody>
         </table>
+        </div>
         @if($summary->hasPages())
         <div class="px-4 py-3 border-t border-slate-200">
             {{ $summary->links() }}
