@@ -149,6 +149,22 @@ class PertemuanIntegrityTest extends TestCase
         ]);
     }
 
+    public function test_siswa_can_view_capture_page_without_error(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 9, 28, 7, 30));
+        $today = Carbon::today()->format('Y-m-d');
+
+        $response = $this->actingAs($this->siswa)->get(
+            route('siswa.capture.show', ['jadwal' => $this->jadwal->id, 'tanggal' => $today])
+        );
+
+        $response->assertOk();
+        $response->assertViewIs('siswa.capture.show');
+        $response->assertViewHas('enableCheckout');
+
+        Carbon::setTestNow();
+    }
+
     public function test_soft_deletes_preserve_historical_attendance_data(): void
     {
         $today = Carbon::today()->format('Y-m-d');

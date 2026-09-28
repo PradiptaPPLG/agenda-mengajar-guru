@@ -81,6 +81,7 @@ class CaptureController extends Controller
             ->where('siswa_id', $user->id)
             ->first();
 
+        $enableCheckout = (Setting::get('enable_checkout_foto', '0') == '1');
         $jamCheckoutMulai = Carbon::createFromFormat('H:i', $jamSelesai)->subMinutes(15)->format('H:i');
         $canCheckout = ! $tanggalCarbon->isToday() || (now()->format('H:i') >= $jamCheckoutMulai);
 
