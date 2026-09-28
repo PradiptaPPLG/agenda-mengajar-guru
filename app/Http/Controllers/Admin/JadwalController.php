@@ -161,18 +161,27 @@ class JadwalController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        if ($request->filled('jam_mulai')) {
+            $request->merge(['jam_mulai' => $this->normalizeTimeInput($request->input('jam_mulai'))]);
+        }
+        if ($request->filled('jam_selesai')) {
+            $request->merge(['jam_selesai' => $this->normalizeTimeInput($request->input('jam_selesai'))]);
+        }
+
         $validated = $request->validate([
             'kelas_id' => ['required', 'exists:kelas,id'],
             'guru_id' => ['required', 'exists:users,id'],
             'mata_pelajaran_id' => ['required', 'exists:mata_pelajarans,id'],
             'hari' => ['required', 'integer', 'between:1,6'],
-            'jam_mulai' => ['required', 'date_format:H:i'],
-            'jam_selesai' => ['required', 'date_format:H:i', 'after:jam_mulai'],
+            'jam_mulai' => ['required', 'date_format:H:i,H:i:s'],
+            'jam_selesai' => ['required', 'date_format:H:i,H:i:s', 'after:jam_mulai'],
             'kelompok_blok' => ['nullable', 'in:reguler,kelompok_a,kelompok_b'],
             'tahun_ajaran' => ['nullable', 'string', 'max:20'],
             'semester' => ['nullable', 'in:ganjil,genap'],
         ]);
 
+        $validated['jam_mulai'] = substr(trim((string) $validated['jam_mulai']), 0, 5).':00';
+        $validated['jam_selesai'] = substr(trim((string) $validated['jam_selesai']), 0, 5).':00';
         $validated['tahun_ajaran'] = ! empty($validated['tahun_ajaran']) ? $validated['tahun_ajaran'] : Setting::getTahunAjaranAktif();
         $validated['semester'] = ! empty($validated['semester']) ? $validated['semester'] : Setting::getSemesterAktif();
 
@@ -210,18 +219,27 @@ class JadwalController extends Controller
 
     public function update(Request $request, JadwalPelajaran $jadwal): RedirectResponse
     {
+        if ($request->filled('jam_mulai')) {
+            $request->merge(['jam_mulai' => $this->normalizeTimeInput($request->input('jam_mulai'))]);
+        }
+        if ($request->filled('jam_selesai')) {
+            $request->merge(['jam_selesai' => $this->normalizeTimeInput($request->input('jam_selesai'))]);
+        }
+
         $validated = $request->validate([
             'kelas_id' => ['required', 'exists:kelas,id'],
             'guru_id' => ['required', 'exists:users,id'],
             'mata_pelajaran_id' => ['required', 'exists:mata_pelajarans,id'],
             'hari' => ['required', 'integer', 'between:1,6'],
-            'jam_mulai' => ['required', 'date_format:H:i'],
-            'jam_selesai' => ['required', 'date_format:H:i', 'after:jam_mulai'],
+            'jam_mulai' => ['required', 'date_format:H:i,H:i:s'],
+            'jam_selesai' => ['required', 'date_format:H:i,H:i:s', 'after:jam_mulai'],
             'kelompok_blok' => ['nullable', 'in:reguler,kelompok_a,kelompok_b'],
             'tahun_ajaran' => ['nullable', 'string', 'max:20'],
             'semester' => ['nullable', 'in:ganjil,genap'],
         ]);
 
+        $validated['jam_mulai'] = substr(trim((string) $validated['jam_mulai']), 0, 5).':00';
+        $validated['jam_selesai'] = substr(trim((string) $validated['jam_selesai']), 0, 5).':00';
         $validated['tahun_ajaran'] = ! empty($validated['tahun_ajaran']) ? $validated['tahun_ajaran'] : ($jadwal->tahun_ajaran ?: Setting::getTahunAjaranAktif());
         $validated['semester'] = ! empty($validated['semester']) ? $validated['semester'] : ($jadwal->semester ?: Setting::getSemesterAktif());
 
@@ -380,6 +398,23 @@ class JadwalController extends Controller
     }
 
     /**
+     * Normalize time string into HH:MM format (e.g. "7:00", "07:00:00" -> "07:00").
+     */
+    protected function normalizeTimeInput(?string $time): ?string
+    {
+        if ($time === null || trim($time) === '') {
+            return null;
+        }
+
+        $time = trim($time);
+        if (preg_match('/^(\d{1,2}):(\d{2})(:(\d{2}))?$/', $time, $matches)) {
+            return sprintf('%02d:%02d', (int) $matches[1], (int) $matches[2]);
+        }
+
+        return substr($time, 0, 5);
+    }
+
+    /**
      * Validate that neither the teacher nor the class has an overlapping schedule
      * within the SAME tahun ajaran and semester.
      *
@@ -396,6 +431,11 @@ class JadwalController extends Controller
         $tahunAjaran = $validated['tahun_ajaran'] ?? Setting::getTahunAjaranAktif();
         $semester = $validated['semester'] ?? Setting::getSemesterAktif();
 
+        $jamMulai = $this->normalizeTimeInput($validated['jam_mulai'] ?? null) ?? '00:00';
+        $jamSelesai = $this->normalizeTimeInput($validated['jam_selesai'] ?? null) ?? '00:00';
+        $jamMulaiPadded = $jamMulai.':00';
+        $jamSelesaiPadded = $jamSelesai.':00';
+
         // ─── 1. Cek Bentrok GURU (dalam semester & tahun ajaran yang sama) ─────────
         $guruConflict = JadwalPelajaran::with('kelas')
             ->where('tahun_ajaran', $tahunAjaran)
@@ -403,8 +443,8 @@ class JadwalController extends Controller
             ->where('hari', $validated['hari'])
             ->where('guru_id', $validated['guru_id'])
             ->when($excludeJadwalId, fn ($q) => $q->where('id', '!=', $excludeJadwalId))
-            ->where('jam_mulai', '<', $validated['jam_selesai'])
-            ->where('jam_selesai', '>', $validated['jam_mulai'])
+            ->where('jam_mulai', '<', $jamSelesaiPadded)
+            ->where('jam_selesai', '>', $jamMulaiPadded)
             ->first();
 
         if ($guruConflict) {
@@ -427,8 +467,8 @@ class JadwalController extends Controller
             ->where('hari', $validated['hari'])
             ->where('kelas_id', $validated['kelas_id'])
             ->when($excludeJadwalId, fn ($q) => $q->where('id', '!=', $excludeJadwalId))
-            ->where('jam_mulai', '<', $validated['jam_selesai'])
-            ->where('jam_selesai', '>', $validated['jam_mulai']);
+            ->where('jam_mulai', '<', $jamSelesaiPadded)
+            ->where('jam_selesai', '>', $jamMulaiPadded);
 
         if ($kelompokBaru === 'kelompok_a') {
             $kelasConflictQuery->where(fn ($sub) => $sub->whereIn('kelompok_blok', ['reguler', 'kelompok_a'])->orWhereNull('kelompok_blok'));

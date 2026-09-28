@@ -180,4 +180,155 @@ class JadwalConflictValidationTest extends TestCase
         $response->assertSessionHasNoErrors();
         $response->assertRedirect(route('admin.jadwal.index'));
     }
+
+    public function test_updating_schedule_with_seconds_format_succeeds(): void
+    {
+        $jadwal = JadwalPelajaran::create([
+            'kelas_id' => $this->kelasA->id,
+            'guru_id' => $this->guru1->id,
+            'mata_pelajaran_id' => $this->mapel1->id,
+            'hari' => 1,
+            'jam_mulai' => '07:00:00',
+            'jam_selesai' => '08:30:00',
+        ]);
+
+        $response = $this->actingAs($this->admin)->put(route('admin.jadwal.update', $jadwal), [
+            'kelas_id' => $this->kelasA->id,
+            'guru_id' => $this->guru1->id,
+            'mata_pelajaran_id' => $this->mapel1->id,
+            'hari' => 1,
+            'jam_mulai' => '07:00:00',
+            'jam_selesai' => '08:30:00',
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $response->assertRedirect(route('admin.jadwal.index'));
+    }
+
+    public function test_updating_schedule_to_adjacent_slot_does_not_conflict(): void
+    {
+        // Existing slot 1: 07:00 - 08:30
+        JadwalPelajaran::create([
+            'kelas_id' => $this->kelasA->id,
+            'guru_id' => $this->guru1->id,
+            'mata_pelajaran_id' => $this->mapel1->id,
+            'hari' => 1,
+            'jam_mulai' => '07:00:00',
+            'jam_selesai' => '08:30:00',
+        ]);
+
+        // Slot 2: originally 09:00 - 10:00, updated to directly follow slot 1: 08:30 - 10:00
+        $jadwal2 = JadwalPelajaran::create([
+            'kelas_id' => $this->kelasA->id,
+            'guru_id' => $this->guru1->id,
+            'mata_pelajaran_id' => $this->mapel1->id,
+            'hari' => 1,
+            'jam_mulai' => '09:00:00',
+            'jam_selesai' => '10:00:00',
+        ]);
+
+        $response = $this->actingAs($this->admin)->put(route('admin.jadwal.update', $jadwal2), [
+            'kelas_id' => $this->kelasA->id,
+            'guru_id' => $this->guru1->id,
+            'mata_pelajaran_id' => $this->mapel1->id,
+            'hari' => 1,
+            'jam_mulai' => '08:30',
+            'jam_selesai' => '10:00',
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $response->assertRedirect(route('admin.jadwal.index'));
+    }
+
+    public function test_admin_edit_view_renders_clean_time_values(): void
+    {
+        $jadwal = JadwalPelajaran::create([
+            'kelas_id' => $this->kelasA->id,
+            'guru_id' => $this->guru1->id,
+            'mata_pelajaran_id' => $this->mapel1->id,
+            'hari' => 1,
+            'jam_mulai' => '07:00:00',
+            'jam_selesai' => '08:30:00',
+        ]);
+
+        $response = $this->actingAs($this->admin)->get(route('admin.jadwal.edit', $jadwal));
+
+        $response->assertOk();
+        $response->assertSee('value="07:00"', false);
+        $response->assertSee('value="08:30"', false);
+    }
+
+    public function test_updating_schedule_with_single_digit_hour_succeeds(): void
+    {
+        $jadwal = JadwalPelajaran::create([
+            'kelas_id' => $this->kelasA->id,
+            'guru_id' => $this->guru1->id,
+            'mata_pelajaran_id' => $this->mapel1->id,
+            'hari' => 1,
+            'jam_mulai' => '07:00:00',
+            'jam_selesai' => '08:30:00',
+        ]);
+
+        $response = $this->actingAs($this->admin)->put(route('admin.jadwal.update', $jadwal), [
+            'kelas_id' => $this->kelasA->id,
+            'guru_id' => $this->guru1->id,
+            'mata_pelajaran_id' => $this->mapel1->id,
+            'hari' => 1,
+            'jam_mulai' => '7:15',
+            'jam_selesai' => '8:45',
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $response->assertRedirect(route('admin.jadwal.index'));
+
+        $jadwal->refresh();
+        $this->assertEquals('07:15:00', $jadwal->jam_mulai);
+        $this->assertEquals('08:45:00', $jadwal->jam_selesai);
+    }
+
+    public function test_updating_schedule_with_invalid_time_fails_validation(): void
+    {
+        $jadwal = JadwalPelajaran::create([
+            'kelas_id' => $this->kelasA->id,
+            'guru_id' => $this->guru1->id,
+            'mata_pelajaran_id' => $this->mapel1->id,
+            'hari' => 1,
+            'jam_mulai' => '07:00:00',
+            'jam_selesai' => '08:30:00',
+        ]);
+
+        $response = $this->actingAs($this->admin)->put(route('admin.jadwal.update', $jadwal), [
+            'kelas_id' => $this->kelasA->id,
+            'guru_id' => $this->guru1->id,
+            'mata_pelajaran_id' => $this->mapel1->id,
+            'hari' => 1,
+            'jam_mulai' => 'bukan-jam',
+            'jam_selesai' => '08:30',
+        ]);
+
+        $response->assertSessionHasErrors(['jam_mulai']);
+    }
+
+    public function test_updating_schedule_with_end_time_before_start_time_fails(): void
+    {
+        $jadwal = JadwalPelajaran::create([
+            'kelas_id' => $this->kelasA->id,
+            'guru_id' => $this->guru1->id,
+            'mata_pelajaran_id' => $this->mapel1->id,
+            'hari' => 1,
+            'jam_mulai' => '07:00:00',
+            'jam_selesai' => '08:30:00',
+        ]);
+
+        $response = $this->actingAs($this->admin)->put(route('admin.jadwal.update', $jadwal), [
+            'kelas_id' => $this->kelasA->id,
+            'guru_id' => $this->guru1->id,
+            'mata_pelajaran_id' => $this->mapel1->id,
+            'hari' => 1,
+            'jam_mulai' => '10:00',
+            'jam_selesai' => '08:00',
+        ]);
+
+        $response->assertSessionHasErrors(['jam_selesai']);
+    }
 }

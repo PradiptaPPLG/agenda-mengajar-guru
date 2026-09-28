@@ -2,6 +2,17 @@
     <x-slot:title>Tambah Jadwal</x-slot:title>
     <div class="max-w-lg">
         <div class="bg-white rounded-2xl border border-slate-200 p-6">
+            @if($errors->any())
+                <div class="mb-4 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
+                    <div class="font-semibold mb-1">Gagal menambahkan jadwal:</div>
+                    <ul class="list-disc list-inside space-y-0.5 text-xs">
+                        @foreach($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
             <form action="{{ route('admin.jadwal.store') }}" method="POST" class="space-y-4">
                 @csrf
                 <div class="grid grid-cols-2 gap-4">
