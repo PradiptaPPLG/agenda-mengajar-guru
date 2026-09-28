@@ -199,24 +199,23 @@
         {{-- Main content --}}
         <div class="flex flex-col flex-1 overflow-hidden min-w-0">
             {{-- Mobile topbar --}}
-            <header class="lg:hidden flex items-center justify-between px-4 h-14 bg-white border-b border-slate-200 shrink-0">
-                <button @click="sidebarOpen = true" class="flex items-center gap-2 p-2 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors" title="Buka Menu Navigasi">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
-                    <span class="text-xs font-bold uppercase tracking-wider text-slate-600">Menu</span>
+            <header class="lg:hidden flex items-center justify-between px-3 h-14 bg-white border-b border-slate-200 shrink-0 sticky top-0 z-30">
+                <button @click="sidebarOpen = true" class="p-2 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors" title="Buka Menu Navigasi">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                 </button>
-                <div class="flex items-center gap-2 min-w-0">
+                <div class="flex items-center gap-2 min-w-0 px-2 flex-1 justify-center">
                     <img src="{{ asset('images/logo_new.png') }}" alt="Logo" class="w-6 h-6 object-contain shrink-0">
-                    <span class="text-xs font-bold text-slate-900 truncate max-w-[140px] sm:max-w-none">{{ $title ?? 'Admin' }}</span>
+                    <span class="text-sm font-bold text-slate-900 truncate">{{ $title ?? 'Admin' }}</span>
                 </div>
-                <div class="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs shrink-0">
+                <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs border border-blue-200/60">
                     {{ substr(auth()->user()->name, 0, 1) }}
                 </div>
             </header>
 
             {{-- Page content --}}
             <main class="flex-1 overflow-y-auto">
-                {{-- Page header --}}
-                <div class="px-4 sm:px-6 py-4 sm:py-5 bg-white border-b border-slate-200">
+                {{-- Desktop Page header --}}
+                <div class="hidden lg:block px-4 sm:px-6 py-4 sm:py-5 bg-white border-b border-slate-200">
                     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                         <div>
                             <h1 class="text-lg sm:text-xl font-bold text-slate-900 leading-tight">{{ $title ?? 'Dashboard' }}</h1>
@@ -229,6 +228,18 @@
                         @endisset
                     </div>
                 </div>
+
+                {{-- Mobile actions / subtitle only (jika ada, tanpa mengulang judul) --}}
+                @if(isset($subtitle) || isset($actions))
+                <div class="lg:hidden px-4 py-3 bg-white border-b border-slate-200 flex flex-col gap-2">
+                    @isset($subtitle)
+                    <p class="text-xs text-slate-500">{{ $subtitle }}</p>
+                    @endisset
+                    @isset($actions)
+                    <div class="flex flex-wrap items-center gap-2">{{ $actions }}</div>
+                    @endisset
+                </div>
+                @endif
 
                 {{-- Flash messages --}}
                 @if(session('success'))
