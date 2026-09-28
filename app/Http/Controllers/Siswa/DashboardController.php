@@ -45,15 +45,20 @@ class DashboardController extends Controller
         $jadwalsWithStatus = $groupedJadwals->map(function (JadwalPelajaran $jadwal) use ($today, $user, $nowTime) {
             $subIds = $jadwal->sub_jadwal_ids ?? [$jadwal->id];
 
-            $pertemuan = Pertemuan::with(['fotoBuktis' => function ($q) use ($user) {
-                $q->where('siswa_id', $user->id);
-            }])->whereIn('jadwal_id', $subIds)
+            $pertemuan = Pertemuan::with(['fotoBuktis.siswa', 'kehadiranGuru'])
+                ->whereIn('jadwal_id', $subIds)
                 ->whereDate('tanggal', $today)
                 ->first();
 
-            $fotoBukti = $pertemuan?->fotoBuktis->first();
-            $sudahCapture = ($fotoBukti !== null && ! empty($fotoBukti->foto_path));
-            $sudahCheckout = ($fotoBukti !== null && ! empty($fotoBukti->foto_checkout_path));
+            $semuaFotoBukti = $pertemuan?->fotoBuktis ?? collect();
+            $fotoBuktiSaya = $semuaFotoBukti->firstWhere('siswa_id', $user->id);
+            $fotoBuktiKelas = $fotoBuktiSaya ?? $semuaFotoBukti->first();
+
+            $sudahCapture = ($fotoBuktiKelas !== null && ! empty($fotoBuktiKelas->foto_path));
+            $sudahCheckout = ($fotoBuktiKelas !== null && ! empty($fotoBuktiKelas->foto_checkout_path));
+            $isMyCapture = ($fotoBuktiSaya !== null);
+            $reportedBy = $fotoBuktiKelas?->siswa?->name;
+            $reportedAt = $fotoBuktiKelas?->created_at?->format('H:i');
 
             $jamMulai = $jadwal->jam_mulai_formatted ?? substr($jadwal->jam_mulai, 0, 5);
             $jamSelesai = $jadwal->jam_selesai_formatted ?? substr($jadwal->jam_selesai, 0, 5);
@@ -67,9 +72,12 @@ class DashboardController extends Controller
             return [
                 'jadwal' => $jadwal,
                 'pertemuan' => $pertemuan,
-                'fotoBukti' => $fotoBukti,
+                'fotoBukti' => $fotoBuktiKelas,
                 'sudahCapture' => $sudahCapture,
                 'sudahCheckout' => $sudahCheckout,
+                'isMyCapture' => $isMyCapture,
+                'reportedBy' => $reportedBy,
+                'reportedAt' => $reportedAt,
                 'canCheckout' => $canCheckout,
                 'jamCheckoutMulai' => $jamCheckoutMulai,
                 'isStarted' => $isStarted,

@@ -158,7 +158,7 @@ class JadwalImport implements ToCollection, WithHeadingRow
                 }
 
                 if ($kelas && $guru && $mapel && $jam_mulai && $jam_selesai) {
-                    $targetKelompokBlok = $mapel->kelompok_blok ?? 'reguler';
+                    $targetKelompokBlok = ($kelas->is_sistem_blok) ? ($mapel->kelompok_blok ?? 'reguler') : 'reguler';
                     JadwalPelajaran::updateOrCreate(
                         [
                             'kelas_id' => $kelas->id,

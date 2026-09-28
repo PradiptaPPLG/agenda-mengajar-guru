@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Guru;
 
 use App\Http\Controllers\Controller;
+use App\Models\JadwalPelajaran;
 use App\Models\KehadiranSiswa;
 use App\Models\Kelas;
+use App\Models\MataPelajaran;
 use App\Models\Pertemuan;
 use App\Models\Setting;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -12,73 +14,36 @@ use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\View\View;
 use Spatie\SimpleExcel\SimpleExcelWriter;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
-class WaliKelasController extends Controller
+class RekapController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request): View
     {
-        $userId = auth()->id();
         $user = auth()->user();
 
-        $kelasBinaan = Kelas::where('wali_kelas_id', $userId)->get();
+        $jadwals = JadwalPelajaran::where('guru_id', $user->id)
+            ->with(['kelas', 'mataPelajaran'])
+            ->get();
 
-        if ($kelasBinaan->isEmpty()) {
-            if (in_array($user->role, ['admin', 'super_admin']) || $user->hasAnyRole(['admin', 'super_admin'])) {
-                $kelasBinaan = Kelas::orderBy('tingkat')->orderBy('nama')->get();
-            } else {
-                return redirect()->route('guru.dashboard')->with('error', 'Anda belum ditugaskan sebagai Wali Kelas.');
-            }
-        }
+        $kelasList = $jadwals->pluck('kelas')->filter()->unique('id')->sortBy('nama')->values();
+        $mapelList = $jadwals->pluck('mataPelajaran')->filter()->unique('id')->sortBy('nama')->values();
 
-        $kelasIds = $kelasBinaan->pluck('id');
-        $tab = $request->get('tab', 'harian');
-        $tanggal = $request->get('tanggal', Carbon::today()->toDateString());
-        $date = Carbon::parse($tanggal);
-
+        $selectedKelasId = (int) $request->get('kelas_id', $kelasList->first()?->id ?? 0);
+        $selectedMapelId = (int) $request->get('mata_pelajaran_id', $mapelList->first()?->id ?? 0);
         $periodeType = $request->get('periode_type', 'bulanan');
         $bulan = $request->get('bulan', Carbon::today()->format('Y-m'));
         $tahunAjaran = $request->get('tahun_ajaran', Setting::getTahunAjaranAktif());
         $semester = $request->get('semester', Setting::getSemesterAktif());
-        $selectedKelasId = (int) $request->get('kelas_id', $kelasIds->first());
 
-        if (! $kelasIds->contains($selectedKelasId)) {
-            $selectedKelasId = $kelasIds->first();
-        }
-
-        // 1. Data Presensi Harian
-        $kehadiran = KehadiranSiswa::with(['siswa.siswaProfile.kelas', 'pertemuan.jadwal.mataPelajaran'])
-            ->whereHas('siswa.siswaProfile', function ($q) use ($kelasIds) {
-                $q->whereIn('kelas_id', $kelasIds);
-            })
-            ->whereHas('pertemuan', function ($q) use ($tanggal) {
-                $q->whereDate('tanggal', $tanggal);
-            })
-            ->get();
-
-        $rekapKelas = [];
-        foreach ($kelasBinaan as $k) {
-            $kehadiranKelas = $kehadiran->filter(function ($item) use ($k) {
-                return $item->siswa?->siswaProfile?->kelas_id === $k->id;
-            });
-
-            $rekapKelas[$k->id] = [
-                'kelas' => $k,
-                'hadir' => $kehadiranKelas->where('status', 'hadir')->count(),
-                'terlambat' => $kehadiranKelas->where('status', 'terlambat')->count(),
-                'sakit' => $kehadiranKelas->where('status', 'sakit')->count(),
-                'izin' => $kehadiranKelas->where('status', 'izin')->count(),
-                'alpa' => $kehadiranKelas->where('status', 'alpa')->count(),
-                'dispensasi' => $kehadiranKelas->where('status', 'dispensasi')->count(),
-            ];
-        }
-
-        // 2. Data Rekap Bulanan / Per Semester
-        $rekapBulanan = null;
-        if (in_array($tab, ['bulanan', 'rekap']) && $selectedKelasId) {
-            $rekapBulanan = $this->getRekapData(
+        $rekapData = null;
+        if ($selectedKelasId && $selectedMapelId) {
+            $rekapData = $this->getRekapData(
+                $user->id,
                 $selectedKelasId,
+                $selectedMapelId,
                 $periodeType,
                 $bulan,
                 $tahunAjaran,
@@ -89,19 +54,16 @@ class WaliKelasController extends Controller
         $daftarTahunAjaran = Setting::getDaftarTahunAjaran();
         $daftarSemester = Setting::getDaftarSemester();
 
-        return view('guru.wali-kelas.index', compact(
-            'kelasBinaan',
-            'rekapKelas',
-            'tanggal',
-            'date',
-            'kehadiran',
-            'tab',
+        return view('guru.rekap.index', compact(
+            'kelasList',
+            'mapelList',
+            'selectedKelasId',
+            'selectedMapelId',
             'periodeType',
             'bulan',
             'tahunAjaran',
             'semester',
-            'selectedKelasId',
-            'rekapBulanan',
+            'rekapData',
             'daftarTahunAjaran',
             'daftarSemester'
         ));
@@ -110,42 +72,35 @@ class WaliKelasController extends Controller
     public function exportPdf(Request $request): Response|RedirectResponse
     {
         $user = auth()->user();
-        $kelasBinaan = Kelas::where('wali_kelas_id', $user->id)->get();
-        if ($kelasBinaan->isEmpty() && (in_array($user->role, ['admin', 'super_admin']) || $user->hasAnyRole(['admin', 'super_admin']))) {
-            $kelasBinaan = Kelas::orderBy('tingkat')->orderBy('nama')->get();
-        }
+        $kelasId = (int) $request->get('kelas_id');
+        $mapelId = (int) $request->get('mata_pelajaran_id');
 
-        $kelasId = (int) $request->get('kelas_id', $kelasBinaan->first()?->id ?? 0);
-        if (! $kelasId) {
-            return redirect()->route('guru.wali-kelas.index')->with('error', 'Kelas binaan tidak ditemukan.');
+        if (! $kelasId || ! $mapelId) {
+            return redirect()->route('guru.rekap.index')->with('error', 'Silakan pilih kelas dan mata pelajaran terlebih dahulu.');
         }
-
-        $kelas = Kelas::find($kelasId);
-        if (! $kelas) {
-            return redirect()->route('guru.wali-kelas.index')->with('error', 'Kelas tidak ditemukan.');
-        }
-        $this->authorizeKelas($kelas);
 
         $periodeType = $request->get('periode_type', 'bulanan');
         $bulan = $request->get('bulan', Carbon::today()->format('Y-m'));
         $tahunAjaran = $request->get('tahun_ajaran', Setting::getTahunAjaranAktif());
         $semester = $request->get('semester', Setting::getSemesterAktif());
 
-        $data = $this->getRekapData($kelasId, $periodeType, $bulan, $tahunAjaran, $semester);
+        $this->authorizeGuruJadwal($user->id, $kelasId, $mapelId);
+
+        $data = $this->getRekapData($user->id, $kelasId, $mapelId, $periodeType, $bulan, $tahunAjaran, $semester);
 
         $schoolName = Setting::get('school_name', 'Nama Sekolah');
         $semesterLabel = Setting::getSemesterLabel($semester);
 
-        $pdf = Pdf::loadView('guru.wali-kelas.pdf-bulanan', array_merge($data, [
+        $pdf = Pdf::loadView('guru.rekap.pdf', array_merge($data, [
             'schoolName' => $schoolName,
             'tahunAjaran' => $tahunAjaran,
             'semesterLabel' => $semesterLabel,
-            'waliKelas' => $user,
+            'guru' => $user,
         ]))->setPaper('a4', 'landscape');
 
         $periodLabel = $periodeType === 'bulanan' ? $bulan : $semester.'-'.$tahunAjaran;
         $cleanPeriod = str_replace(['/', ' '], '-', $periodLabel);
-        $filename = 'rekap-kehadiran-wali-'.$kelas->nama.'-'.$cleanPeriod.'.pdf';
+        $filename = 'rekap-kehadiran-'.$data['kelas']->nama.'-'.$cleanPeriod.'.pdf';
 
         return $pdf->download($filename);
     }
@@ -153,35 +108,28 @@ class WaliKelasController extends Controller
     public function exportExcel(Request $request): BinaryFileResponse|RedirectResponse
     {
         $user = auth()->user();
-        $kelasBinaan = Kelas::where('wali_kelas_id', $user->id)->get();
-        if ($kelasBinaan->isEmpty() && (in_array($user->role, ['admin', 'super_admin']) || $user->hasAnyRole(['admin', 'super_admin']))) {
-            $kelasBinaan = Kelas::orderBy('tingkat')->orderBy('nama')->get();
-        }
+        $kelasId = (int) $request->get('kelas_id');
+        $mapelId = (int) $request->get('mata_pelajaran_id');
 
-        $kelasId = (int) $request->get('kelas_id', $kelasBinaan->first()?->id ?? 0);
-        if (! $kelasId) {
-            return redirect()->route('guru.wali-kelas.index')->with('error', 'Kelas binaan tidak ditemukan.');
+        if (! $kelasId || ! $mapelId) {
+            return redirect()->route('guru.rekap.index')->with('error', 'Silakan pilih kelas dan mata pelajaran terlebih dahulu.');
         }
-
-        $kelas = Kelas::find($kelasId);
-        if (! $kelas) {
-            return redirect()->route('guru.wali-kelas.index')->with('error', 'Kelas tidak ditemukan.');
-        }
-        $this->authorizeKelas($kelas);
 
         $periodeType = $request->get('periode_type', 'bulanan');
         $bulan = $request->get('bulan', Carbon::today()->format('Y-m'));
         $tahunAjaran = $request->get('tahun_ajaran', Setting::getTahunAjaranAktif());
         $semester = $request->get('semester', Setting::getSemesterAktif());
 
-        $data = $this->getRekapData($kelasId, $periodeType, $bulan, $tahunAjaran, $semester);
+        $this->authorizeGuruJadwal($user->id, $kelasId, $mapelId);
+
+        $data = $this->getRekapData($user->id, $kelasId, $mapelId, $periodeType, $bulan, $tahunAjaran, $semester);
+
+        $tempPath = tempnam(sys_get_temp_dir(), 'rekap_guru_').'.xlsx';
+        $writer = SimpleExcelWriter::create($tempPath);
 
         $periodInfo = $periodeType === 'bulanan'
             ? Carbon::parse($bulan.'-01')->translatedFormat('F Y')
             : Setting::getSemesterLabel($semester).' TA '.$tahunAjaran;
-
-        $tempPath = tempnam(sys_get_temp_dir(), 'rekap_wali_').'.xlsx';
-        $writer = SimpleExcelWriter::create($tempPath);
 
         $no = 1;
         foreach ($data['rekapSiswa'] as $row) {
@@ -190,8 +138,9 @@ class WaliKelasController extends Controller
                 'Nama Siswa' => $row['siswa']->name,
                 'NIS' => $row['nis'],
                 'NISN' => $row['nisn'],
-                'Kelas' => $kelas->nama,
-                'Wali Kelas' => $user->name,
+                'Kelas' => $data['kelas']->nama,
+                'Mata Pelajaran' => $data['mataPelajaran']->nama,
+                'Guru Pengampu' => $user->name,
                 'Periode' => $periodInfo,
                 'Hadir' => $row['hadir'],
                 'Terlambat' => $row['terlambat'],
@@ -208,27 +157,26 @@ class WaliKelasController extends Controller
 
         $periodLabel = $periodeType === 'bulanan' ? $bulan : $semester.'-'.$tahunAjaran;
         $cleanPeriod = str_replace(['/', ' '], '-', $periodLabel);
-        $filename = 'rekap-kehadiran-wali-'.$kelas->nama.'-'.$cleanPeriod.'.xlsx';
+        $filename = 'rekap-kehadiran-'.$data['kelas']->nama.'-'.$cleanPeriod.'.xlsx';
 
         return response()->download($tempPath, $filename)->deleteFileAfterSend(true);
     }
 
-    public function getRekapData(
+    private function getRekapData(
+        int $guruId,
         int $kelasId,
-        string $periodeType = 'bulanan',
-        string $bulan = '',
-        string $tahunAjaran = '',
-        string $semester = ''
+        int $mapelId,
+        string $periodeType,
+        string $bulan,
+        string $tahunAjaran,
+        string $semester
     ): array {
         if ($periodeType === 'semester') {
-            $tahunAjaran = $tahunAjaran ?: Setting::getTahunAjaranAktif();
-            $semester = $semester ?: Setting::getSemesterAktif();
             $range = Setting::getPeriodeSemesterRange($tahunAjaran, $semester);
             $startDate = $range['start'];
             $endDate = $range['end'];
         } else {
             try {
-                $bulan = $bulan ?: Carbon::now()->format('Y-m');
                 $startDate = Carbon::createFromFormat('Y-m', $bulan)->startOfMonth();
                 $endDate = $startDate->copy()->endOfMonth();
             } catch (\Throwable $e) {
@@ -239,9 +187,15 @@ class WaliKelasController extends Controller
         }
 
         $kelas = Kelas::with(['siswaProfiles.user'])->findOrFail($kelasId);
+        $mataPelajaran = MataPelajaran::findOrFail($mapelId);
 
+        // Pertemuan guru untuk kelas & mapel ini pada rentang waktu
         $pertemuanIds = Pertemuan::whereBetween('tanggal', [$startDate->toDateString(), $endDate->toDateString()])
-            ->whereHas('jadwal', fn ($j) => $j->where('kelas_id', $kelasId))
+            ->whereHas('jadwal', function ($q) use ($guruId, $kelasId, $mapelId) {
+                $q->where('guru_id', $guruId)
+                    ->where('kelas_id', $kelasId)
+                    ->where('mata_pelajaran_id', $mapelId);
+            })
             ->pluck('id');
 
         $kehadiranData = KehadiranSiswa::whereIn('pertemuan_id', $pertemuanIds)
@@ -271,7 +225,7 @@ class WaliKelasController extends Controller
             $dispensasi = $items->where('status', 'dispensasi')->count();
             $totalPertemuan = $items->count();
 
-            // Persentase kehadiran: siswa hadir tepat waktu, hadir terlambat, dan dispensasi dihitung hadir
+            // Siswa hadir tepat waktu, terlambat, dan dispensasi dihitung hadir secara sah
             $persentase = $totalPertemuan > 0
                 ? round((($hadir + $terlambat + $dispensasi) / $totalPertemuan) * 100, 1)
                 : 0;
@@ -303,6 +257,7 @@ class WaliKelasController extends Controller
 
         return [
             'kelas' => $kelas,
+            'mataPelajaran' => $mataPelajaran,
             'periodeType' => $periodeType,
             'bulan' => $bulan,
             'tahunAjaran' => $tahunAjaran,
@@ -320,17 +275,18 @@ class WaliKelasController extends Controller
         ];
     }
 
-    private function getRekapBulananData(int $kelasId, string $bulan): array
-    {
-        return $this->getRekapData($kelasId, 'bulanan', $bulan);
-    }
-
-    private function authorizeKelas(Kelas $kelas): void
+    private function authorizeGuruJadwal(int $guruId, int $kelasId, int $mapelId): void
     {
         $user = auth()->user();
         if (in_array($user->role, ['admin', 'super_admin']) || $user->hasAnyRole(['admin', 'super_admin'])) {
             return;
         }
-        abort_unless($kelas->wali_kelas_id === $user->id, 403, 'Anda bukan wali kelas dari kelas ini.');
+
+        $allowed = JadwalPelajaran::where('guru_id', $guruId)
+            ->where('kelas_id', $kelasId)
+            ->where('mata_pelajaran_id', $mapelId)
+            ->exists();
+
+        abort_unless($allowed, 403, 'Anda tidak memiliki jadwal mengajar untuk kelas dan mata pelajaran ini.');
     }
 }

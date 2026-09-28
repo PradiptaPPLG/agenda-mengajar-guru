@@ -99,7 +99,7 @@ class PertemuanController extends Controller
             'penugasan' => ['nullable', 'string', 'max:5000'],
             // Siswa
             'siswa' => ['nullable', 'array'],
-            'siswa.*.status' => ['required', 'in:hadir,sakit,izin,alpa,dispensasi'],
+            'siswa.*.status' => ['required', 'in:hadir,terlambat,sakit,izin,alpa,dispensasi'],
             'siswa.*.keterangan' => ['nullable', 'string', 'max:255'],
         ]);
 

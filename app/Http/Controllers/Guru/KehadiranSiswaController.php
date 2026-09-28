@@ -27,7 +27,7 @@ class KehadiranSiswaController extends Controller
         abort_unless($isSiswaInClass, 404, 'Siswa tidak ditemukan di kelas ini.');
 
         $validated = $request->validate([
-            'status' => ['required', 'in:hadir,sakit,izin,alpa,dispensasi'],
+            'status' => ['required', 'in:hadir,terlambat,sakit,izin,alpa,dispensasi'],
             'keterangan' => ['nullable', 'string', 'max:500'],
         ]);
 
@@ -48,7 +48,7 @@ class KehadiranSiswaController extends Controller
 
         $validated = $request->validate([
             'siswa' => ['required', 'array'],
-            'siswa.*.status' => ['required', 'in:hadir,sakit,izin,alpa,dispensasi'],
+            'siswa.*.status' => ['required', 'in:hadir,terlambat,sakit,izin,alpa,dispensasi'],
             'siswa.*.keterangan' => ['nullable', 'string', 'max:500'],
         ]);
 

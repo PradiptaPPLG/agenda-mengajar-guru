@@ -206,7 +206,7 @@ class UserController extends Controller
 
         $userData = [
             'name' => $validated['name'],
-            'email' => $validated['email'],
+            'email' => $validated['email'] ?? null,
             'role' => $validated['role'],
         ];
 

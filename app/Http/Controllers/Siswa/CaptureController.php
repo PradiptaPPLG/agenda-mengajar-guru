@@ -81,13 +81,19 @@ class CaptureController extends Controller
             ->where('siswa_id', $user->id)
             ->first();
 
+        $classCapture = FotoBukti::with('siswa')
+            ->whereIn('pertemuan_id', $pertemuanIds)
+            ->first();
+
         $enableCheckout = (Setting::get('enable_checkout_foto', '0') == '1');
         $jamCheckoutMulai = Carbon::createFromFormat('H:i', $jamSelesai)->subMinutes(15)->format('H:i');
         $canCheckout = ! $tanggalCarbon->isToday() || (now()->format('H:i') >= $jamCheckoutMulai);
 
         return view('siswa.capture.show', [
             'pertemuan' => $pertemuan->load(['jadwal.guru', 'jadwal.mataPelajaran', 'kehadiranGuru']),
-            'existingCapture' => $existingCapture,
+            'existingCapture' => $existingCapture ?? $classCapture,
+            'myCapture' => $existingCapture,
+            'classCapture' => $classCapture,
             'isPast' => $isPast,
             'enableCheckout' => $enableCheckout,
             'canCheckout' => $canCheckout,
@@ -166,17 +172,8 @@ class CaptureController extends Controller
             $fotoPath = $imageCompressor->compressAndStore($request->file('foto'), 'foto-bukti', 1200, 80);
         }
 
-        // Apply Tolerance Logic for KehadiranGuru
+        // Status Kehadiran Guru: Mengutamakan pilihan langsung dari siswa (tidak ditimpa toleransi sistem)
         $statusGuru = $validated['status_guru_dilaporkan'];
-        if ($statusGuru === 'hadir' && $tanggalCarbon->isToday()) {
-            $toleransi = Setting::get('toleransi_keterlambatan_menit', 5);
-            $waktuBatas = Carbon::parse($jamMulai)->addMinutes((int) $toleransi)->format('H:i');
-            $nowTime = now()->format('H:i');
-
-            if ($nowTime > $waktuBatas) {
-                $statusGuru = 'terlambat';
-            }
-        }
 
         $hasNewFoto = $request->hasFile('foto');
 
@@ -292,7 +289,6 @@ class CaptureController extends Controller
             ->pluck('id');
 
         $hasFotoAwal = FotoBukti::whereIn('pertemuan_id', $pertemuanIds)
-            ->where('siswa_id', $user->id)
             ->whereNotNull('foto_path')
             ->exists();
 
@@ -311,7 +307,7 @@ class CaptureController extends Controller
             foreach ($pertemuanIds as $pertemuanId) {
                 $fotoBukti = FotoBukti::where('pertemuan_id', $pertemuanId)
                     ->where('siswa_id', $user->id)
-                    ->first();
+                    ->first() ?? FotoBukti::where('pertemuan_id', $pertemuanId)->whereNotNull('foto_path')->first();
 
                 if ($fotoBukti) {
                     if ($fotoBukti->foto_checkout_path && $fotoBukti->foto_checkout_path !== $fotoCheckoutPath) {

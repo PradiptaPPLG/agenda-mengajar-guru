@@ -20,6 +20,7 @@ use App\Http\Controllers\Guru\DashboardController as GuruDashboardController;
 use App\Http\Controllers\Guru\KaprogController;
 use App\Http\Controllers\Guru\NotificationController;
 use App\Http\Controllers\Guru\PertemuanController as GuruPertemuanController;
+use App\Http\Controllers\Guru\RekapController as GuruRekapController;
 use App\Http\Controllers\Guru\WaliKelasController;
 use App\Http\Controllers\KepalaSekolah\DashboardController as KsDashboardController;
 use App\Http\Controllers\KepalaSekolah\PdfController as KsPdfController;
@@ -69,7 +70,14 @@ Route::middleware(['auth', 'role:guru'])->prefix('guru')->name('guru.')->group(f
     // Multi-Role untuk Guru
     Route::get('/bk', [BkController::class, 'index'])->name('bk.index');
     Route::get('/wali-kelas', [WaliKelasController::class, 'index'])->name('wali-kelas.index');
+    Route::get('/wali-kelas/export-pdf', [WaliKelasController::class, 'exportPdf'])->name('wali-kelas.export-pdf');
+    Route::get('/wali-kelas/export-excel', [WaliKelasController::class, 'exportExcel'])->name('wali-kelas.export-excel');
     Route::get('/kaprog', [KaprogController::class, 'index'])->name('kaprog.index');
+
+    // Rekap Kehadiran Kelas (Bulanan & Semester)
+    Route::get('/rekap', [GuruRekapController::class, 'index'])->name('rekap.index');
+    Route::get('/rekap/export-pdf', [GuruRekapController::class, 'exportPdf'])->name('rekap.export-pdf');
+    Route::get('/rekap/export-excel', [GuruRekapController::class, 'exportExcel'])->name('rekap.export-excel');
 });
 
 // ─── Siswa ───────────────────────────────────────────────────────────────────

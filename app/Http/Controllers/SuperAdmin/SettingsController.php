@@ -22,13 +22,18 @@ class SettingsController extends Controller
         'phone',
         'enable_checkout_foto',
         'default_siswa_status',
+        'toleransi_keterlambatan_menit',
     ];
 
     public function index(): View
     {
         $settings = [];
         foreach ($this->settingKeys as $key) {
-            $defaultVal = $key === 'default_siswa_status' ? 'aktif' : '';
+            $defaultVal = match ($key) {
+                'default_siswa_status' => 'aktif',
+                'toleransi_keterlambatan_menit' => '10',
+                default => '',
+            };
             $settings[$key] = Setting::get($key, $defaultVal);
         }
 
@@ -49,10 +54,14 @@ class SettingsController extends Controller
             'phone' => ['nullable', 'string', 'max:20'],
             'enable_checkout_foto' => ['nullable', 'in:0,1'],
             'default_siswa_status' => ['required', 'in:aktif,nonaktif'],
+            'toleransi_keterlambatan_menit' => ['nullable', 'integer', 'min:0', 'max:60'],
             'apply_to_existing_siswa' => ['nullable', 'in:0,1'],
         ]);
 
         $validated['enable_checkout_foto'] = $request->has('enable_checkout_foto') ? '1' : '0';
+        if (! isset($validated['toleransi_keterlambatan_menit']) || $validated['toleransi_keterlambatan_menit'] === null) {
+            unset($validated['toleransi_keterlambatan_menit']);
+        }
         $applyToExisting = $request->has('apply_to_existing_siswa');
         $resetPasswords = $request->has('reset_passwords_to_nis');
         unset($validated['apply_to_existing_siswa']);

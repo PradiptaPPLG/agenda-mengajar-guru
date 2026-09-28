@@ -21,18 +21,53 @@ class PublicDashboardController extends Controller
         $hari = $today->dayOfWeekIso;
         $nowTime = Carbon::now()->format('H:i');
 
-        // Aggregate Stats Hari Ini (berdasarkan tanggal pertemuan)
+        // ── Guru Stats Hari Ini (dihitung per ORANG/unik, bukan per sesi) ────────
+        // Guru "hadir"       = punya minimal 1 sesi berstatus 'hadir' hari ini
+        // Guru "terlambat"   = tidak ada sesi 'hadir', tapi ada sesi 'terlambat'
+        // Guru "tidak hadir" = semua sesi hari ini non-hadir (tidak ada hadir/terlambat sama sekali)
+        $guruTodayQuery = fn () => KehadiranGuru::whereHas('pertemuan', fn ($q) => $q->whereDate('tanggal', $today));
+
+        // Guru IDs yang hadir di minimal 1 sesi
+        $guruHadirIds = $guruTodayQuery()->where('status', 'hadir')->distinct()->pluck('guru_id');
+        // Guru IDs yang terlambat di minimal 1 sesi (tapi tidak ada yang hadir)
+        $guruTerlambatIds = $guruTodayQuery()->where('status', 'terlambat')
+            ->whereNotIn('guru_id', $guruHadirIds)
+            ->distinct()->pluck('guru_id');
+        // Guru IDs yang SAMA SEKALI tidak hadir/terlambat hari ini
+        $guruTidakHadirIds = $guruTodayQuery()
+            ->whereNotIn('status', ['hadir', 'terlambat'])
+            ->whereNotIn('guru_id', $guruHadirIds)
+            ->whereNotIn('guru_id', $guruTerlambatIds)
+            ->distinct()->pluck('guru_id');
+
+        // ── Siswa Stats Hari Ini (dihitung per ORANG/unik, bukan per sesi) ────────
+        // Siswa "hadir"       = punya minimal 1 sesi 'hadir' hari ini
+        // Siswa "terlambat"   = tidak ada sesi 'hadir', tapi ada sesi 'terlambat'
+        // Siswa "tidak hadir" = siswa yang SAMA SEKALI tidak hadir/terlambat di semua sesi hari ini
+        $siswaTodayQuery = fn () => KehadiranSiswa::whereHas('pertemuan', fn ($q) => $q->whereDate('tanggal', $today));
+
+        $siswaHadirIds = $siswaTodayQuery()->where('status', 'hadir')->distinct()->pluck('siswa_id');
+        $siswaTerlambatIds = $siswaTodayQuery()->where('status', 'terlambat')
+            ->whereNotIn('siswa_id', $siswaHadirIds)
+            ->distinct()->pluck('siswa_id');
+        $siswaTidakHadirIds = $siswaTodayQuery()
+            ->whereNotIn('status', ['hadir', 'terlambat'])
+            ->whereNotIn('siswa_id', $siswaHadirIds)
+            ->whereNotIn('siswa_id', $siswaTerlambatIds)
+            ->distinct()->pluck('siswa_id');
+
         $stats = [
-            'guru_hadir_hari_ini' => KehadiranGuru::whereHas('pertemuan', fn ($q) => $q->whereDate('tanggal', $today))->where('status', 'hadir')->count(),
-            'guru_terlambat_hari_ini' => KehadiranGuru::whereHas('pertemuan', fn ($q) => $q->whereDate('tanggal', $today))->where('status', 'terlambat')->count(),
-            'guru_tidak_hadir_hari_ini' => KehadiranGuru::whereHas('pertemuan', fn ($q) => $q->whereDate('tanggal', $today))->whereIn('status', ['tidak_hadir', 'sakit', 'alpa', 'dispensasi'])->count(),
+            // Guru (per kepala/orang)
+            'guru_hadir_hari_ini' => $guruHadirIds->count(),
+            'guru_terlambat_hari_ini' => $guruTerlambatIds->count(),
+            'guru_tidak_hadir_hari_ini' => $guruTidakHadirIds->count(),
             'total_guru' => User::where('role', 'guru')->count(),
             'pertemuan_hari_ini' => Pertemuan::whereDate('tanggal', $today)->count(),
 
-            // Siswa Stats Hari Ini (berdasarkan sesi mapel pertemuan)
-            'siswa_hadir_hari_ini' => KehadiranSiswa::whereHas('pertemuan', fn ($q) => $q->whereDate('tanggal', $today))->where('status', 'hadir')->count(),
-            'siswa_terlambat_hari_ini' => KehadiranSiswa::whereHas('pertemuan', fn ($q) => $q->whereDate('tanggal', $today))->where('status', 'terlambat')->count(),
-            'siswa_tidak_hadir_hari_ini' => KehadiranSiswa::whereHas('pertemuan', fn ($q) => $q->whereDate('tanggal', $today))->whereIn('status', ['sakit', 'izin', 'alpa', 'dispensasi'])->count(),
+            // Siswa (per kepala/orang)
+            'siswa_hadir_hari_ini' => $siswaHadirIds->count(),
+            'siswa_terlambat_hari_ini' => $siswaTerlambatIds->count(),
+            'siswa_tidak_hadir_hari_ini' => $siswaTidakHadirIds->count(),
             'total_siswa' => User::where('role', 'siswa')->count(),
         ];
 
@@ -213,18 +248,20 @@ class PublicDashboardController extends Controller
         $siswaQuery7 = KehadiranSiswa::whereHas('pertemuan', fn ($q) => $q->whereDate('tanggal', '>=', $today->copy()->subDays(7)->toDateString()));
         $siswaPie = [
             'hadir' => (clone $siswaQuery7)->where('status', 'hadir')->count(),
+            'terlambat' => (clone $siswaQuery7)->where('status', 'terlambat')->count(),
             'sakit' => (clone $siswaQuery7)->where('status', 'sakit')->count(),
             'izin' => (clone $siswaQuery7)->where('status', 'izin')->count(),
-            'alpa' => (clone $siswaQuery7)->where('status', 'alpa')->count(),
             'dispensasi' => (clone $siswaQuery7)->where('status', 'dispensasi')->count(),
+            'alpa' => (clone $siswaQuery7)->where('status', 'alpa')->count(),
         ];
         $siswaPieTotal = array_sum($siswaPie) ?: 1;
         $siswaPiePct = [
             'hadir' => round($siswaPie['hadir'] / $siswaPieTotal * 100, 1),
+            'terlambat' => round($siswaPie['terlambat'] / $siswaPieTotal * 100, 1),
             'sakit' => round($siswaPie['sakit'] / $siswaPieTotal * 100, 1),
             'izin' => round($siswaPie['izin'] / $siswaPieTotal * 100, 1),
-            'alpa' => round($siswaPie['alpa'] / $siswaPieTotal * 100, 1),
             'dispensasi' => round($siswaPie['dispensasi'] / $siswaPieTotal * 100, 1),
+            'alpa' => round($siswaPie['alpa'] / $siswaPieTotal * 100, 1),
         ];
 
         return view('public-dashboard', compact(
