@@ -331,4 +331,33 @@ class JadwalConflictValidationTest extends TestCase
 
         $response->assertSessionHasErrors(['jam_selesai']);
     }
+
+    public function test_non_block_class_schedule_defaults_to_reguler_and_does_not_render_block_badge(): void
+    {
+        $mapelProduktif = MataPelajaran::create([
+            'nama' => 'Informatika',
+            'kode' => 'INF',
+            'kelompok_blok' => 'kelompok_b',
+        ]);
+
+        $response = $this->actingAs($this->admin)->post(route('admin.jadwal.store'), [
+            'kelas_id' => $this->kelasA->id,
+            'guru_id' => $this->guru1->id,
+            'mata_pelajaran_id' => $mapelProduktif->id,
+            'hari' => 1,
+            'jam_mulai' => '07:10',
+            'jam_selesai' => '08:30',
+        ]);
+
+        $response->assertRedirect(route('admin.jadwal.index'));
+        $this->assertDatabaseHas('jadwal_pelajarans', [
+            'kelas_id' => $this->kelasA->id,
+            'mata_pelajaran_id' => $mapelProduktif->id,
+            'kelompok_blok' => 'reguler',
+        ]);
+
+        $indexResponse = $this->actingAs($this->admin)->get(route('admin.jadwal.index'));
+        $indexResponse->assertOk();
+        $indexResponse->assertDontSee('Blok B');
+    }
 }

@@ -323,7 +323,7 @@
                     </td>
                     <td class="px-4 py-3 font-semibold text-slate-900">
                         {{ $j->mataPelajaran->nama }}
-                        @if($j->kelompok_blok && $j->kelompok_blok !== 'reguler')
+                        @if($j->kelas?->is_sistem_blok && $j->kelompok_blok && $j->kelompok_blok !== 'reguler')
                             <span class="ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md {{ $j->kelompok_blok === 'kelompok_a' ? 'bg-sky-50 text-sky-700 border border-sky-200' : 'bg-amber-50 text-amber-700 border border-amber-200' }}">
                                 {{ $j->kelompok_blok === 'kelompok_a' ? 'Blok A' : 'Blok B' }}
                             </span>

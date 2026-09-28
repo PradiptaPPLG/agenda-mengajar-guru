@@ -104,10 +104,11 @@ class CleanAndSyncMataPelajaranSeeder extends Seeder
                 );
 
                 if ($target) {
-                    if ($jadwal->mata_pelajaran_id !== $target->id || $jadwal->kelompok_blok !== $target->kelompok_blok) {
+                    $targetKelompok = ($jadwal->kelas?->is_sistem_blok) ? $target->kelompok_blok : 'reguler';
+                    if ($jadwal->mata_pelajaran_id !== $target->id || $jadwal->kelompok_blok !== $targetKelompok) {
                         $jadwal->update([
                             'mata_pelajaran_id' => $target->id,
-                            'kelompok_blok' => $target->kelompok_blok,
+                            'kelompok_blok' => $targetKelompok,
                         ]);
                         $remappedJadwals++;
                     }

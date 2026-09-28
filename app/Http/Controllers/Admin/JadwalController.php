@@ -185,8 +185,10 @@ class JadwalController extends Controller
         $validated['tahun_ajaran'] = ! empty($validated['tahun_ajaran']) ? $validated['tahun_ajaran'] : Setting::getTahunAjaranAktif();
         $validated['semester'] = ! empty($validated['semester']) ? $validated['semester'] : Setting::getSemesterAktif();
 
-        // Jika tidak diisi, ambil default dari mata pelajaran
-        if (empty($validated['kelompok_blok'])) {
+        $kelas = Kelas::find($validated['kelas_id']);
+        if (! $kelas?->is_sistem_blok) {
+            $validated['kelompok_blok'] = 'reguler';
+        } elseif (empty($validated['kelompok_blok'])) {
             $validated['kelompok_blok'] = MataPelajaran::find($validated['mata_pelajaran_id'])?->kelompok_blok ?? 'reguler';
         }
 
@@ -243,8 +245,10 @@ class JadwalController extends Controller
         $validated['tahun_ajaran'] = ! empty($validated['tahun_ajaran']) ? $validated['tahun_ajaran'] : ($jadwal->tahun_ajaran ?: Setting::getTahunAjaranAktif());
         $validated['semester'] = ! empty($validated['semester']) ? $validated['semester'] : ($jadwal->semester ?: Setting::getSemesterAktif());
 
-        // Jika tidak diisi, ambil default dari mata pelajaran
-        if (empty($validated['kelompok_blok'])) {
+        $kelas = Kelas::find($validated['kelas_id']);
+        if (! $kelas?->is_sistem_blok) {
+            $validated['kelompok_blok'] = 'reguler';
+        } elseif (empty($validated['kelompok_blok'])) {
             $validated['kelompok_blok'] = MataPelajaran::find($validated['mata_pelajaran_id'])?->kelompok_blok ?? 'reguler';
         }
 
