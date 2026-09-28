@@ -132,23 +132,26 @@ class JadwalImport implements ToCollection, WithHeadingRow
                     $guruCache->put($guruKey, $guru);
                 }
 
-                // Find or Create Mapel
-                $mapelKey = strtolower($mapelName);
+                // Find or Create Mapel using smart canonical matcher
+                $mapelKey = strtolower(trim($mapelName)).'_'.($kelas?->nama ?? '');
                 $mapel = $mapelCache->get($mapelKey);
+                if (! $mapel && $mapelName) {
+                    $mapel = MataPelajaran::findMatchingMapel($mapelName, $kelas?->nama);
+                    if ($mapel) {
+                        $mapelCache->put($mapelKey, $mapel);
+                    }
+                }
                 if ($mapel && $mapel->trashed()) {
                     $mapel->restore();
                 }
                 if (! $mapel && $mapelName) {
-                    $prefix = substr(strtoupper(preg_replace('/[^a-zA-Z]/', '', $mapelName)), 0, 3);
-                    $kode = $prefix.'-'.strtoupper(Str::random(4));
-                    while (MataPelajaran::withTrashed()->where('kode', $kode)->exists()) {
-                        $kode = $prefix.'-'.strtoupper(Str::random(5));
-                    }
-                    $kelompokBlok = (new KelompokBlokMataPelajaranSeeder)->classify($mapelName, $kode);
+                    $cleanName = trim(preg_replace('/\s+/', ' ', $mapelName));
+                    $prefix = substr(strtoupper(preg_replace('/[^a-zA-Z]/', '', $cleanName)), 0, 5) ?: 'MPL';
+                    $kelompokBlok = (new KelompokBlokMataPelajaranSeeder)->classify($cleanName, $prefix);
                     $mapel = MataPelajaran::create([
-                        'nama' => $mapelName,
-                        'kode' => $kode,
-                        'jenis' => $kelompokBlok === 'kelompok_b' ? 'kejuruan' : 'umum',
+                        'nama' => $cleanName,
+                        'kode' => $prefix,
+                        'jenis' => $kelompokBlok === 'kelompok_b' ? 'produktif' : 'umum',
                         'kelompok_blok' => $kelompokBlok,
                     ]);
                     $mapelCache->put($mapelKey, $mapel);

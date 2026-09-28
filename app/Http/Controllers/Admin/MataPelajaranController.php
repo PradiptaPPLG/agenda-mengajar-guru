@@ -5,10 +5,10 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
+use Database\Seeders\KelompokBlokMataPelajaranSeeder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Spatie\SimpleExcel\SimpleExcelReader;
 use Spatie\SimpleExcel\SimpleExcelWriter;
@@ -52,16 +52,19 @@ class MataPelajaranController extends Controller
     {
         $validated = $request->validate([
             'nama' => ['required', 'string', 'max:100'],
-            'kode' => ['required', 'string', 'max:20', 'unique:mata_pelajarans'],
+            'kode' => ['required', 'string', 'max:20'],
             'jenis' => ['required', 'in:umum,produktif,normatif,adaptif,kejuruan'],
             'kelas_ids' => ['nullable', 'array'],
             'kelas_ids.*' => ['exists:kelas,id'],
         ]);
 
+        $kelompokBlok = (new KelompokBlokMataPelajaranSeeder)->classify($validated['nama'], $validated['kode']);
+
         $mataPelajaran = MataPelajaran::create([
             'nama' => $validated['nama'],
             'kode' => $validated['kode'],
             'jenis' => $validated['jenis'],
+            'kelompok_blok' => $kelompokBlok,
         ]);
 
         if (in_array($validated['jenis'], ['produktif', 'adaptif', 'kejuruan']) && isset($validated['kelas_ids'])) {
@@ -83,16 +86,19 @@ class MataPelajaranController extends Controller
     {
         $validated = $request->validate([
             'nama' => ['required', 'string', 'max:100'],
-            'kode' => ['required', 'string', 'max:20', Rule::unique('mata_pelajarans')->ignore($mataPelajaran->id)],
+            'kode' => ['required', 'string', 'max:20'],
             'jenis' => ['required', 'in:umum,produktif,normatif,adaptif,kejuruan'],
             'kelas_ids' => ['nullable', 'array'],
             'kelas_ids.*' => ['exists:kelas,id'],
         ]);
 
+        $kelompokBlok = (new KelompokBlokMataPelajaranSeeder)->classify($validated['nama'], $validated['kode']);
+
         $mataPelajaran->update([
             'nama' => $validated['nama'],
             'kode' => $validated['kode'],
             'jenis' => $validated['jenis'],
+            'kelompok_blok' => $kelompokBlok,
         ]);
 
         if (in_array($validated['jenis'], ['produktif', 'adaptif', 'kejuruan']) && isset($validated['kelas_ids'])) {
@@ -194,29 +200,36 @@ class MataPelajaranController extends Controller
                 return;
             }
 
-            $nama = isset($rowProperties[$namaIndex]) ? trim((string) $rowProperties[$namaIndex]) : null;
-            if (! $nama || $nama === '-' || in_array(strtolower($nama), ['nama', 'mata pelajaran', 'nama mata pelajaran', 'mapel'])) {
+            $rawNama = isset($rowProperties[$namaIndex]) ? trim((string) $rowProperties[$namaIndex]) : null;
+            if (! $rawNama || $rawNama === '-' || in_array(strtolower($rawNama), ['nama', 'mata pelajaran', 'nama mata pelajaran', 'mapel'])) {
                 return;
             }
 
-            $kode = ($kodeIndex !== -1 && isset($rowProperties[$kodeIndex])) ? trim((string) $rowProperties[$kodeIndex]) : null;
-            if ($kode === '' || $kode === '-') {
-                $kode = null;
+            $nama = trim(preg_replace('/\s+/', ' ', $rawNama));
+            if ($nama === 'MP-DKV12') {
+                $nama = 'MP-DKV 12';
             }
+
+            $rawKode = ($kodeIndex !== -1 && isset($rowProperties[$kodeIndex])) ? trim((string) $rowProperties[$kodeIndex]) : null;
+            $kode = ($rawKode !== null && $rawKode !== '' && $rawKode !== '-') ? preg_replace('/\s+/', '-', $rawKode) : null;
 
             $rawJenis = ($jenisIndex !== -1 && isset($rowProperties[$jenisIndex])) ? trim((string) $rowProperties[$jenisIndex]) : 'umum';
             $lowerJenis = strtolower($rawJenis);
-            $jenis = in_array($lowerJenis, ['umum', 'produktif', 'normatif', 'adaptif', 'kejuruan']) ? $lowerJenis : 'umum';
+            $jenis = in_array($lowerJenis, ['umum', 'produktif', 'normatif', 'adaptif', 'kejuruan']) ? $lowerJenis : ($lowerJenis === 'produktif' ? 'produktif' : 'umum');
+            $kelompokBlok = (new KelompokBlokMataPelajaranSeeder)->classify($nama, $kode);
 
             try {
                 $mapel = null;
 
-                if ($kode) {
-                    $mapel = MataPelajaran::withTrashed()->where('kode', $kode)->first();
-                }
+                // Match primarily by normalized name (ignoring extra spaces and punctuation)
+                $condensed = preg_replace('/[^a-zA-Z0-9]/', '', strtolower($nama));
+                $mapel = MataPelajaran::withTrashed()->get()->first(function ($m) use ($condensed) {
+                    return preg_replace('/[^a-zA-Z0-9]/', '', strtolower($m->nama)) === $condensed;
+                });
 
-                if (! $mapel) {
-                    $mapel = MataPelajaran::withTrashed()->whereRaw('LOWER(TRIM(nama)) = ?', [strtolower(trim($nama))])->first();
+                // Secondary match by specific kode (only if NOT multi-major codes like MP-11 or MP-12)
+                if (! $mapel && $kode && ! in_array(strtoupper($kode), ['MP-11', 'MP-12', 'MP 11', 'MP 12'])) {
+                    $mapel = MataPelajaran::withTrashed()->where('kode', $kode)->first();
                 }
 
                 if ($mapel) {
@@ -229,6 +242,7 @@ class MataPelajaranController extends Controller
                         'nama' => $nama,
                         'kode' => $kode ?: $mapel->kode,
                         'jenis' => $jenis,
+                        'kelompok_blok' => $kelompokBlok,
                     ]);
 
                     if ($isRestored) {
@@ -239,20 +253,14 @@ class MataPelajaranController extends Controller
                 } else {
                     if (! $kode) {
                         $prefix = strtoupper(substr(preg_replace('/[^a-zA-Z0-9]/', '', $nama), 0, 5));
-                        $kode = ($prefix ?: 'MPL').'-'.rand(100, 999);
-                    }
-
-                    $counter = 1;
-                    $baseKode = $kode;
-                    while (MataPelajaran::withTrashed()->where('kode', $kode)->exists()) {
-                        $kode = "{$baseKode}-{$counter}";
-                        $counter++;
+                        $kode = $prefix ?: 'MPL';
                     }
 
                     MataPelajaran::create([
                         'nama' => $nama,
                         'kode' => $kode,
                         'jenis' => $jenis,
+                        'kelompok_blok' => $kelompokBlok,
                     ]);
                     $successCount++;
                 }
