@@ -73,11 +73,51 @@
         </div>
         @endif
 
+        {{-- Notifikasi jika sudah dilaporkan teman sekelas (Point 4) --}}
+        @if(!empty($classCapture) && (empty($myCapture) || $myCapture->id !== $classCapture->id))
+        <div class="px-4 py-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl text-xs flex items-start gap-2.5">
+            <svg class="w-4 h-4 shrink-0 text-amber-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <div>
+                <p class="font-semibold">Presensi Sudah Dilaporkan</p>
+                <p class="mt-0.5 text-amber-800">Laporan kehadiran untuk jam pelajaran ini sudah dikirimkan oleh <strong>{{ $classCapture->siswa->name ?? 'Teman Sekelas' }}</strong> pada pukul {{ $classCapture->created_at->format('H:i') }} WIB.</p>
+            </div>
+        </div>
+        @endif
+
+        {{-- Materi & Tugas dari Guru (Point 5) --}}
+        @if($pertemuan->materi_ajar || $pertemuan->penugasan)
+        <div class="bg-blue-50/80 border border-blue-200 rounded-2xl p-4 space-y-2">
+            <div class="flex items-center gap-2 text-xs font-bold text-blue-900">
+                <svg class="w-4 h-4 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                </svg>
+                Materi & Tugas dari Guru
+            </div>
+            @if($pertemuan->materi_ajar)
+                <div>
+                    <p class="text-[11px] font-semibold text-blue-800">Materi Pembelajaran:</p>
+                    <p class="text-xs text-slate-700 whitespace-pre-line leading-relaxed">{{ $pertemuan->materi_ajar }}</p>
+                </div>
+            @endif
+            @if($pertemuan->penugasan)
+                <div class="pt-2 border-t border-blue-100">
+                    <p class="text-[11px] font-semibold text-amber-900 flex items-center gap-1">
+                        <svg class="w-3.5 h-3.5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                        Tugas / Instruksi:
+                    </p>
+                    <p class="text-xs text-slate-700 whitespace-pre-line leading-relaxed">{{ $pertemuan->penugasan }}</p>
+                </div>
+            @endif
+        </div>
+        @endif
+
         {{-- Existing capture preview --}}
         @if($existingCapture)
         <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
             <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-                <p class="text-sm font-semibold text-slate-900">Foto Bukti Anda</p>
+                <p class="text-sm font-semibold text-slate-900">
+                    {{ (!empty($myCapture) && $myCapture->id === $existingCapture->id) ? 'Foto Bukti Anda' : 'Foto Bukti (' . ($existingCapture->siswa->name ?? 'Teman Sekelas') . ')' }}
+                </p>
                 @if($existingCapture->foto_checkout_path)
                     <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
                         Lengkap (Check-in & Check-out)
@@ -158,7 +198,7 @@
             <form action="{{ route('siswa.capture.checkout', ['jadwal' => $pertemuan->jadwal_id, 'tanggal' => $pertemuan->tanggal->toDateString()]) }}" method="POST" enctype="multipart/form-data" class="p-5 space-y-4">
                 @csrf
                 {{-- Hidden final input for checkout --}}
-                <input type="file" name="foto_checkout" id="final-checkout-input" class="sr-only" required>
+                <input type="file" name="foto_checkout" id="final-checkout-input" class="sr-only">
 
                 {{-- Preview checkout container --}}
                 <div id="preview-checkout-container" class="hidden bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
@@ -218,7 +258,7 @@
         <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
             <div class="px-4 py-3 border-b border-slate-100">
                 <h2 class="text-sm font-semibold text-slate-900">
-                    {{ $existingCapture ? 'Perbarui Foto Masuk (Awal KBM)' : 'Upload Foto Masuk (Awal KBM)' }}
+                    {{ !empty($myCapture) ? 'Perbarui Foto Masuk (Awal KBM)' : (!empty($classCapture) ? 'Kirim Foto Bukti Baru (Perbarui Laporan)' : 'Upload Foto Masuk (Awal KBM)') }}
                 </h2>
             </div>
             <form action="{{ route('siswa.capture.store', ['jadwal' => $pertemuan->jadwal_id, 'tanggal' => $pertemuan->tanggal->toDateString()]) }}" method="POST" enctype="multipart/form-data" class="p-5 space-y-6" id="capture-form">
@@ -229,7 +269,7 @@
                     <label class="block text-xs font-semibold text-slate-600 mb-2">Foto Bukti</label>
                     
                     {{-- Hidden final input submitted with form --}}
-                    <input type="file" name="foto" id="final-foto-input" class="sr-only" {{ $existingCapture ? '' : 'required' }}>
+                    <input type="file" name="foto" id="final-foto-input" class="sr-only">
 
                     {{-- Preview container with compression feedback --}}
                     <div id="preview-container" class="hidden mb-3 bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
@@ -366,9 +406,9 @@
                     </div>
                 </div>
 
-                <button type="submit"
-                        class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm cursor-pointer">
-                    {{ $existingCapture ? 'Perbarui Foto Bukti & Presensi' : 'Kirim Foto Bukti & Presensi' }}
+                <button type="submit" id="btn-submit-capture"
+                        class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm cursor-pointer disabled:bg-slate-300 disabled:cursor-not-allowed">
+                    {{ !empty($myCapture) ? 'Perbarui Foto Bukti & Presensi' : 'Kirim Foto Bukti & Presensi' }}
                 </button>
             </form>
         </div>
@@ -404,10 +444,14 @@
             const compressionStatus = document.getElementById('compression-status');
             const summarySpan = document.getElementById('compression-summary');
             const finalInput = document.getElementById('final-foto-input');
+            const btnSubmit = document.getElementById('btn-submit-capture');
 
             previewContainer.classList.remove('hidden');
             indicator.classList.remove('hidden');
             compressionStatus.classList.add('hidden');
+            if (btnSubmit) {
+                btnSubmit.disabled = true;
+            }
 
             try {
                 const img = new Image();
@@ -475,6 +519,9 @@
                 previewImg.src = URL.createObjectURL(file);
             } finally {
                 indicator.classList.add('hidden');
+                if (btnSubmit) {
+                    btnSubmit.disabled = false;
+                }
             }
         }
 
@@ -566,6 +613,25 @@
                 section.classList.toggle('hidden', val !== 'tidak_hadir');
             }
         }
+
+        document.getElementById('capture-form')?.addEventListener('submit', function(e) {
+            const finalInput = document.getElementById('final-foto-input');
+            const hasExisting = {{ !empty($myCapture) ? 'true' : 'false' }};
+            if (!hasExisting && (!finalInput.files || finalInput.files.length === 0)) {
+                e.preventDefault();
+                alert('Silakan ambil foto bukti kehadiran guru terlebih dahulu melalui kamera atau galeri.');
+                return false;
+            }
+        });
+
+        document.querySelector('#section-checkout form')?.addEventListener('submit', function(e) {
+            const finalCheckout = document.getElementById('final-checkout-input');
+            if (!finalCheckout.files || finalCheckout.files.length === 0) {
+                e.preventDefault();
+                alert('Silakan ambil foto bukti check-out terlebih dahulu melalui kamera atau galeri.');
+                return false;
+            }
+        });
     </script>
     @endpush
 </x-layouts.siswa>

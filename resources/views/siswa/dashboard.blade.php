@@ -94,6 +94,46 @@
                     </div>
 
                     <div class="mt-3 space-y-2">
+                        @if($sudahCapture)
+                            <div class="flex items-center gap-1.5 text-[11px] font-medium text-emerald-800 bg-emerald-50/80 px-2.5 py-1.5 rounded-lg border border-emerald-200/80">
+                                <svg class="w-3.5 h-3.5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                <span>
+                                    @if($item['isMyCapture'])
+                                        Anda telah melaporkan kehadiran guru
+                                    @else
+                                        Sudah dilaporkan oleh <strong class="font-semibold">{{ $item['reportedBy'] ?? 'Teman Sekelas' }}</strong>@if($item['reportedAt']) ({{ $item['reportedAt'] }} WIB)@endif
+                                    @endif
+                                </span>
+                            </div>
+                        @endif
+
+                        {{-- Materi & Tugas dari Guru (Point 5) --}}
+                        @if($item['pertemuan'] && ($item['pertemuan']->materi_ajar || $item['pertemuan']->penugasan))
+                            <div class="p-3 bg-blue-50/80 border border-blue-200/80 rounded-xl space-y-2 text-left">
+                                <div class="flex items-center gap-1.5 text-xs font-bold text-blue-900">
+                                    <svg class="w-4 h-4 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                                    </svg>
+                                    Materi & Tugas dari Guru
+                                </div>
+                                @if($item['pertemuan']->materi_ajar)
+                                    <div>
+                                        <p class="text-[11px] font-semibold text-blue-800">Materi Pembelajaran:</p>
+                                        <p class="text-xs text-slate-700 whitespace-pre-line leading-relaxed">{{ $item['pertemuan']->materi_ajar }}</p>
+                                    </div>
+                                @endif
+                                @if($item['pertemuan']->penugasan)
+                                    <div class="pt-2 border-t border-blue-100">
+                                        <p class="text-[11px] font-semibold text-amber-900 flex items-center gap-1">
+                                            <svg class="w-3.5 h-3.5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                                            Tugas / Instruksi:
+                                        </p>
+                                        <p class="text-xs text-slate-700 whitespace-pre-line leading-relaxed">{{ $item['pertemuan']->penugasan }}</p>
+                                    </div>
+                                @endif
+                            </div>
+                        @endif
+
                         @if($enableCheckout && $sudahCapture && !$sudahCheckout)
                             {{-- Foto Masuk Sudah, Foto Checkout Belum --}}
                             @if($canCheckout)
@@ -113,14 +153,14 @@
                             @endif
                             <a href="{{ route('siswa.capture.show', ['jadwal' => $jadwal->id, 'tanggal' => $today->toDateString()]) }}"
                                class="flex items-center justify-center gap-1.5 w-full py-1.5 text-xs text-slate-500 hover:text-slate-700 font-medium">
-                                Ubah Foto Masuk
+                                {{ $item['isMyCapture'] ? 'Ubah Foto Masuk' : 'Lihat / Perbarui Foto Masuk' }}
                             </a>
                         @elseif($sudahCapture)
                             {{-- Already captured or Checkout complete --}}
                             <a href="{{ route('siswa.capture.show', ['jadwal' => $jadwal->id, 'tanggal' => $today->toDateString()]) }}"
                                class="flex items-center justify-center gap-2 w-full py-2.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm font-medium rounded-xl hover:bg-emerald-100 transition-colors">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                                {{ $sudahCheckout ? 'Lihat / Perbarui Foto Bukti' : 'Ubah Foto Bukti' }}
+                                {{ $sudahCheckout ? 'Lihat / Perbarui Foto Bukti' : ($item['isMyCapture'] ? 'Ubah Foto Bukti' : 'Lihat Bukti Foto Guru') }}
                             </a>
                         @elseif($isStarted)
                             {{-- Jam pelajaran sudah dimulai --}}

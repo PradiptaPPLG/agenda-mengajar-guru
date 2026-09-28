@@ -84,6 +84,25 @@
                 <hr class="border-slate-200">
 
                 <div>
+                    <h3 class="text-sm font-semibold text-slate-900 mb-1">Toleransi Keterlambatan Guru</h3>
+                    <p class="text-xs text-slate-500 mb-3">
+                        Batas waktu toleransi kehadiran guru (dalam menit) setelah jam mulai pelajaran sebelum sistem otomatis menetapkan status sebagai <strong>Terlambat</strong>.
+                    </p>
+                    <div class="flex items-center gap-3">
+                        <div class="relative w-36">
+                            <input type="number" name="toleransi_keterlambatan_menit" min="0" max="60"
+                                   value="{{ old('toleransi_keterlambatan_menit', $settings['toleransi_keterlambatan_menit'] ?: '10') }}" required
+                                   class="w-full px-3.5 py-2.5 border {{ $errors->has('toleransi_keterlambatan_menit') ? 'border-red-400' : 'border-slate-200' }} rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <span class="text-sm font-medium text-slate-700">Menit setelah jam mulai KBM</span>
+                    </div>
+                    <p class="text-xs text-slate-400 mt-1.5">Rekomendasi guru: <strong>10 – 12 menit</strong> (contoh: jika KBM mulai pukul 07:00, foto kehadiran hingga pukul 07:10–07:12 tetap tercatat sebagai <em>Hadir Tepat Waktu</em>).</p>
+                    @error('toleransi_keterlambatan_menit')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                </div>
+
+                <hr class="border-slate-200">
+
+                <div>
                     <div class="flex items-center justify-between mb-1.5">
                         <h3 class="text-sm font-semibold text-slate-900">Status Akun Siswa Default</h3>
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">

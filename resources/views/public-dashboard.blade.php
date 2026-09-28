@@ -125,7 +125,7 @@
                         </div>
                         <div class="inline-flex items-center gap-1.5 font-semibold text-slate-700 bg-slate-50 border border-slate-200/60 px-2.5 py-1 rounded-lg">
                             <svg class="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                            <span>Pukul {{ $nowTime }} WIB</span>
+                            <span id="live-clock">Pukul {{ $nowTime }} WIB</span>
                         </div>
                         <div class="inline-flex items-center gap-1.5 font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">
                             <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
@@ -588,27 +588,35 @@
             }
         };
 
-        const guruPie = @json($guruPie);
-        new Chart(document.getElementById('guruPieChartPublic'), {
-            type: 'doughnut',
-            data: {
-                labels: ['Hadir', 'Terlambat', 'Tidak Hadir'],
-                datasets: [{ data: [guruPie.hadir, guruPie.terlambat, guruPie.tidak_hadir], backgroundColor: ['#10b981', '#fbbf24', '#f87171'], borderWidth: 0, hoverOffset: 4 }]
-            },
-            options: pieOpts,
-            plugins: [slicePercentagePlugin]
-        });
+        if (typeof Chart !== 'undefined') {
+            const guruPieEl = document.getElementById('guruPieChartPublic');
+            if (guruPieEl) {
+                const guruPie = @json($guruPie);
+                new Chart(guruPieEl, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Hadir', 'Terlambat', 'Tidak Hadir'],
+                        datasets: [{ data: [guruPie.hadir, guruPie.terlambat, guruPie.tidak_hadir], backgroundColor: ['#10b981', '#fbbf24', '#f87171'], borderWidth: 0, hoverOffset: 4 }]
+                    },
+                    options: pieOpts,
+                    plugins: [slicePercentagePlugin]
+                });
+            }
 
-        const siswaPie = @json($siswaPie);
-        new Chart(document.getElementById('siswaPieChartPublic'), {
-            type: 'doughnut',
-            data: {
-                labels: ['Hadir', 'Sakit', 'Izin', 'Alpa', 'Dispensasi'],
-                datasets: [{ data: [siswaPie.hadir, siswaPie.sakit, siswaPie.izin, siswaPie.alpa, siswaPie.dispensasi], backgroundColor: ['#10b981', '#fbbf24', '#38bdf8', '#f87171', '#a78bfa'], borderWidth: 0, hoverOffset: 4 }]
-            },
-            options: pieOpts,
-            plugins: [slicePercentagePlugin]
-        });
+            const siswaPieEl = document.getElementById('siswaPieChartPublic');
+            if (siswaPieEl) {
+                const siswaPie = @json($siswaPie);
+                new Chart(siswaPieEl, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Hadir', 'Terlambat', 'Sakit', 'Izin', 'Dispensasi', 'Alpa'],
+                        datasets: [{ data: [siswaPie.hadir, siswaPie.terlambat || 0, siswaPie.sakit, siswaPie.izin, siswaPie.dispensasi, siswaPie.alpa], backgroundColor: ['#10b981', '#fbbf24', '#f97316', '#38bdf8', '#a78bfa', '#f87171'], borderWidth: 0, hoverOffset: 4 }]
+                    },
+                    options: pieOpts,
+                    plugins: [slicePercentagePlugin]
+                });
+            }
+        }
 
         // PWA Service Worker Registration
         if ('serviceWorker' in navigator) {
@@ -618,6 +626,21 @@
                 });
             });
         }
+        // ── Real-Time Clock ──
+        (function () {
+            const clockEl = document.getElementById('live-clock');
+            if (!clockEl) return;
+
+            function tick() {
+                const now = new Date();
+                const hh = String(now.getHours()).padStart(2, '0');
+                const mm = String(now.getMinutes()).padStart(2, '0');
+                const ss = String(now.getSeconds()).padStart(2, '0');
+                clockEl.textContent = `Pukul ${hh}:${mm}:${ss} WIB`;
+            }
+            tick();
+            setInterval(tick, 1000);
+        })();
     </script>
 
     <x-pwa-install-prompt />

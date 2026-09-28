@@ -242,17 +242,19 @@
                                     class="track-change text-xs font-medium border rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer
                                            {{ match($ks->status) {
                                                'hadir' => 'border-emerald-200 bg-emerald-50 text-emerald-800',
-                                               'sakit' => 'border-amber-200 bg-amber-50 text-amber-800',
+                                               'terlambat' => 'border-amber-200 bg-amber-50 text-amber-800',
+                                               'sakit' => 'border-orange-200 bg-orange-50 text-orange-800',
                                                'izin' => 'border-sky-200 bg-sky-50 text-sky-800',
                                                'alpa' => 'border-red-200 bg-red-50 text-red-800',
                                                'dispensasi' => 'border-purple-200 bg-purple-50 text-purple-800',
                                                default => 'border-slate-200 bg-slate-50',
                                            } }}">
                                 <option value="hadir" {{ $ks->status === 'hadir' ? 'selected' : '' }}>Hadir</option>
+                                <option value="terlambat" {{ $ks->status === 'terlambat' ? 'selected' : '' }}>Terlambat</option>
                                 <option value="sakit" {{ $ks->status === 'sakit' ? 'selected' : '' }}>Sakit</option>
                                 <option value="izin" {{ $ks->status === 'izin' ? 'selected' : '' }}>Izin</option>
-                                <option value="alpa" {{ $ks->status === 'alpa' ? 'selected' : '' }}>Alpa</option>
                                 <option value="dispensasi" {{ $ks->status === 'dispensasi' ? 'selected' : '' }}>Dispensasi</option>
+                                <option value="alpa" {{ $ks->status === 'alpa' ? 'selected' : '' }}>Alpa</option>
                             </select>
                             
                             <input type="text" name="siswa[{{ $ks->siswa_id }}][keterangan]" 
@@ -309,7 +311,8 @@
             sel.addEventListener('change', function() {
                 const colors = {
                     hadir: 'border-emerald-200 bg-emerald-50 text-emerald-800',
-                    sakit: 'border-amber-200 bg-amber-50 text-amber-800',
+                    terlambat: 'border-amber-200 bg-amber-50 text-amber-800',
+                    sakit: 'border-orange-200 bg-orange-50 text-orange-800',
                     izin: 'border-sky-200 bg-sky-50 text-sky-800',
                     alpa: 'border-red-200 bg-red-50 text-red-800',
                     dispensasi: 'border-purple-200 bg-purple-50 text-purple-800',

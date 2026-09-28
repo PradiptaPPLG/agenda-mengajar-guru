@@ -70,6 +70,9 @@
                     $isKaprog = $u->hasAnyRole(['Kaprog', 'kaprog', 'Kepala Program'])
                         || $u->can('kaprog.view_rekap')
                         || !empty($u->guruProfile?->kaprog_jurusan);
+
+                    $specialCount = ($isWaliKelas ? 1 : 0) + ($isBk ? 1 : 0) + ($isKaprog ? 1 : 0);
+                    $singleFab = ($specialCount === 1);
                 @endphp
                 
                 <a href="{{ route('guru.dashboard') }}"
@@ -80,40 +83,78 @@
                     <span class="text-[10px] font-medium">Jadwal</span>
                 </a>
                 
+                <a href="{{ route('guru.rekap.index') }}"
+                   class="flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-colors {{ request()->routeIs('guru.rekap.*') ? 'text-blue-600 font-semibold' : 'text-slate-500 hover:text-slate-900' }}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <span class="text-[10px] font-medium">Rekap</span>
+                </a>
+                
                 @if($isWaliKelas)
-                <div class="flex flex-col items-center justify-center -mt-6">
+                    @if($singleFab)
+                    <div class="flex flex-col items-center justify-center -mt-6">
+                        <a href="{{ route('guru.wali-kelas.index') }}"
+                           class="flex items-center justify-center w-12 h-12 bg-blue-600 text-white rounded-full shadow-lg shadow-blue-500/40 border-[3px] border-white {{ request()->routeIs('guru.wali-kelas.*') ? 'ring-2 ring-blue-300 ring-offset-1' : '' }} transition-transform active:scale-95">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                            </svg>
+                        </a>
+                        <span class="mt-1 text-[10px] font-bold text-blue-600">Wali Kelas</span>
+                    </div>
+                    @else
                     <a href="{{ route('guru.wali-kelas.index') }}"
-                       class="flex items-center justify-center w-12 h-12 bg-blue-600 text-white rounded-full shadow-lg shadow-blue-500/40 border-[3px] border-white {{ request()->routeIs('guru.wali-kelas.*') ? 'ring-2 ring-blue-300 ring-offset-1' : '' }} transition-transform active:scale-95">
+                       class="flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-colors {{ request()->routeIs('guru.wali-kelas.*') ? 'text-blue-600 font-semibold' : 'text-slate-500 hover:text-slate-900' }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
                         </svg>
+                        <span class="text-[10px] font-medium">Wali Kelas</span>
                     </a>
-                    <span class="mt-1 text-[10px] font-bold text-blue-600">Wali Kelas</span>
-                </div>
+                    @endif
                 @endif
                 
                 @if($isBk)
-                <div class="flex flex-col items-center justify-center -mt-6">
+                    @if($singleFab)
+                    <div class="flex flex-col items-center justify-center -mt-6">
+                        <a href="{{ route('guru.bk.index') }}"
+                           class="flex items-center justify-center w-12 h-12 bg-blue-600 text-white rounded-full shadow-lg shadow-blue-500/40 border-[3px] border-white {{ request()->routeIs('guru.bk.*') ? 'ring-2 ring-blue-300 ring-offset-1' : '' }} transition-transform active:scale-95">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                            </svg>
+                        </a>
+                        <span class="mt-1 text-[10px] font-bold text-blue-600">Guru BK</span>
+                    </div>
+                    @else
                     <a href="{{ route('guru.bk.index') }}"
-                       class="flex items-center justify-center w-12 h-12 bg-blue-600 text-white rounded-full shadow-lg shadow-blue-500/40 border-[3px] border-white {{ request()->routeIs('guru.bk.*') ? 'ring-2 ring-blue-300 ring-offset-1' : '' }} transition-transform active:scale-95">
+                       class="flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-colors {{ request()->routeIs('guru.bk.*') ? 'text-blue-600 font-semibold' : 'text-slate-500 hover:text-slate-900' }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
                         </svg>
+                        <span class="text-[10px] font-medium">Guru BK</span>
                     </a>
-                    <span class="mt-1 text-[10px] font-bold text-blue-600">Guru BK</span>
-                </div>
+                    @endif
                 @endif
 
                 @if($isKaprog)
-                <div class="flex flex-col items-center justify-center -mt-6">
+                    @if($singleFab)
+                    <div class="flex flex-col items-center justify-center -mt-6">
+                        <a href="{{ route('guru.kaprog.index') }}"
+                           class="flex items-center justify-center w-12 h-12 bg-blue-600 text-white rounded-full shadow-lg shadow-blue-500/40 border-[3px] border-white {{ request()->routeIs('guru.kaprog.*') ? 'ring-2 ring-blue-300 ring-offset-1' : '' }} transition-transform active:scale-95">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m0 0h4m-4 0V11m0 0l-2 2m2-2l2 2"/>
+                            </svg>
+                        </a>
+                        <span class="mt-1 text-[10px] font-bold text-blue-600">Kaprog</span>
+                    </div>
+                    @else
                     <a href="{{ route('guru.kaprog.index') }}"
-                       class="flex items-center justify-center w-12 h-12 bg-blue-600 text-white rounded-full shadow-lg shadow-blue-500/40 border-[3px] border-white {{ request()->routeIs('guru.kaprog.*') ? 'ring-2 ring-blue-300 ring-offset-1' : '' }} transition-transform active:scale-95">
+                       class="flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-colors {{ request()->routeIs('guru.kaprog.*') ? 'text-blue-600 font-semibold' : 'text-slate-500 hover:text-slate-900' }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m0 0h4m-4 0V11m0 0l-2 2m2-2l2 2"/>
                         </svg>
+                        <span class="text-[10px] font-medium">Kaprog</span>
                     </a>
-                    <span class="mt-1 text-[10px] font-bold text-blue-600">Kaprog</span>
-                </div>
+                    @endif
                 @endif
                 
                 <a href="{{ route('profile.index') }}"
