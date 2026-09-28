@@ -42,6 +42,19 @@
             </div>
         </div>
 
+        {{-- Rekapitulasi & Unduh Laporan Shortcut (Point 9) --}}
+        <div class="mb-4 bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 text-white rounded-2xl p-4 shadow-sm flex items-center justify-between gap-3">
+            <div>
+                <span class="inline-block px-2 py-0.5 bg-blue-500/20 text-blue-300 text-[10px] font-bold rounded-md border border-blue-400/20">Laporan & Evaluasi</span>
+                <h4 class="text-sm font-bold text-white mt-1">Rekap Kehadiran Kelas</h4>
+                <p class="text-xs text-slate-300 mt-0.5">Unduh rekap bulanan/semester untuk kelas yang Anda ajar (PDF & Excel).</p>
+            </div>
+            <a href="{{ route('guru.rekap.index') }}"
+               class="shrink-0 px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-xl transition-colors shadow-xs">
+                Buka Rekap
+            </a>
+        </div>
+
         {{-- Attendance Stats --}}
         <div class="mb-4 bg-white border border-slate-200 rounded-2xl p-4">
             <h3 class="text-sm font-bold text-slate-800 mb-3">Statistik Kehadiran Saya</h3>
