@@ -40,4 +40,5 @@ Thumbs.db
 /.npmrc
 *.save
 *.xlsx
+!mapel_dengan_kategori.xlsx
 *.txt
