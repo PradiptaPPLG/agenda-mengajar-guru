@@ -463,15 +463,19 @@ class AttendanceSeeder extends Seeder
                 $createdAt = $currentDate->copy()->setTimeFromTimeString($jadwal->jam_mulai);
                 $updatedAt = $currentDate->copy()->setTimeFromTimeString($jadwal->jam_selesai);
 
-                $pertemuan = Pertemuan::create([
-                    'jadwal_id' => $jadwal->id,
-                    'tanggal' => $currentDate->format('Y-m-d'),
-                    'materi_ajar' => $syllabusItem['materi'],
-                    'penugasan' => $syllabusItem['tugas'],
-                    'status' => $pertemuanStatus,
-                    'created_at' => $createdAt,
-                    'updated_at' => $updatedAt,
-                ]);
+                $pertemuan = Pertemuan::updateOrCreate(
+                    [
+                        'jadwal_id' => $jadwal->id,
+                        'tanggal' => $currentDate->format('Y-m-d 00:00:00'),
+                    ],
+                    [
+                        'materi_ajar' => $syllabusItem['materi'],
+                        'penugasan' => $syllabusItem['tugas'],
+                        'status' => $pertemuanStatus,
+                        'created_at' => $createdAt,
+                        'updated_at' => $updatedAt,
+                    ]
+                );
 
                 $totalPertemuanCount++;
 

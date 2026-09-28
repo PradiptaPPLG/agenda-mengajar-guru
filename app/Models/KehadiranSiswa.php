@@ -33,11 +33,27 @@ class KehadiranSiswa extends Model
     {
         return match ($this->status) {
             'hadir' => 'Hadir',
+            'terlambat' => 'Terlambat',
             'sakit' => 'Sakit',
             'izin' => 'Izin',
             'alpa' => 'Alpa',
             'dispensasi' => 'Dispensasi',
             default => ucfirst($this->status),
         };
+    }
+
+    public function isHadir(): bool
+    {
+        return $this->status === 'hadir';
+    }
+
+    public function isTerlambat(): bool
+    {
+        return $this->status === 'terlambat';
+    }
+
+    public function isHadirCategory(): bool
+    {
+        return in_array($this->status, ['hadir', 'terlambat', 'dispensasi']);
     }
 }
