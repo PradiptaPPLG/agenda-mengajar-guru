@@ -85,20 +85,22 @@
     <div x-data="{ 
             show: false, 
             form: null, 
-            countdown: 5, 
+            countdown: 0, 
             timer: null,
             openModal(e) {
                 this.form = e.detail.form;
                 this.show = true;
-                this.countdown = 5;
+                this.countdown = typeof e.detail.countdown !== 'undefined' ? e.detail.countdown : 0;
                 if(this.timer) clearInterval(this.timer);
-                this.timer = setInterval(() => {
-                    this.countdown--;
-                    if(this.countdown <= 0) clearInterval(this.timer);
-                }, 1000);
+                if(this.countdown > 0) {
+                    this.timer = setInterval(() => {
+                        this.countdown--;
+                        if(this.countdown <= 0) clearInterval(this.timer);
+                    }, 1000);
+                }
             },
             confirmDelete() {
-                if(this.countdown <= 0 && this.form) {
+                if((this.countdown <= 0 || !this.countdown) && this.form) {
                     this.form.submit();
                 }
             }
@@ -307,7 +309,12 @@
             }
         });
 
-        // Auto-focus and place cursor at end of input on initial page load if query is present
+        // Preserve scroll position across page reloads / redirects when submitting forms
+        document.addEventListener('submit', function() {
+            sessionStorage.setItem('page_scroll_y', window.scrollY);
+            sessionStorage.setItem('page_scroll_path', window.location.pathname);
+        });
+
         document.addEventListener('DOMContentLoaded', function() {
             const searchInput = document.querySelector('input[name="search"]');
             if (searchInput && searchInput.value) {
@@ -315,6 +322,14 @@
                 const len = searchInput.value.length;
                 searchInput.setSelectionRange(len, len);
             }
+
+            const scrollY = sessionStorage.getItem('page_scroll_y');
+            const scrollPath = sessionStorage.getItem('page_scroll_path');
+            if (scrollY !== null && scrollPath === window.location.pathname) {
+                window.scrollTo({ top: parseInt(scrollY, 10), behavior: 'instant' });
+            }
+            sessionStorage.removeItem('page_scroll_y');
+            sessionStorage.removeItem('page_scroll_path');
         });
 
         // PWA Service Worker Registration

@@ -261,11 +261,11 @@ class JadwalController extends Controller
         return redirect()->route('admin.jadwal.index')->with('success', 'Jadwal berhasil diperbarui.');
     }
 
-    public function destroy(JadwalPelajaran $jadwal): RedirectResponse
+    public function destroy(Request $request, JadwalPelajaran $jadwal): RedirectResponse
     {
         $jadwal->delete();
 
-        return redirect()->route('admin.jadwal.index')->with('success', 'Jadwal berhasil dihapus.');
+        return redirect()->back()->with('success', 'Jadwal berhasil dihapus.');
     }
 
     public function import(Request $request): RedirectResponse
@@ -384,7 +384,7 @@ class JadwalController extends Controller
                 $query->delete();
             });
 
-            return redirect()->route('admin.jadwal.index')
+            return redirect()->back()
                 ->with('success', $count.' jadwal berhasil dihapus.');
         }
 
@@ -397,7 +397,7 @@ class JadwalController extends Controller
             JadwalPelajaran::whereIn('id', $request->ids)->delete();
         });
 
-        return redirect()->route('admin.jadwal.index')
+        return redirect()->back()
             ->with('success', count($request->ids).' jadwal berhasil dihapus.');
     }
 

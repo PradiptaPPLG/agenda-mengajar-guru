@@ -138,8 +138,8 @@ class RecentFeaturesAuditTest extends TestCase
             'guru_id' => $guru->id,
             'mata_pelajaran_id' => $mapel->id,
             'hari' => (int) now()->format('N'),
-            'jam_mulai' => '07:00:00',
-            'jam_selesai' => '08:30:00',
+            'jam_mulai' => '00:00:00',
+            'jam_selesai' => '23:59:00',
         ]);
 
         Pertemuan::create([
