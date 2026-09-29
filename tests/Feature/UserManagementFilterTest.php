@@ -88,4 +88,20 @@ class UserManagementFilterTest extends TestCase
         $response->assertSee('Guru Matematika');
         $response->assertDontSee('Guru Inggris');
     }
+
+    public function test_admin_can_export_users_to_excel_and_pdf(): void
+    {
+        $guru = User::factory()->create(['name' => 'Guru Penguji Export', 'role' => 'guru']);
+        GuruProfile::create(['user_id' => $guru->id, 'nip' => '199001012022011001']);
+
+        // Export Excel
+        $excelResponse = $this->actingAs($this->admin)->get(route('admin.users.export.excel'));
+        $excelResponse->assertOk();
+        $excelResponse->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+
+        // Export PDF
+        $pdfResponse = $this->actingAs($this->admin)->get(route('admin.users.export.pdf'));
+        $pdfResponse->assertOk();
+        $pdfResponse->assertHeader('content-type', 'application/pdf');
+    }
 }
