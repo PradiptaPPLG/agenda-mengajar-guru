@@ -42,3 +42,4 @@ Thumbs.db
 *.xlsx
 !mapel_dengan_kategori.xlsx
 *.txt
+/scratch
