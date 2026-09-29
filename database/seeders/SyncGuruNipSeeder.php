@@ -22,7 +22,6 @@ class SyncGuruNipSeeder extends Seeder
             'DINI APRIANI NURRAMDAN, S.Pd.' => '199004092025212141',
             'ARIF ZAPAR SIDIK, ST.' => '198909182025211135',
             'MAULINA FAJRIN, S.Par.' => '199806252025212074',
-            'MAMAN NUROHMAN, S.Pd.' => '199506162025211004',
         ];
 
         DB::transaction(function () use ($nipMappings) {
