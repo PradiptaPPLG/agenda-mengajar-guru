@@ -98,6 +98,8 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
 
     Route::get('users/template', [AdminUserController::class, 'downloadTemplate'])->name('users.template');
     Route::post('users/import', [AdminUserController::class, 'import'])->name('users.import');
+    Route::get('users/export/excel', [AdminUserController::class, 'exportExcel'])->name('users.export.excel');
+    Route::get('users/export/pdf', [AdminUserController::class, 'exportPdf'])->name('users.export.pdf');
     Route::post('users/bulk-destroy', [AdminUserController::class, 'bulkDestroy'])->name('users.bulk-destroy');
     Route::post('users/reset-all-password-nip', [AdminUserController::class, 'resetAllPasswordToNip'])->name('users.reset-all-password-nip');
     Route::post('users/{user}/reset-password-nip', [AdminUserController::class, 'resetPasswordToNip'])->name('users.reset-password-nip');

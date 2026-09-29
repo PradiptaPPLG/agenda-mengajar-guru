@@ -22,11 +22,98 @@ class UserController extends Controller
 {
     public function index(Request $request): View
     {
+        $users = $this->getFilteredUsersQuery($request)
+            ->paginate(20)
+            ->withQueryString();
+
+        $mataPelajarans = MataPelajaran::orderBy('nama')->get();
+
+        return view('admin.users.index', compact('users', 'mataPelajarans'));
+    }
+
+    public function exportExcel(Request $request): BinaryFileResponse
+    {
+        $users = $this->getFilteredUsersQuery($request)->get();
+
+        $tempPath = tempnam(sys_get_temp_dir(), 'guru_export_').'.xlsx';
+        $writer = SimpleExcelWriter::create($tempPath);
+
+        foreach ($users as $index => $u) {
+            $nip = $u->guruProfile?->nip ?? '-';
+
+            $rolesList = $u->roles->pluck('name')->map(function ($name) use ($u) {
+                if (str_contains(strtolower($name), 'kaprog') && $u->guruProfile?->kaprog_jurusan) {
+                    return $name.' ('.$u->guruProfile->kaprog_jurusan.')';
+                }
+
+                return $name;
+            })->implode(', ');
+
+            $mapelList = $u->mapels->pluck('nama')
+                ->merge($u->jadwalPelajarans->pluck('mataPelajaran.nama'))
+                ->filter()
+                ->unique()
+                ->values()
+                ->implode(', ');
+
+            $kelasMengajarList = $u->jadwalPelajarans->pluck('kelas.nama')
+                ->filter()
+                ->unique()
+                ->values()
+                ->implode(', ');
+
+            $writer->addRow([
+                'No' => $index + 1,
+                'Nama Guru' => $u->name,
+                'NIP' => $nip !== '-' ? "'".$nip : '-',
+                'Email / Username' => $u->email ?? '-',
+                'Role Utama' => Str::title(str_replace('_', ' ', $u->role)),
+                'Tugas Tambahan / Peran' => $rolesList ?: '-',
+                'Mata Pelajaran Diampu' => $mapelList ?: '-',
+                'Mengajar Kelas' => $kelasMengajarList ?: '-',
+            ]);
+        }
+
+        $writer->close();
+
+        return response()->download($tempPath, 'data-guru-'.now()->format('Y-m-d').'.xlsx')
+            ->deleteFileAfterSend(true);
+    }
+
+    public function exportPdf(Request $request): Response
+    {
+        $users = $this->getFilteredUsersQuery($request)->get();
+        $schoolName = Setting::get('school_name', 'SMK Negeri 1 Ciamis');
+
+        $filterLabels = [];
+        if ($request->filled('role_filter')) {
+            $filterLabels[] = 'Akses: '.ucfirst($request->input('role_filter'));
+        }
+        if ($request->filled('mapel_id')) {
+            $mapel = MataPelajaran::find($request->input('mapel_id'));
+            if ($mapel) {
+                $filterLabels[] = 'Mapel: '.$mapel->nama;
+            }
+        }
+        if ($request->filled('search')) {
+            $filterLabels[] = 'Pencarian: "'.$request->input('search').'"';
+        }
+
+        $filterText = count($filterLabels) > 0 ? implode(' | ', $filterLabels) : 'Semua Data Guru';
+
+        $pdf = Pdf::loadView('admin.users.pdf', compact('users', 'schoolName', 'filterText'))
+            ->setPaper('a4', 'landscape');
+
+        return $pdf->download('data-guru-'.now()->format('Y-m-d').'.pdf');
+    }
+
+    protected function getFilteredUsersQuery(Request $request)
+    {
         $roleFilter = $request->input('role_filter');
         $mapelId = $request->input('mapel_id');
         $search = $request->input('search');
 
-        $users = User::whereIn('role', ['guru', 'piket'])
+        return User::whereIn('role', ['guru', 'piket'])
             ->with(['guruProfile', 'roles', 'mapels', 'jadwalPelajarans.mataPelajaran', 'jadwalPelajarans.kelas'])
             ->when($roleFilter, function ($q, $rf) {
                 if ($rf === 'bk') {
@@ -55,13 +142,7 @@ class UserController extends Controller
                 });
             })
             ->when($search, fn ($q, $s) => $q->where(fn ($sub) => $sub->where('name', 'like', "%{$s}%")->orWhere('email', 'like', "%{$s}%")->orWhereHas('guruProfile', fn ($gp) => $gp->where('nip', 'like', "%{$s}%"))))
-            ->orderBy('name')
-            ->paginate(20)
-            ->withQueryString();
-
-        $mataPelajarans = MataPelajaran::orderBy('nama')->get();
-
-        return view('admin.users.index', compact('users', 'mataPelajarans'));
+            ->orderBy('name');
     }
 
     public function create(): View
