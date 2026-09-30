@@ -40,6 +40,7 @@
             <div class="bg-white rounded-2xl border border-slate-200 p-6 h-full flex flex-col">
                 <form action="{{ route('admin.kelas.update', $kelas) }}" method="POST" class="space-y-4 flex-1 flex flex-col">
                     @csrf @method('PUT')
+                    <input type="hidden" name="tahun_ajaran" value="{{ $kelas->tahun_ajaran }}">
                     
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-1.5">Tingkat <span class="text-red-500">*</span></label>
