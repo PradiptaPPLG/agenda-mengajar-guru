@@ -154,10 +154,11 @@
         </div>
 
         <!-- Kolom Kanan: Manajemen Siswa -->
-        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col h-full" x-data='{ tab: "current", allSiswa: @json($semuaSiswa), filterKelas: "", selectedSiswa: [], selectAll: false, searchSiswa: "" }'>
+        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col h-full" x-data='{ tab: "{{ ($errors->has("nis") || $errors->has("nama")) ? "manual" : "current" }}", allSiswa: @json($semuaSiswa), filterKelas: "", selectedSiswa: [], selectAll: false, searchSiswa: "" }'>
             <div class="flex border-b border-slate-200">
                 <button @click="tab = 'current'" :class="tab === 'current' ? 'border-b-2 border-blue-600 text-blue-600 font-semibold' : 'text-slate-500 hover:text-slate-700 font-medium'" class="flex-1 py-3.5 text-sm transition-colors">Siswa di Kelas Ini</button>
                 <button @click="tab = 'master'" :class="tab === 'master' ? 'border-b-2 border-blue-600 text-blue-600 font-semibold' : 'text-slate-500 hover:text-slate-700 font-medium'" class="flex-1 py-3.5 text-sm transition-colors">Pilih dari Master</button>
+                <button @click="tab = 'manual'" :class="tab === 'manual' ? 'border-b-2 border-blue-600 text-blue-600 font-semibold' : 'text-slate-500 hover:text-slate-700 font-medium'" class="flex-1 py-3.5 text-sm transition-colors">Tambah Manual</button>
                 <button @click="tab = 'excel'" :class="tab === 'excel' ? 'border-b-2 border-blue-600 text-blue-600 font-semibold' : 'text-slate-500 hover:text-slate-700 font-medium'" class="flex-1 py-3.5 text-sm transition-colors">Import Excel</button>
             </div>
             
@@ -263,6 +264,49 @@
 
                         <button type="submit" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-50" :disabled="selectedSiswa.length === 0">
                             Tambahkan <span x-show="selectedSiswa.length > 0" x-text="selectedSiswa.length"></span> Siswa ke Kelas Ini
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Tab: Manual -->
+                <div x-show="tab === 'manual'" class="space-y-4" style="display: none;">
+                    <p class="text-sm text-slate-600">Tambah satu siswa baru langsung ke kelas <strong>{{ $kelas->nama }}</strong>.</p>
+
+                    @if($errors->has('nis'))
+                        <div class="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+                            {{ $errors->first('nis') }}
+                        </div>
+                    @endif
+
+                    <form action="{{ route('admin.kelas.siswa.store', $kelas) }}" method="POST" class="border border-slate-200 rounded-xl p-4 space-y-4">
+                        @csrf
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1.5">Nama Lengkap <span class="text-red-500">*</span></label>
+                            <input type="text" name="nama" value="{{ old('nama') }}" required
+                                   placeholder="Contoh: AHMAD BUDI SANTOSO"
+                                   class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 @error('nama') border-red-400 @enderror">
+                            @error('nama')<p class="text-xs text-red-600 mt-1">{{ $message }}</p>@enderror
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1.5">NIS / NISN</label>
+                                <input type="text" name="nis" value="{{ old('nis') }}"
+                                       placeholder="Opsional"
+                                       class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 @error('nis') border-red-400 @enderror">
+                                @error('nis')<p class="text-xs text-red-600 mt-1">{{ $message }}</p>@enderror
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1.5">Jenis Kelamin</label>
+                                <select name="jenis_kelamin" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="">- Tidak Diisi -</option>
+                                    <option value="L" {{ old('jenis_kelamin') === 'L' ? 'selected' : '' }}>Laki-laki</option>
+                                    <option value="P" {{ old('jenis_kelamin') === 'P' ? 'selected' : '' }}>Perempuan</option>
+                                </select>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-500">Password default: NIS (jika diisi) atau <code class="bg-slate-100 px-1 rounded">password123</code>.</p>
+                        <button type="submit" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors">
+                            Tambah Siswa ke Kelas Ini
                         </button>
                     </form>
                 </div>

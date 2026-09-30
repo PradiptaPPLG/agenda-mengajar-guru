@@ -121,6 +121,7 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
     Route::delete('/kelas/{kelas}/remove-siswa/{siswa}', [KelasSiswaController::class, 'remove'])->name('kelas.siswa.remove');
     Route::get('/kelas/{kelas}/siswa/template', [KelasSiswaController::class, 'downloadTemplate'])->name('kelas.siswa.template');
     Route::post('/kelas/{kelas}/import-siswa', [KelasSiswaController::class, 'import'])->name('kelas.siswa.import');
+    Route::post('/kelas/{kelas}/store-siswa', [KelasSiswaController::class, 'storeSiswa'])->name('kelas.siswa.store');
 
     // Siswa Management
     Route::post('siswa/bulk-destroy', [SiswaController::class, 'bulkDestroy'])->name('siswa.bulk-destroy');

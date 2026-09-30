@@ -100,7 +100,7 @@ class KelasSiswaController extends Controller
             DB::transaction(function () use ($nis, $name, $defaultPassword, $defaultIsActive, $kelas, &$importedCount) {
                 $user = null;
 
-                // 1. Cari berdasarkan NIS via SiswaProfile (termasuk trashed)
+                // 1. Cari berdasarkan NIS via SiswaProfile (prioritas utama)
                 if ($nis) {
                     $profile = SiswaProfile::where('nis', $nis)->first();
                     if ($profile) {
@@ -115,8 +115,10 @@ class KelasSiswaController extends Controller
                     }
                 }
 
-                // 2. Jika belum ketemu, cari via nama & role siswa (termasuk trashed)
-                if (! $user) {
+                // 2. Fallback cari via nama HANYA jika NIS tidak disediakan.
+                // Jika NIS ada tapi tidak ketemu, buat siswa baru agar siswa
+                // dengan nama sama tapi NIS berbeda tidak dianggap satu orang.
+                if (! $user && ! $nis) {
                     $candidateUser = User::withTrashed()
                         ->where('role', 'siswa')
                         ->whereRaw('LOWER(TRIM(name)) = ?', [strtolower(trim($name))])
@@ -201,6 +203,46 @@ class KelasSiswaController extends Controller
         }
 
         return back()->with('success', "Berhasil mengimpor $importedCount siswa.");
+    }
+
+    public function storeSiswa(Request $request, Kelas $kelas)
+    {
+        $validated = $request->validate([
+            'nama' => ['required', 'string', 'max:255'],
+            'nis' => ['nullable', 'string', 'max:50'],
+            'jenis_kelamin' => ['nullable', 'in:L,P'],
+        ]);
+
+        $nis = $validated['nis'] ? trim($validated['nis']) : null;
+        $nama = trim($validated['nama']);
+
+        // Jika NIS disediakan, cek apakah sudah ada
+        if ($nis) {
+            $existing = SiswaProfile::where('nis', $nis)->first();
+            if ($existing) {
+                return back()->withErrors(['nis' => "NIS {$nis} sudah terdaftar atas nama: {$existing->user->name}."])->withInput();
+            }
+        }
+
+        DB::transaction(function () use ($nis, $nama, $kelas) {
+            $cleanNis = $nis ? preg_replace('/\s+/', '', $nis) : null;
+
+            $siswa = User::create([
+                'name' => $nama,
+                'email' => null,
+                'password' => Hash::make($cleanNis ?: 'password123'),
+                'role' => 'siswa',
+                'is_active' => Setting::isDefaultSiswaActive(),
+            ]);
+
+            SiswaProfile::create([
+                'user_id' => $siswa->id,
+                'nis' => $nis,
+                'kelas_id' => $kelas->id,
+            ]);
+        });
+
+        return back()->with('success', "Siswa {$nama} berhasil ditambahkan ke kelas {$kelas->nama}.");
     }
 
     public function downloadTemplate(Kelas $kelas): BinaryFileResponse
