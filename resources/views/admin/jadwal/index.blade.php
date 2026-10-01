@@ -331,7 +331,14 @@
                         @endif
                     </td>
                     <td class="px-4 py-3 text-slate-700 font-semibold">{{ $j->kelas?->nama ?? '-' }}</td>
-                    <td class="px-4 py-3 text-slate-600 hidden lg:table-cell">{{ $j->guru?->name ?? '-' }}</td>
+                    <td class="px-4 py-3 hidden lg:table-cell">
+                        <div class="flex flex-col gap-0.5">
+                            <span class="text-slate-700 font-medium text-sm">{{ $j->guru?->name ?? '-' }}</span>
+                            @if($j->guru?->guruProfile?->nip)
+                            <span class="text-[11px] text-slate-400 font-mono">NIP: {{ $j->guru->guruProfile->nip }}</span>
+                            @endif
+                        </div>
+                    </td>
                     <td class="px-4 py-3 hidden sm:table-cell">
                         <div class="flex flex-col gap-0.5">
                             <span class="text-[11px] font-bold text-slate-800">{{ $j->tahun_ajaran ?? '-' }}</span>
@@ -341,7 +348,7 @@
                     <td class="px-4 py-3">
                         <div class="flex items-center justify-end">
                             <x-action-dropdown 
-                                :editUrl="route('admin.jadwal.edit', $j)" 
+                                :editUrl="route('admin.jadwal.edit', array_merge(['jadwal' => $j->id], request()->only(['tahun_ajaran','semester','kelas_id','guru_id'])))" 
                                 :deleteUrl="route('admin.jadwal.destroy', $j)" 
                             />
                         </div>

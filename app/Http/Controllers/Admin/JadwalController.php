@@ -112,7 +112,7 @@ class JadwalController extends Controller
         $selectedTahunAjaran = $request->input('tahun_ajaran', Setting::getTahunAjaranAktif());
         $selectedSemester = $request->input('semester', Setting::getSemesterAktif());
 
-        $jadwals = JadwalPelajaran::with(['kelas', 'guru', 'mataPelajaran'])
+        $jadwals = JadwalPelajaran::with(['kelas', 'guru.guruProfile', 'mataPelajaran'])
             ->when($selectedTahunAjaran && $selectedTahunAjaran !== 'all', fn ($q) => $q->where('tahun_ajaran', $selectedTahunAjaran))
             ->when($selectedSemester && $selectedSemester !== 'all', fn ($q) => $q->where('semester', $selectedSemester))
             ->when($request->input('kelas_id'), fn ($q, $id) => $q->where('kelas_id', $id))
@@ -201,13 +201,16 @@ class JadwalController extends Controller
         return redirect()->route('admin.jadwal.index')->with('success', 'Jadwal berhasil ditambahkan.');
     }
 
-    public function edit(JadwalPelajaran $jadwal): View
+    public function edit(Request $request, JadwalPelajaran $jadwal): View
     {
         $kelasList = Kelas::orderBy('nama')->get();
-        $guruList = User::where('role', 'guru')->orderBy('name')->get();
+        $guruList = User::where('role', 'guru')->with('guruProfile')->orderBy('name')->get();
         $mataPelajarans = MataPelajaran::orderBy('nama')->get();
         $daftarTahunAjaran = Setting::getDaftarTahunAjaran();
         $daftarSemester = Setting::getDaftarSemester();
+
+        // Preserve filter params so we can redirect back to the same filtered view after update
+        $filterParams = $request->only(['tahun_ajaran', 'semester', 'kelas_id', 'guru_id']);
 
         return view('admin.jadwal.edit', compact(
             'jadwal',
@@ -215,7 +218,8 @@ class JadwalController extends Controller
             'guruList',
             'mataPelajarans',
             'daftarTahunAjaran',
-            'daftarSemester'
+            'daftarSemester',
+            'filterParams'
         ));
     }
 
@@ -258,7 +262,16 @@ class JadwalController extends Controller
             $jadwal->update($validated);
         });
 
-        return redirect()->route('admin.jadwal.index')->with('success', 'Jadwal berhasil diperbarui.');
+        // Preserve filter params so user returns to the same filtered view
+        $filterParams = $request->only(['_filter_tahun_ajaran', '_filter_semester', '_filter_kelas_id', '_filter_guru_id']);
+        $redirectParams = array_filter([
+            'tahun_ajaran' => $filterParams['_filter_tahun_ajaran'] ?? null,
+            'semester' => $filterParams['_filter_semester'] ?? null,
+            'kelas_id' => $filterParams['_filter_kelas_id'] ?? null,
+            'guru_id' => $filterParams['_filter_guru_id'] ?? null,
+        ]);
+
+        return redirect()->route('admin.jadwal.index', $redirectParams)->with('success', 'Jadwal berhasil diperbarui.');
     }
 
     public function destroy(Request $request, JadwalPelajaran $jadwal): RedirectResponse

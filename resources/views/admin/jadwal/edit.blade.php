@@ -15,6 +15,11 @@
 
             <form action="{{ route('admin.jadwal.update', $jadwal) }}" method="POST" class="space-y-4">
                 @csrf @method('PUT')
+                {{-- Preserve filter params for redirect back to same filtered view --}}
+                <input type="hidden" name="_filter_tahun_ajaran" value="{{ $filterParams['tahun_ajaran'] ?? '' }}">
+                <input type="hidden" name="_filter_semester" value="{{ $filterParams['semester'] ?? '' }}">
+                <input type="hidden" name="_filter_kelas_id" value="{{ $filterParams['kelas_id'] ?? '' }}">
+                <input type="hidden" name="_filter_guru_id" value="{{ $filterParams['guru_id'] ?? '' }}">
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-1.5">Tahun Ajaran <span class="text-red-500">*</span></label>
@@ -45,7 +50,9 @@
                     <label class="block text-sm font-medium text-slate-700 mb-1.5">Guru <span class="text-red-500">*</span></label>
                     <select name="guru_id" required class="w-full px-3.5 py-2.5 border {{ $errors->has('guru_id') ? 'border-red-400' : 'border-slate-200' }} rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                         @foreach($guruList as $g)
-                        <option value="{{ $g->id }}" {{ old('guru_id', $jadwal->guru_id) == $g->id ? 'selected' : '' }}>{{ $g->name }}</option>
+                        <option value="{{ $g->id }}" {{ old('guru_id', $jadwal->guru_id) == $g->id ? 'selected' : '' }}>
+                            {{ $g->name }}{{ $g->guruProfile?->nip ? ' — NIP: '.$g->guruProfile->nip : '' }}
+                        </option>
                         @endforeach
                     </select>
                     @error('guru_id')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
