@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\GuruProfile;
+use App\Models\JadwalPelajaran;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
 use App\Models\Setting;
@@ -12,6 +13,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -148,6 +150,70 @@ class UserController extends Controller
             ->orderBy('name');
     }
 
+    public function show(User $user): View
+    {
+        $user->load([
+            'guruProfile',
+            'roles',
+            'mapels',
+            'jadwalPelajarans' => fn ($q) => $q->orderBy('hari')->orderBy('jam_mulai'),
+            'jadwalPelajarans.kelas',
+            'jadwalPelajarans.mataPelajaran',
+        ]);
+
+        $waliKelas = Kelas::withCount('siswaProfiles')->where('wali_kelas_id', $user->id)->first();
+        $bkKelas = Kelas::withCount('siswaProfiles')->where('bk_id', $user->id)->get();
+
+        $jadwals = $user->jadwalPelajarans;
+
+        // Group per mata pelajaran
+        $mapelMengajar = [];
+        $allMapelIds = $user->mapels->pluck('id')->merge($jadwals->pluck('mata_pelajaran_id'))->unique()->filter();
+
+        foreach ($allMapelIds as $mId) {
+            $mapel = MataPelajaran::find($mId);
+            if (! $mapel) {
+                continue;
+            }
+
+            $mapelJadwals = $jadwals->where('mata_pelajaran_id', $mId);
+            $kelasList = $mapelJadwals->pluck('kelas')->filter()->unique('id')->values();
+
+            $mapelMengajar[] = [
+                'mapel' => $mapel,
+                'kelas' => $kelasList,
+                'total_jadwal' => $mapelJadwals->count(),
+                'jadwals' => $mapelJadwals,
+            ];
+        }
+
+        // Jadwal per hari
+        $hariNames = [1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu', 4 => 'Kamis', 5 => 'Jumat', 6 => 'Sabtu'];
+        $jadwalPerHari = [];
+        foreach ($hariNames as $hariNum => $hariName) {
+            $jadwalPerHari[$hariNum] = [
+                'name' => $hariName,
+                'list' => $jadwals->where('hari', $hariNum)->values(),
+            ];
+        }
+
+        $totalKelasDiampu = $jadwals->pluck('kelas_id')->filter()->unique()->count();
+        $totalMapelDiajar = count($mapelMengajar);
+        $totalJadwal = $jadwals->count();
+
+        return view('admin.users.show', compact(
+            'user',
+            'waliKelas',
+            'bkKelas',
+            'mapelMengajar',
+            'jadwalPerHari',
+            'totalKelasDiampu',
+            'totalMapelDiajar',
+            'totalJadwal',
+            'hariNames'
+        ));
+    }
+
     public function create(): View
     {
         $kelas = Kelas::orderBy('nama')->get();
@@ -259,7 +325,8 @@ class UserController extends Controller
 
     public function edit(User $user): View
     {
-        $kelas = Kelas::orderBy('nama')->get();
+        $user->load(['mapels', 'jadwalPelajarans.kelas']);
+        $kelas = Kelas::orderBy('tingkat')->orderBy('nama')->get();
         $roles = Role::orderBy('name')->get();
         $mataPelajarans = MataPelajaran::orderBy('nama')->get();
         $daftarJurusan = $this->getDaftarJurusan();
@@ -269,9 +336,18 @@ class UserController extends Controller
         $assignedBkKelas = Kelas::where('bk_id', $user->id)->pluck('id')->toArray();
         $assignedMapels = $user->mapels->pluck('id')->toArray();
 
+        // Pemetaan kelas yang saat ini diampu per mapel
+        $assignedMapelKelas = [];
+        foreach ($user->jadwalPelajarans as $j) {
+            $assignedMapelKelas[$j->mata_pelajaran_id][] = $j->kelas_id;
+        }
+        foreach ($assignedMapelKelas as $mId => $kIds) {
+            $assignedMapelKelas[$mId] = array_values(array_unique($kIds));
+        }
+
         return view('admin.users.edit', compact(
             'user', 'kelas', 'roles', 'mataPelajarans', 'daftarJurusan',
-            'assignedWaliKelas', 'assignedBkKelas', 'assignedMapels'
+            'assignedWaliKelas', 'assignedBkKelas', 'assignedMapels', 'assignedMapelKelas'
         ));
     }
 
@@ -310,6 +386,9 @@ class UserController extends Controller
             'kaprog_jurusan' => ['nullable', 'string', 'max:50'],
             'mapel_ids' => ['nullable', 'array'],
             'mapel_ids.*' => ['exists:mata_pelajarans,id'],
+            'mapel_kelas' => ['nullable', 'array'],
+            'mapel_kelas.*' => ['nullable', 'array'],
+            'mapel_kelas.*.*' => ['exists:kelas,id'],
         ]);
 
         $userData = [
@@ -338,7 +417,89 @@ class UserController extends Controller
                 ]
             );
 
-            $user->mapels()->sync($validated['mapel_ids'] ?? []);
+            $selectedMapelIds = $validated['mapel_ids'] ?? [];
+            $user->mapels()->sync($selectedMapelIds);
+
+            // Sinkronisasi kelas binaan/diampu untuk setiap mapel
+            $mapelKelasInput = $request->input('mapel_kelas', []);
+            $tahunAktif = Setting::getTahunAjaranAktif();
+            $semesterAktif = Setting::getSemesterAktif();
+
+            // 1. Hapus jadwal untuk mapel yang sudah di-uncheck sama sekali
+            if (! empty($selectedMapelIds)) {
+                JadwalPelajaran::where('guru_id', $user->id)
+                    ->whereNotIn('mata_pelajaran_id', $selectedMapelIds)
+                    ->forceDelete();
+            } else {
+                JadwalPelajaran::where('guru_id', $user->id)->forceDelete();
+            }
+
+            // 2. Untuk setiap mapel yang dipilih, sinkronisasi kelas yang diampu
+            foreach ($selectedMapelIds as $mId) {
+                $rawClasses = $mapelKelasInput[$mId] ?? [];
+                $selectedClassesForMapel = is_array($rawClasses) ? array_filter($rawClasses) : [];
+
+                // Lepas jadwal guru pada mapel ini untuk kelas yang di-uncheck
+                if (! empty($selectedClassesForMapel)) {
+                    JadwalPelajaran::where('guru_id', $user->id)
+                        ->where('mata_pelajaran_id', $mId)
+                        ->whereNotIn('kelas_id', $selectedClassesForMapel)
+                        ->forceDelete();
+                } else {
+                    JadwalPelajaran::where('guru_id', $user->id)
+                        ->where('mata_pelajaran_id', $mId)
+                        ->forceDelete();
+                }
+
+                // Tambah / Update penugasan kelas yang dipilih
+                foreach ($selectedClassesForMapel as $kId) {
+                    // Pastikan tercatat di kelas_mata_pelajaran
+                    DB::table('kelas_mata_pelajaran')->updateOrInsert(
+                        ['kelas_id' => $kId, 'mata_pelajaran_id' => $mId],
+                        ['updated_at' => now(), 'created_at' => now()]
+                    );
+
+                    // Cek apakah sudah ada jadwal di kelas & mapel ini untuk guru ini
+                    $existingForThisGuru = JadwalPelajaran::where('guru_id', $user->id)
+                        ->where('mata_pelajaran_id', $mId)
+                        ->where('kelas_id', $kId)
+                        ->exists();
+
+                    if (! $existingForThisGuru) {
+                        // Cek apakah ada jadwal untuk kelas & mapel ini tapi dengan guru lain
+                        $existingOtherGuru = JadwalPelajaran::where('mata_pelajaran_id', $mId)
+                            ->where('kelas_id', $kId)
+                            ->first();
+
+                        if ($existingOtherGuru) {
+                            // Alihkan jadwal tersebut ke guru ini
+                            JadwalPelajaran::where('mata_pelajaran_id', $mId)
+                                ->where('kelas_id', $kId)
+                                ->update(['guru_id' => $user->id]);
+                        } else {
+                            // Buat 1 slot jadwal awal agar kelas tercatat aktif diampu guru
+                            $kls = Kelas::find($kId);
+                            $kelompokBlok = 'reguler';
+                            if ($kls?->is_sistem_blok) {
+                                $mp = MataPelajaran::find($mId);
+                                $kelompokBlok = $mp?->kelompok_blok ?? 'reguler';
+                            }
+
+                            JadwalPelajaran::create([
+                                'kelas_id' => $kId,
+                                'guru_id' => $user->id,
+                                'mata_pelajaran_id' => $mId,
+                                'hari' => 1,
+                                'jam_mulai' => '07:00:00',
+                                'jam_selesai' => '08:30:00',
+                                'kelompok_blok' => $kelompokBlok,
+                                'tahun_ajaran' => $tahunAktif,
+                                'semester' => $semesterAktif,
+                            ]);
+                        }
+                    }
+                }
+            }
 
             $hasWaliRole = collect($validated['spatie_roles'] ?? [])->contains(fn ($r) => str_contains(strtolower($r), 'wali'))
                 || $user->hasAnyRole(['Wali Kelas', 'wali_kelas', 'wali-kelas', 'Wali']);
@@ -363,6 +524,7 @@ class UserController extends Controller
         } elseif ($user->guruProfile) {
             $user->guruProfile()->delete();
             $user->mapels()->detach();
+            JadwalPelajaran::where('guru_id', $user->id)->delete();
             Kelas::where('wali_kelas_id', $user->id)->update(['wali_kelas_id' => null]);
             Kelas::where('bk_id', $user->id)->update(['bk_id' => null]);
         }

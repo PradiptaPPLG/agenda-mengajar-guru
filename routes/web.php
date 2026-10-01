@@ -103,7 +103,7 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
     Route::post('users/bulk-destroy', [AdminUserController::class, 'bulkDestroy'])->name('users.bulk-destroy');
     Route::post('users/reset-all-password-nip', [AdminUserController::class, 'resetAllPasswordToNip'])->name('users.reset-all-password-nip');
     Route::post('users/{user}/reset-password-nip', [AdminUserController::class, 'resetPasswordToNip'])->name('users.reset-password-nip');
-    Route::resource('users', AdminUserController::class)->except(['show']);
+    Route::resource('users', AdminUserController::class);
 
     // Manajemen Semua Pengguna (Role & Spatie Role)
     Route::resource('pengguna', PenggunaController::class)->only(['index', 'edit', 'update']);

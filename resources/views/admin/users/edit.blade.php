@@ -159,59 +159,300 @@
                                 </div>
                             </div>
 
-                            <div id="mapel-container" class="p-4 border border-blue-200 bg-blue-50/40 rounded-xl space-y-4">
-                                <div class="flex items-center justify-between pb-2 border-b border-blue-200/60">
+                            <div id="mapel-container" class="p-4 sm:p-5 border border-blue-200 bg-blue-50/40 rounded-2xl space-y-5">
+                                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-3 border-b border-blue-200/70 gap-1">
                                     <div class="flex items-center gap-2">
-                                        <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
-                                        <label class="block text-sm font-bold text-blue-900">Mata Pelajaran Yang Diajar</label>
+                                        <span class="w-3 h-3 rounded-full bg-blue-600"></span>
+                                        <h4 class="text-sm font-bold text-blue-900">Mata Pelajaran & Kelas yang Diampu</h4>
                                     </div>
-                                    <span class="text-[11px] text-blue-700 font-medium">Bisa pilih lebih dari 1</span>
+                                    <span class="text-xs text-blue-700 font-medium">Centang mapel, lalu atur kelas binaannya</span>
                                 </div>
 
                                 @php
                                     $mapelUmum = $mataPelajarans->filter(fn($mp) => !in_array($mp->jenis, ['produktif', 'adaptif', 'kejuruan']));
                                     $mapelKejuruan = $mataPelajarans->filter(fn($mp) => in_array($mp->jenis, ['produktif', 'adaptif', 'kejuruan']));
+                                    $allKelasJson = $kelas->map(fn($k) => ['id' => $k->id, 'nama' => $k->nama, 'tingkat' => $k->tingkat])->values()->toJson();
                                 @endphp
 
                                 {{-- Kategori 1: Kelompok Umum (Normatif & Adaptif) --}}
-                                <div class="space-y-2">
+                                <div class="space-y-3">
                                     <div class="flex items-center gap-2">
-                                        <span class="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-blue-100 text-blue-800 border border-blue-200">
+                                        <span class="px-2.5 py-0.5 rounded-md text-xs font-bold bg-blue-100 text-blue-800 border border-blue-200">
                                             1. Kelompok Umum (Normatif & Adaptif)
                                         </span>
                                     </div>
-                                    <div class="p-3 bg-white border border-slate-200 rounded-xl max-h-48 overflow-y-auto">
-                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                            @foreach($mapelUmum as $mp)
-                                                <label class="flex items-center p-2 rounded-lg hover:bg-blue-50/70 transition-colors cursor-pointer text-xs font-medium text-slate-700">
-                                                    <input type="checkbox" name="mapel_ids[]" value="{{ $mp->id }}" id="mapel_{{ $mp->id }}"
-                                                           {{ (is_array(old('mapel_ids')) && in_array($mp->id, old('mapel_ids'))) || in_array($mp->id, $assignedMapels) ? 'checked' : '' }}
-                                                           class="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600">
-                                                    <span class="ml-2 truncate">{{ $mp->nama }} @if($mp->kode)<span class="text-slate-400 font-normal">({{ $mp->kode }})</span>@endif</span>
-                                                </label>
-                                            @endforeach
-                                        </div>
+                                    <div class="grid grid-cols-1 gap-2.5">
+                                        @foreach($mapelUmum as $mp)
+                                            <div x-data="{
+                                                openModal: false,
+                                                mapelChecked: {{ (is_array(old('mapel_ids')) && in_array($mp->id, old('mapel_ids'))) || in_array($mp->id, $assignedMapels) ? 'true' : 'false' }},
+                                                selectedClasses: {{ json_encode(array_map('intval', old('mapel_kelas.'.$mp->id, $assignedMapelKelas[$mp->id] ?? []))) }},
+                                                allClasses: {{ $allKelasJson }},
+                                                toggleKelas(id) {
+                                                    id = parseInt(id);
+                                                    if (this.selectedClasses.includes(id)) {
+                                                        this.selectedClasses = this.selectedClasses.filter(x => x !== id);
+                                                    } else {
+                                                        this.selectedClasses.push(id);
+                                                    }
+                                                },
+                                                selectAllTingkat(tk) {
+                                                    let ids = this.allClasses.filter(c => c.tingkat == tk).map(c => parseInt(c.id));
+                                                    let set = new Set(this.selectedClasses);
+                                                    ids.forEach(id => set.add(id));
+                                                    this.selectedClasses = Array.from(set);
+                                                },
+                                                deselectAllTingkat(tk) {
+                                                    let tkIds = new Set(this.allClasses.filter(c => c.tingkat == tk).map(c => parseInt(c.id)));
+                                                    this.selectedClasses = this.selectedClasses.filter(id => !tkIds.has(id));
+                                                }
+                                            }" class="p-3.5 bg-white border border-slate-200 rounded-xl transition-all shadow-2xs hover:border-blue-300">
+                                                <div class="flex items-center justify-between gap-3">
+                                                    <label class="flex items-center cursor-pointer flex-1 min-w-0">
+                                                        <input type="checkbox" name="mapel_ids[]" value="{{ $mp->id }}" id="mapel_{{ $mp->id }}"
+                                                               x-model="mapelChecked"
+                                                               class="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600">
+                                                        <span class="ml-2.5 text-xs sm:text-sm font-semibold text-slate-800 truncate">
+                                                            {{ $mp->nama }}
+                                                            @if($mp->kode)<span class="text-slate-400 font-normal">({{ $mp->kode }})</span>@endif
+                                                        </span>
+                                                    </label>
+
+                                                    <button type="button" x-show="mapelChecked" @click="openModal = true"
+                                                            class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-colors flex items-center gap-1.5 shrink-0">
+                                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                                                        <span x-text="selectedClasses.length > 0 ? (selectedClasses.length + ' Kelas Diampu') : '+ Pilih Kelas'"></span>
+                                                    </button>
+                                                </div>
+
+                                                {{-- Preview Kelas Terpilih --}}
+                                                <div x-show="mapelChecked" class="mt-2.5 pt-2 border-t border-slate-100 flex flex-wrap gap-1.5 items-center">
+                                                    <span class="text-[11px] font-medium text-slate-400">Kelas Binaan:</span>
+                                                    <template x-if="selectedClasses.length === 0">
+                                                        <button type="button" @click="openModal = true" class="text-xs text-amber-600 font-semibold hover:underline">
+                                                            + Atur kelas yang diajar
+                                                        </button>
+                                                    </template>
+                                                    <template x-for="cId in selectedClasses.slice(0, 6)" :key="cId">
+                                                        <span class="px-2 py-0.5 rounded-md text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200"
+                                                              x-text="allClasses.find(c => c.id == cId)?.nama || cId"></span>
+                                                    </template>
+                                                    <template x-if="selectedClasses.length > 6">
+                                                        <span class="text-[11px] font-bold text-slate-500" x-text="'+' + (selectedClasses.length - 6) + ' kelas'"></span>
+                                                    </template>
+                                                </div>
+
+                                                {{-- Hidden Inputs untuk Submit Form --}}
+                                                <template x-if="mapelChecked">
+                                                    <div>
+                                                        <template x-for="cId in selectedClasses" :key="cId">
+                                                            <input type="hidden" name="mapel_kelas[{{ $mp->id }}][]" :value="cId">
+                                                        </template>
+                                                    </div>
+                                                </template>
+
+                                                {{-- Modal Dialog Pilih Kelas --}}
+                                                <div x-show="openModal" style="display: none;"
+                                                     class="fixed inset-0 z-[200] overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+                                                    <div @click.away="openModal = false" class="bg-white rounded-2xl max-w-2xl w-full border border-slate-200 shadow-2xl p-6 space-y-4">
+                                                        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                                                            <div>
+                                                                <h3 class="text-base font-bold text-slate-900">Pilih Kelas yang Diampu</h3>
+                                                                <p class="text-xs text-slate-500">Mata Pelajaran: <strong class="text-slate-700">{{ $mp->nama }}</strong></p>
+                                                            </div>
+                                                            <button type="button" @click="openModal = false" class="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100">
+                                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                                            </button>
+                                                        </div>
+
+                                                        {{-- Tombol Cepat Pilihan Per Tingkat --}}
+                                                        <div class="flex flex-wrap items-center gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+                                                            <span class="font-bold text-slate-600">Aksi Cepat:</span>
+                                                            <button type="button" @click="selectAllTingkat('10')" class="px-2.5 py-1 bg-white hover:bg-blue-50 border border-slate-200 text-blue-700 rounded-lg font-medium transition-colors">+ Semua Tk. 10</button>
+                                                            <button type="button" @click="selectAllTingkat('11')" class="px-2.5 py-1 bg-white hover:bg-blue-50 border border-slate-200 text-blue-700 rounded-lg font-medium transition-colors">+ Semua Tk. 11</button>
+                                                            <button type="button" @click="selectAllTingkat('12')" class="px-2.5 py-1 bg-white hover:bg-blue-50 border border-slate-200 text-blue-700 rounded-lg font-medium transition-colors">+ Semua Tk. 12</button>
+                                                            <button type="button" @click="selectedClasses = []" class="px-2.5 py-1 bg-white hover:bg-rose-50 border border-slate-200 text-rose-600 rounded-lg font-medium transition-colors ml-auto">Hapus Pilihan</button>
+                                                        </div>
+
+                                                        {{-- Daftar Kelas per Tingkat --}}
+                                                        <div class="space-y-4 max-h-[360px] overflow-y-auto pr-1">
+                                                            @foreach(['10' => 'Kelas 10', '11' => 'Kelas 11', '12' => 'Kelas 12'] as $tk => $tkLabel)
+                                                                <div class="space-y-1.5">
+                                                                    <div class="flex items-center justify-between text-xs font-bold text-slate-600 uppercase tracking-wider pb-1 border-b border-slate-100">
+                                                                        <span>{{ $tkLabel }}</span>
+                                                                        <div class="flex items-center gap-2 font-normal lowercase">
+                                                                            <button type="button" @click="selectAllTingkat('{{ $tk }}')" class="text-blue-600 hover:underline text-[11px]">pilih semua</button>
+                                                                            <span>&bull;</span>
+                                                                            <button type="button" @click="deselectAllTingkat('{{ $tk }}')" class="text-slate-400 hover:text-slate-600 text-[11px]">batal</button>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                                                        @foreach($kelas->where('tingkat', $tk) as $kls)
+                                                                            <label class="flex items-center p-2 rounded-lg border transition-colors cursor-pointer text-xs font-semibold"
+                                                                                   :class="selectedClasses.includes({{ $kls->id }}) ? 'bg-blue-50/80 border-blue-300 text-blue-800' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'">
+                                                                                <input type="checkbox" :checked="selectedClasses.includes({{ $kls->id }})" @change="toggleKelas({{ $kls->id }})"
+                                                                                       class="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600">
+                                                                                <span class="ml-2">{{ $kls->nama }}</span>
+                                                                            </label>
+                                                                        @endforeach
+                                                                    </div>
+                                                                </div>
+                                                            @endforeach
+                                                        </div>
+
+                                                        <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
+                                                            <span class="text-xs text-slate-600">
+                                                                Terpilih: <strong class="text-blue-700" x-text="selectedClasses.length"></strong> kelas
+                                                            </span>
+                                                            <button type="button" @click="openModal = false" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors">
+                                                                Selesai
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endforeach
                                     </div>
                                 </div>
 
                                 {{-- Kategori 2: Kelompok Kejuruan (Produktif) --}}
-                                <div class="space-y-2">
+                                <div class="space-y-3">
                                     <div class="flex items-center gap-2">
-                                        <span class="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-purple-100 text-purple-800 border border-purple-200">
+                                        <span class="px-2.5 py-0.5 rounded-md text-xs font-bold bg-purple-100 text-purple-800 border border-purple-200">
                                             2. Kelompok Kejuruan (Produktif)
                                         </span>
                                     </div>
-                                    <div class="p-3 bg-white border border-slate-200 rounded-xl max-h-56 overflow-y-auto">
-                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                            @foreach($mapelKejuruan as $mp)
-                                                <label class="flex items-center p-2 rounded-lg hover:bg-purple-50/70 transition-colors cursor-pointer text-xs font-medium text-slate-700">
-                                                    <input type="checkbox" name="mapel_ids[]" value="{{ $mp->id }}" id="mapel_{{ $mp->id }}"
-                                                           {{ (is_array(old('mapel_ids')) && in_array($mp->id, old('mapel_ids'))) || in_array($mp->id, $assignedMapels) ? 'checked' : '' }}
-                                                           class="h-4 w-4 rounded border-slate-300 text-purple-600 focus:ring-purple-600">
-                                                    <span class="ml-2 truncate">{{ $mp->nama }} @if($mp->kode)<span class="text-slate-400 font-normal">({{ $mp->kode }})</span>@endif</span>
-                                                </label>
-                                            @endforeach
-                                        </div>
+                                    <div class="grid grid-cols-1 gap-2.5">
+                                        @foreach($mapelKejuruan as $mp)
+                                            <div x-data="{
+                                                openModal: false,
+                                                mapelChecked: {{ (is_array(old('mapel_ids')) && in_array($mp->id, old('mapel_ids'))) || in_array($mp->id, $assignedMapels) ? 'true' : 'false' }},
+                                                selectedClasses: {{ json_encode(array_map('intval', old('mapel_kelas.'.$mp->id, $assignedMapelKelas[$mp->id] ?? []))) }},
+                                                allClasses: {{ $allKelasJson }},
+                                                toggleKelas(id) {
+                                                    id = parseInt(id);
+                                                    if (this.selectedClasses.includes(id)) {
+                                                        this.selectedClasses = this.selectedClasses.filter(x => x !== id);
+                                                    } else {
+                                                        this.selectedClasses.push(id);
+                                                    }
+                                                },
+                                                selectAllTingkat(tk) {
+                                                    let ids = this.allClasses.filter(c => c.tingkat == tk).map(c => parseInt(c.id));
+                                                    let set = new Set(this.selectedClasses);
+                                                    ids.forEach(id => set.add(id));
+                                                    this.selectedClasses = Array.from(set);
+                                                },
+                                                deselectAllTingkat(tk) {
+                                                    let tkIds = new Set(this.allClasses.filter(c => c.tingkat == tk).map(c => parseInt(c.id)));
+                                                    this.selectedClasses = this.selectedClasses.filter(id => !tkIds.has(id));
+                                                }
+                                            }" class="p-3.5 bg-white border border-slate-200 rounded-xl transition-all shadow-2xs hover:border-purple-300">
+                                                <div class="flex items-center justify-between gap-3">
+                                                    <label class="flex items-center cursor-pointer flex-1 min-w-0">
+                                                        <input type="checkbox" name="mapel_ids[]" value="{{ $mp->id }}" id="mapel_{{ $mp->id }}"
+                                                               x-model="mapelChecked"
+                                                               class="h-4 w-4 rounded border-slate-300 text-purple-600 focus:ring-purple-600">
+                                                        <span class="ml-2.5 text-xs sm:text-sm font-semibold text-slate-800 truncate">
+                                                            {{ $mp->nama }}
+                                                            @if($mp->kode)<span class="text-slate-400 font-normal">({{ $mp->kode }})</span>@endif
+                                                        </span>
+                                                    </label>
+
+                                                    <button type="button" x-show="mapelChecked" @click="openModal = true"
+                                                            class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 transition-colors flex items-center gap-1.5 shrink-0">
+                                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                                                        <span x-text="selectedClasses.length > 0 ? (selectedClasses.length + ' Kelas Diampu') : '+ Pilih Kelas'"></span>
+                                                    </button>
+                                                </div>
+
+                                                {{-- Preview Kelas Terpilih --}}
+                                                <div x-show="mapelChecked" class="mt-2.5 pt-2 border-t border-slate-100 flex flex-wrap gap-1.5 items-center">
+                                                    <span class="text-[11px] font-medium text-slate-400">Kelas Binaan:</span>
+                                                    <template x-if="selectedClasses.length === 0">
+                                                        <button type="button" @click="openModal = true" class="text-xs text-amber-600 font-semibold hover:underline">
+                                                            + Atur kelas yang diajar
+                                                        </button>
+                                                    </template>
+                                                    <template x-for="cId in selectedClasses.slice(0, 6)" :key="cId">
+                                                        <span class="px-2 py-0.5 rounded-md text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200"
+                                                              x-text="allClasses.find(c => c.id == cId)?.nama || cId"></span>
+                                                    </template>
+                                                    <template x-if="selectedClasses.length > 6">
+                                                        <span class="text-[11px] font-bold text-slate-500" x-text="'+' + (selectedClasses.length - 6) + ' kelas'"></span>
+                                                    </template>
+                                                </div>
+
+                                                {{-- Hidden Inputs untuk Submit Form --}}
+                                                <template x-if="mapelChecked">
+                                                    <div>
+                                                        <template x-for="cId in selectedClasses" :key="cId">
+                                                            <input type="hidden" name="mapel_kelas[{{ $mp->id }}][]" :value="cId">
+                                                        </template>
+                                                    </div>
+                                                </template>
+
+                                                {{-- Modal Dialog Pilih Kelas --}}
+                                                <div x-show="openModal" style="display: none;"
+                                                     class="fixed inset-0 z-[200] overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+                                                    <div @click.away="openModal = false" class="bg-white rounded-2xl max-w-2xl w-full border border-slate-200 shadow-2xl p-6 space-y-4">
+                                                        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                                                            <div>
+                                                                <h3 class="text-base font-bold text-slate-900">Pilih Kelas yang Diampu</h3>
+                                                                <p class="text-xs text-slate-500">Mata Pelajaran: <strong class="text-slate-700">{{ $mp->nama }}</strong></p>
+                                                            </div>
+                                                            <button type="button" @click="openModal = false" class="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100">
+                                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                                            </button>
+                                                        </div>
+
+                                                        {{-- Tombol Cepat Pilihan Per Tingkat --}}
+                                                        <div class="flex flex-wrap items-center gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+                                                            <span class="font-bold text-slate-600">Aksi Cepat:</span>
+                                                            <button type="button" @click="selectAllTingkat('10')" class="px-2.5 py-1 bg-white hover:bg-purple-50 border border-slate-200 text-purple-700 rounded-lg font-medium transition-colors">+ Semua Tk. 10</button>
+                                                            <button type="button" @click="selectAllTingkat('11')" class="px-2.5 py-1 bg-white hover:bg-purple-50 border border-slate-200 text-purple-700 rounded-lg font-medium transition-colors">+ Semua Tk. 11</button>
+                                                            <button type="button" @click="selectAllTingkat('12')" class="px-2.5 py-1 bg-white hover:bg-purple-50 border border-slate-200 text-purple-700 rounded-lg font-medium transition-colors">+ Semua Tk. 12</button>
+                                                            <button type="button" @click="selectedClasses = []" class="px-2.5 py-1 bg-white hover:bg-rose-50 border border-slate-200 text-rose-600 rounded-lg font-medium transition-colors ml-auto">Hapus Pilihan</button>
+                                                        </div>
+
+                                                        {{-- Daftar Kelas per Tingkat --}}
+                                                        <div class="space-y-4 max-h-[360px] overflow-y-auto pr-1">
+                                                            @foreach(['10' => 'Kelas 10', '11' => 'Kelas 11', '12' => 'Kelas 12'] as $tk => $tkLabel)
+                                                                <div class="space-y-1.5">
+                                                                    <div class="flex items-center justify-between text-xs font-bold text-slate-600 uppercase tracking-wider pb-1 border-b border-slate-100">
+                                                                        <span>{{ $tkLabel }}</span>
+                                                                        <div class="flex items-center gap-2 font-normal lowercase">
+                                                                            <button type="button" @click="selectAllTingkat('{{ $tk }}')" class="text-purple-600 hover:underline text-[11px]">pilih semua</button>
+                                                                            <span>&bull;</span>
+                                                                            <button type="button" @click="deselectAllTingkat('{{ $tk }}')" class="text-slate-400 hover:text-slate-600 text-[11px]">batal</button>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                                                        @foreach($kelas->where('tingkat', $tk) as $kls)
+                                                                            <label class="flex items-center p-2 rounded-lg border transition-colors cursor-pointer text-xs font-semibold"
+                                                                                   :class="selectedClasses.includes({{ $kls->id }}) ? 'bg-purple-50/80 border-purple-300 text-purple-800' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'">
+                                                                                <input type="checkbox" :checked="selectedClasses.includes({{ $kls->id }})" @change="toggleKelas({{ $kls->id }})"
+                                                                                       class="h-4 w-4 rounded border-slate-300 text-purple-600 focus:ring-purple-600">
+                                                                                <span class="ml-2">{{ $kls->nama }}</span>
+                                                                            </label>
+                                                                        @endforeach
+                                                                    </div>
+                                                                </div>
+                                                            @endforeach
+                                                        </div>
+
+                                                        <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
+                                                            <span class="text-xs text-slate-600">
+                                                                Terpilih: <strong class="text-purple-700" x-text="selectedClasses.length"></strong> kelas
+                                                            </span>
+                                                            <button type="button" @click="openModal = false" class="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors">
+                                                                Selesai
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endforeach
                                     </div>
                                 </div>
                             </div>
