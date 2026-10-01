@@ -118,7 +118,7 @@ class AttendanceSeeder extends Seeder
             $kelas12RPL = Kelas::create([
                 'nama' => '12RPL',
                 'tingkat' => 'XII',
-                'tahun_ajaran' => '2025/2026',
+                'tahun_ajaran' => Setting::getTahunAjaranAktif(),
             ]);
             $allClasses['12RPL'] = $kelas12RPL;
         }

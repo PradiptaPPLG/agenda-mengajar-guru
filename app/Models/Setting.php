@@ -32,7 +32,11 @@ class Setting extends Model
      */
     public static function getTahunAjaranAktif(): string
     {
-        return (string) static::get('school_year', '2026/2027');
+        $now = Carbon::now();
+        $year = $now->year;
+        $default = $now->month >= 7 ? "{$year}/".($year + 1) : ($year - 1)."/{$year}";
+
+        return (string) static::get('school_year', $default);
     }
 
     /**

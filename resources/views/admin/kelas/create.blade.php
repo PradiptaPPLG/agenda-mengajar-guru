@@ -106,7 +106,7 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1.5">Tahun Ajaran <span class="text-red-500">*</span></label>
-                    <input type="text" name="tahun_ajaran" value="{{ old('tahun_ajaran', '2025/2026') }}" required
+                    <input type="text" name="tahun_ajaran" value="{{ old('tahun_ajaran', \App\Models\Setting::getTahunAjaranAktif()) }}" required
                            class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
 

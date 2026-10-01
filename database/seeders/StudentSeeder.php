@@ -1449,8 +1449,8 @@ class StudentSeeder extends Seeder
             // Derive tingkat from class name (11xxx => XI, 12xxx => XII)
             $tingkat = str_starts_with($namaKelas, '12') ? 'XII' : (str_starts_with($namaKelas, '10') ? 'X' : 'XI');
             $kelas = Kelas::firstOrCreate(
-                ['nama' => $namaKelas, 'tahun_ajaran' => '2025/2026'],
-                ['tingkat' => $tingkat, 'tahun_ajaran' => '2025/2026', 'wali_kelas_id' => null]
+                ['nama' => $namaKelas, 'tahun_ajaran' => Setting::getTahunAjaranAktif()],
+                ['tingkat' => $tingkat, 'tahun_ajaran' => Setting::getTahunAjaranAktif(), 'wali_kelas_id' => null]
             );
             $kelasMap[$namaKelas] = $kelas->id;
         }

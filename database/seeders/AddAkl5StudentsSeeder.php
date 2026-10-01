@@ -64,8 +64,8 @@ class AddAkl5StudentsSeeder extends Seeder
         // Cari kelas 10PBS secara fleksibel (mencocokkan "10 PBS" di DB)
         $kelas = Kelas::findByNameFlexible('10PBS')
             ?? Kelas::firstOrCreate(
-                ['nama' => '10PBS', 'tahun_ajaran' => '2025/2026'],
-                ['tingkat' => 'X', 'tahun_ajaran' => '2025/2026', 'wali_kelas_id' => null]
+                ['nama' => '10PBS', 'tahun_ajaran' => Setting::getTahunAjaranAktif()],
+                ['tingkat' => 'X', 'tahun_ajaran' => Setting::getTahunAjaranAktif(), 'wali_kelas_id' => null]
             );
 
         $inserted = 0;

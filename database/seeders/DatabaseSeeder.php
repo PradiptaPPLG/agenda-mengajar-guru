@@ -15,7 +15,7 @@ class DatabaseSeeder extends Seeder
         Setting::set('school_name', 'SMK Negeri 1 Ciamis');
         Setting::set('school_address', 'Jalan Jenderal Sudirman Nomor 269, Kelurahan Sindangrasa, Kecamatan Ciamis, Kabupaten Ciamis, Jawa Barat');
         Setting::set('principal_name', '');
-        Setting::set('school_year', '2025/2026');
+        Setting::set('school_year', Setting::getTahunAjaranAktif());
         Setting::set('semester', '1');
         Setting::set('phone', '(0265) 771204');
         Setting::set('toleransi_keterlambatan_menit', '10'); // Default toleransi 10 menit (rentang 10 - 12 menit)

@@ -36,8 +36,8 @@
                     <label class="block text-xs font-semibold text-slate-700 mb-1.5">
                         Tahun Ajaran <span class="text-rose-500">*</span>
                     </label>
-                    <input type="text" name="tahun_ajaran" value="{{ old('tahun_ajaran', '2025/2026') }}"
-                        placeholder="2025/2026"
+                    <input type="text" name="tahun_ajaran" value="{{ old('tahun_ajaran', \App\Models\Setting::getTahunAjaranAktif()) }}"
+                        placeholder="{{ \App\Models\Setting::getTahunAjaranAktif() }}"
                         class="w-full h-11 px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50/50 hover:bg-white transition-colors @error('tahun_ajaran') border-rose-500 @enderror">
                     @error('tahun_ajaran')
                         <p class="text-xs text-rose-600 mt-1">{{ $message }}</p>
