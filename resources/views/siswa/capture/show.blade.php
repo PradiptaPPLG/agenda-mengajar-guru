@@ -297,7 +297,7 @@
                         <div id="compression-status" class="hidden px-3 py-2 bg-emerald-50 border-t border-emerald-100 flex items-center justify-between text-[11px] text-emerald-800">
                             <span class="flex items-center gap-1 font-semibold">
                                 <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                                WebP Hemat Kuota
+                                Foto Terkompresi (Hemat Kuota)
                             </span>
                             <span id="compression-summary" class="font-medium text-emerald-700"></span>
                         </div>
@@ -612,7 +612,8 @@
         }
 
         // Helper kompresi robust untuk iOS Safari & semua perangkat mobile
-        async function compressImageFile(file, maxDim = 1200, quality = 0.72) {
+        // Dioptimalkan khusus agar ukuran file SELALU < 300KB (aman dari batas 1MB Nginx server)
+        async function compressImageFile(file, maxDim = 1000, quality = 0.68) {
             return new Promise((resolve, reject) => {
                 const img = new Image();
                 const url = URL.createObjectURL(file);
@@ -644,11 +645,11 @@
                             if (!blob) {
                                 return reject(new Error('Canvas gagal menghasilkan blob'));
                             }
-                            // Jika ukuran masih > 550KB (misal foto sangat detail/noise), turunkan quality ke 0.55
-                            if (blob.size > 550 * 1024) {
+                            // Jika ukuran masih > 400KB (misal foto sangat detail/noise), turunkan quality ke 0.52
+                            if (blob.size > 400 * 1024) {
                                 canvas.toBlob((secondBlob) => {
                                     resolve(secondBlob || blob);
-                                }, 'image/jpeg', 0.55);
+                                }, 'image/jpeg', 0.52);
                             } else {
                                 resolve(blob);
                             }
@@ -688,7 +689,7 @@
             }
 
             try {
-                const blob = await compressImageFile(file, 1200, 0.72);
+                const blob = await compressImageFile(file, 1000, 0.68);
                 const previewUrl = URL.createObjectURL(blob);
                 previewImg.src = previewUrl;
 
@@ -702,7 +703,7 @@
                 compressionStatus.classList.remove('hidden');
             } catch (err) {
                 console.error('Compression error:', err);
-                if (file.size <= 850 * 1024) {
+                if (file.size <= 700 * 1024) {
                     const dataTransfer = new DataTransfer();
                     dataTransfer.items.add(file);
                     finalInput.files = dataTransfer.files;
@@ -734,7 +735,7 @@
             indicator.classList.remove('hidden');
 
             try {
-                const blob = await compressImageFile(file, 1200, 0.72);
+                const blob = await compressImageFile(file, 1000, 0.68);
                 const previewUrl = URL.createObjectURL(blob);
                 previewImg.src = previewUrl;
 
@@ -748,7 +749,7 @@
                 }
             } catch (err) {
                 console.error('Compression error for checkout:', err);
-                if (file.size <= 850 * 1024) {
+                if (file.size <= 700 * 1024) {
                     const dataTransfer = new DataTransfer();
                     dataTransfer.items.add(file);
                     finalInput.files = dataTransfer.files;
@@ -765,6 +766,53 @@
                 indicator.classList.add('hidden');
             }
         }
+
+        // Safety guard: Cegah submit jika proses kompresi belum tuntas atau file melebihi batas aman Nginx (800KB)
+        document.addEventListener('DOMContentLoaded', function () {
+            const captureForm = document.getElementById('capture-form');
+            if (captureForm) {
+                captureForm.addEventListener('submit', function (e) {
+                    const finalInput = document.getElementById('final-foto-input');
+                    const indicator = document.getElementById('compressing-indicator');
+
+                    if (indicator && !indicator.classList.contains('hidden')) {
+                        e.preventDefault();
+                        alert('Foto masih dalam proses kompresi, mohon tunggu beberapa detik lalu tekan tombol kirim kembali.');
+                        return false;
+                    }
+
+                    if (finalInput && finalInput.files && finalInput.files[0]) {
+                        if (finalInput.files[0].size > 800 * 1024) {
+                            e.preventDefault();
+                            alert('Ukuran foto hasil kompresi masih melebihi batas server (' + formatBytes(finalInput.files[0].size) + '). Mohon ambil ulang foto.');
+                            return false;
+                        }
+                    }
+                });
+            }
+
+            const checkoutForm = document.getElementById('checkout-form');
+            if (checkoutForm) {
+                checkoutForm.addEventListener('submit', function (e) {
+                    const finalInput = document.getElementById('final-checkout-input');
+                    const indicator = document.getElementById('compressing-checkout-indicator');
+
+                    if (indicator && !indicator.classList.contains('hidden')) {
+                        e.preventDefault();
+                        alert('Foto check-out masih dalam proses kompresi, mohon tunggu sebentar...');
+                        return false;
+                    }
+
+                    if (finalInput && finalInput.files && finalInput.files[0]) {
+                        if (finalInput.files[0].size > 800 * 1024) {
+                            e.preventDefault();
+                            alert('Ukuran foto check-out melebihi batas server (' + formatBytes(finalInput.files[0].size) + ').');
+                            return false;
+                        }
+                    }
+                });
+            }
+        });
 
         function handleStatusGuru(val) {
             const sectionTidakHadir = document.getElementById('tidak-hadir-section-single');
