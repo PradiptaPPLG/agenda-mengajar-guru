@@ -206,21 +206,22 @@
             </div>
 
             @if(!empty($canCheckout))
-            <form action="{{ route('siswa.capture.checkout', ['jadwal' => $pertemuan->jadwal_id, 'tanggal' => $pertemuan->tanggal->toDateString()]) }}" method="POST" enctype="multipart/form-data" class="p-5 space-y-4">
+            <form action="{{ route('siswa.capture.checkout', ['jadwal' => $pertemuan->jadwal_id, 'tanggal' => $pertemuan->tanggal->toDateString()]) }}" method="POST" enctype="multipart/form-data" class="p-5 space-y-4" id="checkout-form">
                 @csrf
                 {{-- Hidden final input for checkout --}}
                 <input type="file" name="foto_checkout" id="final-checkout-input" class="sr-only">
 
                 {{-- Preview checkout container --}}
                 <div id="preview-checkout-container" class="hidden bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
-                    <div class="relative">
+                    <div class="relative min-h-[160px] flex items-center justify-center bg-slate-100">
                         <img id="preview-checkout-img" src="#" alt="Preview Checkout" class="w-full h-auto max-h-64 object-contain">
-                        <div id="compressing-checkout-indicator" class="hidden absolute inset-0 bg-slate-900/40 backdrop-blur-xs flex flex-col items-center justify-center text-white text-xs font-medium">
-                            <svg class="animate-spin h-6 w-6 text-white mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <div id="compressing-checkout-indicator" class="hidden absolute inset-0 bg-slate-900/60 backdrop-blur-xs flex flex-col items-center justify-center text-white text-xs font-semibold p-4 text-center z-10">
+                            <svg class="animate-spin h-7 w-7 text-emerald-400 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                             </svg>
-                            Mengompresi foto checkout hemat kuota...
+                            <span>Sedang mengompresi foto checkout...</span>
+                            <span class="text-[11px] text-slate-300 font-normal mt-1">Mengoptimalkan foto kualitas tinggi</span>
                         </div>
                     </div>
                 </div>
@@ -275,6 +276,20 @@
             <form action="{{ route('siswa.capture.store', ['jadwal' => $pertemuan->jadwal_id, 'tanggal' => $pertemuan->tanggal->toDateString()]) }}" method="POST" enctype="multipart/form-data" class="p-5 space-y-6" id="capture-form">
                 @csrf
 
+                @if($errors->any())
+                <div class="p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs space-y-1">
+                    <p class="font-bold flex items-center gap-1.5 text-red-900">
+                        <svg class="w-4 h-4 text-red-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        Gagal Menyimpan Laporan Presensi:
+                    </p>
+                    <ul class="list-disc list-inside space-y-0.5 text-red-700 pl-1">
+                        @foreach($errors->all() as $err)
+                            <li>{{ $err }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+                @endif
+
                 {{-- Camera / Gallery input & Client-Side Compression --}}
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-2">Foto Bukti</label>
@@ -284,14 +299,15 @@
 
                     {{-- Preview container with compression feedback --}}
                     <div id="preview-container" class="hidden mb-3 bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
-                        <div class="relative">
+                        <div class="relative min-h-[160px] flex items-center justify-center bg-slate-100">
                             <img id="preview-img" src="#" alt="Preview" class="w-full h-auto max-h-64 object-contain">
-                            <div id="compressing-indicator" class="hidden absolute inset-0 bg-slate-900/40 backdrop-blur-xs flex flex-col items-center justify-center text-white text-xs font-medium">
-                                <svg class="animate-spin h-6 w-6 text-white mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <div id="compressing-indicator" class="hidden absolute inset-0 bg-slate-900/60 backdrop-blur-xs flex flex-col items-center justify-center text-white text-xs font-semibold p-4 text-center z-10">
+                                <svg class="animate-spin h-7 w-7 text-emerald-400 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                 </svg>
-                                Mengompresi foto hemat kuota...
+                                <span>Sedang memproses & mengompresi foto...</span>
+                                <span class="text-[11px] text-slate-300 font-normal mt-1">Mengoptimalkan foto kualitas tinggi agar hemat kuota & cepat terkirim</span>
                             </div>
                         </div>
                         <div id="compression-status" class="hidden px-3 py-2 bg-emerald-50 border-t border-emerald-100 flex items-center justify-between text-[11px] text-emerald-800">
@@ -612,8 +628,59 @@
         }
 
         // Helper kompresi robust untuk iOS Safari & semua perangkat mobile
-        // Dioptimalkan khusus agar ukuran file SELALU < 300KB (aman dari batas 1MB Nginx server)
+        // Dioptimalkan khusus agar decode cepat (createImageBitmap) dan ukuran file SELALU < 300KB (aman dari batas 1MB Nginx server)
+        function canvasToJpegBlob(canvas, quality = 0.68) {
+            return new Promise((resolve, reject) => {
+                canvas.toBlob((blob) => {
+                    if (!blob) {
+                        return reject(new Error('Canvas gagal menghasilkan blob gambar'));
+                    }
+                    if (blob.size > 400 * 1024) {
+                        canvas.toBlob((secondBlob) => {
+                            resolve(secondBlob || blob);
+                        }, 'image/jpeg', 0.52);
+                    } else {
+                        resolve(blob);
+                    }
+                }, 'image/jpeg', quality);
+            });
+        }
+
         async function compressImageFile(file, maxDim = 1000, quality = 0.68) {
+            // 1. Prioritaskan createImageBitmap: hemat memori dan decode via background GPU thread (sangat cepat untuk kamera 48MP/108MP)
+            if (typeof window.createImageBitmap === 'function') {
+                try {
+                    const bitmap = await createImageBitmap(file);
+                    let width = bitmap.width;
+                    let height = bitmap.height;
+
+                    if (width > maxDim || height > maxDim) {
+                        if (width >= height) {
+                            height = Math.round((height / width) * maxDim);
+                            width = maxDim;
+                        } else {
+                            width = Math.round((width / height) * maxDim);
+                            height = maxDim;
+                        }
+                    }
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(bitmap, 0, 0, width, height);
+
+                    if (typeof bitmap.close === 'function') {
+                        bitmap.close();
+                    }
+
+                    return await canvasToJpegBlob(canvas, quality);
+                } catch (e) {
+                    console.warn('createImageBitmap gagal, beralih ke Image fallback:', e);
+                }
+            }
+
+            // 2. Fallback via HTMLImageElement (Image)
             return new Promise((resolve, reject) => {
                 const img = new Image();
                 const url = URL.createObjectURL(file);
@@ -640,20 +707,9 @@
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
 
-                        // Selalu gunakan image/jpeg untuk iOS Safari karena 100% kompatibel dan tidak jatuh ke format PNG
-                        canvas.toBlob((blob) => {
-                            if (!blob) {
-                                return reject(new Error('Canvas gagal menghasilkan blob'));
-                            }
-                            // Jika ukuran masih > 400KB (misal foto sangat detail/noise), turunkan quality ke 0.52
-                            if (blob.size > 400 * 1024) {
-                                canvas.toBlob((secondBlob) => {
-                                    resolve(secondBlob || blob);
-                                }, 'image/jpeg', 0.52);
-                            } else {
-                                resolve(blob);
-                            }
-                        }, 'image/jpeg', quality);
+                        canvasToJpegBlob(canvas, quality)
+                            .then(resolve)
+                            .catch(reject);
                     } catch (e) {
                         reject(e);
                     }
@@ -709,7 +765,7 @@
                     finalInput.files = dataTransfer.files;
                     previewImg.src = URL.createObjectURL(file);
                 } else {
-                    alert('Foto asli terlalu besar (' + formatBytes(file.size) + ') dan kompresi browser gagal. Harap gunakan foto dengan resolusi standar agar pengiriman lancar.');
+                    alert('Foto resolusi tinggi (' + formatBytes(file.size) + ') gagal diproses browser. Silakan ambil ulang langsung menggunakan kamera atau pilih foto lain.');
                     previewContainer.classList.add('hidden');
                     finalInput.value = '';
                 }
@@ -718,6 +774,8 @@
                 if (btnSubmit) {
                     btnSubmit.disabled = false;
                 }
+                // Kosongkan value picker agar user bisa memilih foto yang sama lagi jika diinginkan
+                input.value = '';
             }
         }
 
@@ -764,55 +822,10 @@
                 }
             } finally {
                 indicator.classList.add('hidden');
+                // Kosongkan value picker agar user bisa memilih foto yang sama lagi jika diinginkan
+                input.value = '';
             }
         }
-
-        // Safety guard: Cegah submit jika proses kompresi belum tuntas atau file melebihi batas aman Nginx (800KB)
-        document.addEventListener('DOMContentLoaded', function () {
-            const captureForm = document.getElementById('capture-form');
-            if (captureForm) {
-                captureForm.addEventListener('submit', function (e) {
-                    const finalInput = document.getElementById('final-foto-input');
-                    const indicator = document.getElementById('compressing-indicator');
-
-                    if (indicator && !indicator.classList.contains('hidden')) {
-                        e.preventDefault();
-                        alert('Foto masih dalam proses kompresi, mohon tunggu beberapa detik lalu tekan tombol kirim kembali.');
-                        return false;
-                    }
-
-                    if (finalInput && finalInput.files && finalInput.files[0]) {
-                        if (finalInput.files[0].size > 800 * 1024) {
-                            e.preventDefault();
-                            alert('Ukuran foto hasil kompresi masih melebihi batas server (' + formatBytes(finalInput.files[0].size) + '). Mohon ambil ulang foto.');
-                            return false;
-                        }
-                    }
-                });
-            }
-
-            const checkoutForm = document.getElementById('checkout-form');
-            if (checkoutForm) {
-                checkoutForm.addEventListener('submit', function (e) {
-                    const finalInput = document.getElementById('final-checkout-input');
-                    const indicator = document.getElementById('compressing-checkout-indicator');
-
-                    if (indicator && !indicator.classList.contains('hidden')) {
-                        e.preventDefault();
-                        alert('Foto check-out masih dalam proses kompresi, mohon tunggu sebentar...');
-                        return false;
-                    }
-
-                    if (finalInput && finalInput.files && finalInput.files[0]) {
-                        if (finalInput.files[0].size > 800 * 1024) {
-                            e.preventDefault();
-                            alert('Ukuran foto check-out melebihi batas server (' + formatBytes(finalInput.files[0].size) + ').');
-                            return false;
-                        }
-                    }
-                });
-            }
-        });
 
         function handleStatusGuru(val) {
             const sectionTidakHadir = document.getElementById('tidak-hadir-section-single');
@@ -883,7 +896,7 @@
             }
         }
 
-        // Initialize badges and sections on page load
+        // Initialize badges, sections, and form handlers on page load
         document.addEventListener('DOMContentLoaded', function () {
             const colorMap = { emerald: 'bg-emerald-100 text-emerald-700', amber: 'bg-amber-100 text-amber-700', red: 'bg-red-100 text-red-700' };
             document.querySelectorAll('.jp-status-radio:checked').forEach(radio => {
@@ -894,35 +907,109 @@
             });
             checkAnyTidakHadir();
             checkAnyTerlambat();
-        });
 
-        document.getElementById('capture-form')?.addEventListener('submit', function(e) {
-            const finalInput = document.getElementById('final-foto-input');
-            const hasExisting = {{ !empty($myCapture) ? 'true' : 'false' }};
-            if (!hasExisting && (!finalInput.files || finalInput.files.length === 0)) {
-                e.preventDefault();
-                alert('Silakan ambil foto bukti kehadiran guru terlebih dahulu melalui kamera atau galeri.');
-                return false;
+            // Submit handler untuk formulir capture masuk / presensi awal
+            const captureForm = document.getElementById('capture-form');
+            if (captureForm) {
+                captureForm.addEventListener('submit', function (e) {
+                    const finalInput = document.getElementById('final-foto-input');
+                    const indicator = document.getElementById('compressing-indicator');
+
+                    // 1. Pastikan proses kompresi selesai
+                    if (indicator && !indicator.classList.contains('hidden')) {
+                        e.preventDefault();
+                        alert('Foto masih dalam proses kompresi. Mohon tunggu beberapa detik hingga pratinjau foto muncul, lalu kirim kembali.');
+                        return false;
+                    }
+
+                    // 2. Pastikan ada foto bukti (baru atau existing)
+                    const hasExisting = {{ !empty($myCapture) ? 'true' : 'false' }};
+                    if (!hasExisting && (!finalInput.files || finalInput.files.length === 0)) {
+                        e.preventDefault();
+                        alert('Silakan ambil foto bukti kehadiran guru terlebih dahulu melalui kamera atau galeri.');
+                        return false;
+                    }
+
+                    // 3. Batas aman ukuran file server Nginx (800KB)
+                    if (finalInput && finalInput.files && finalInput.files[0]) {
+                        if (finalInput.files[0].size > 800 * 1024) {
+                            e.preventDefault();
+                            alert('Ukuran foto hasil kompresi masih melebihi batas server (' + formatBytes(finalInput.files[0].size) + '). Mohon ambil ulang foto.');
+                            return false;
+                        }
+                    }
+
+                    // 4. Validasi alasan ketidakhadiran jika status tidak hadir dipilih
+                    const anyTidakHadir = Array.from(document.querySelectorAll('.jp-status-radio:checked'))
+                        .some(r => r.value === 'tidak_hadir');
+                    const singleTidakHadir = document.querySelector('input[name="status_guru_dilaporkan"]:checked')?.value === 'tidak_hadir';
+
+                    if ((anyTidakHadir || singleTidakHadir) && !document.querySelector('input[name="alasan_tidak_hadir"]:checked')) {
+                        e.preventDefault();
+                        alert('Silakan pilih jenis ketidakhadiran guru untuk JP yang ditandai Tidak Hadir.');
+                        return false;
+                    }
+
+                    // 5. Berikan feedback visual seketika pada tombol
+                    const btn = document.getElementById('btn-submit-capture');
+                    if (btn) {
+                        btn.style.pointerEvents = 'none';
+                        btn.classList.add('opacity-75');
+                        btn.innerHTML = `
+                            <span class="inline-flex items-center justify-center gap-2">
+                                <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Sedang Mengirim Laporan & Foto...
+                            </span>
+                        `;
+                    }
+                });
             }
 
-            // Validate: if any JP has tidak_hadir, alasan must be selected
-            const anyTidakHadir = Array.from(document.querySelectorAll('.jp-status-radio:checked'))
-                .some(r => r.value === 'tidak_hadir');
-            const singleTidakHadir = document.querySelector('input[name="status_guru_dilaporkan"]:checked')?.value === 'tidak_hadir';
+            // Submit handler untuk formulir check-out
+            const checkoutForm = document.getElementById('checkout-form');
+            if (checkoutForm) {
+                checkoutForm.addEventListener('submit', function (e) {
+                    const finalInput = document.getElementById('final-checkout-input');
+                    const indicator = document.getElementById('compressing-checkout-indicator');
 
-            if ((anyTidakHadir || singleTidakHadir) && !document.querySelector('input[name="alasan_tidak_hadir"]:checked')) {
-                e.preventDefault();
-                alert('Silakan pilih jenis ketidakhadiran guru untuk JP yang ditandai Tidak Hadir.');
-                return false;
-            }
-        });
+                    if (indicator && !indicator.classList.contains('hidden')) {
+                        e.preventDefault();
+                        alert('Foto check-out masih dalam proses kompresi, mohon tunggu sebentar...');
+                        return false;
+                    }
 
-        document.querySelector('#section-checkout form')?.addEventListener('submit', function(e) {
-            const finalCheckout = document.getElementById('final-checkout-input');
-            if (!finalCheckout.files || finalCheckout.files.length === 0) {
-                e.preventDefault();
-                alert('Silakan ambil foto bukti check-out terlebih dahulu melalui kamera atau galeri.');
-                return false;
+                    if (!finalInput.files || finalInput.files.length === 0) {
+                        e.preventDefault();
+                        alert('Silakan ambil foto bukti check-out terlebih dahulu melalui kamera atau galeri.');
+                        return false;
+                    }
+
+                    if (finalInput && finalInput.files && finalInput.files[0]) {
+                        if (finalInput.files[0].size > 800 * 1024) {
+                            e.preventDefault();
+                            alert('Ukuran foto check-out melebihi batas server (' + formatBytes(finalInput.files[0].size) + ').');
+                            return false;
+                        }
+                    }
+
+                    const btn = document.getElementById('btn-submit-checkout');
+                    if (btn) {
+                        btn.style.pointerEvents = 'none';
+                        btn.classList.add('opacity-75');
+                        btn.innerHTML = `
+                            <span class="inline-flex items-center justify-center gap-2">
+                                <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Sedang Mengirim Foto Check-out...
+                            </span>
+                        `;
+                    }
+                });
             }
         });
 
