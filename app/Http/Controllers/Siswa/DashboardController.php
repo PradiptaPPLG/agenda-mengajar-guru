@@ -9,14 +9,23 @@ use App\Models\Pertemuan;
 use App\Models\Setting;
 use App\Services\JadwalBlokResolverService;
 use Carbon\Carbon;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
-    public function index(): View
+    public function index(): View|RedirectResponse
     {
         $user = Auth::user();
+        if (! $user->is_active) {
+            Auth::logout();
+            request()->session()->invalidate();
+            request()->session()->regenerateToken();
+
+            return redirect()->route('login')->withErrors(['identifier' => 'Akun Anda sedang dinonaktifkan oleh Wali Kelas atau Admin.']);
+        }
+
         $today = Carbon::today();
         $hariAngka = (int) $today->format('N'); // 1=Mon, 6=Sat
         $nowTime = Carbon::now()->format('H:i');

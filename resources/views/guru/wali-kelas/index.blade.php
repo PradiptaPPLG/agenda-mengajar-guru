@@ -17,6 +17,10 @@
                class="px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors {{ in_array($tab, ['bulanan', 'rekap']) ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700' }}">
                 Rekap Kehadiran Siswa
             </a>
+            <a href="{{ route('guru.wali-kelas.index', ['tab' => 'siswa', 'kelas_id' => $selectedKelasId]) }}"
+               class="px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors {{ $tab === 'siswa' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700' }}">
+                Kelola Akun Siswa (Akses Absen)
+            </a>
         </div>
 
         @if($tab === 'harian')
@@ -305,6 +309,155 @@
                 </div>
             </div>
             @endif
+        @endif
+
+        @if($tab === 'siswa')
+            {{-- Filter Kelas (Jika lebih dari 1 kelas binaan) --}}
+            @if($kelasBinaan->count() > 1)
+            <div class="bg-white rounded-2xl border border-slate-200 p-4">
+                <form method="GET" class="flex flex-wrap items-center gap-3">
+                    <input type="hidden" name="tab" value="siswa">
+                    <label class="text-xs font-semibold text-slate-600">Pilih Kelas Binaan:</label>
+                    <select name="kelas_id" onchange="this.form.submit()" class="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        @foreach($kelasBinaan as $kb)
+                            <option value="{{ $kb->id }}" {{ $selectedKelasId === $kb->id ? 'selected' : '' }}>{{ $kb->nama }}</option>
+                        @endforeach
+                    </select>
+                </form>
+            </div>
+            @endif
+
+            {{-- Deskripsi Fitur --}}
+            <div class="bg-blue-50/80 border border-blue-200 rounded-2xl p-4 flex items-start gap-3">
+                <div class="w-9 h-9 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 mt-0.5">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-blue-900">Hak Akses Presensi Siswa Kelas</h3>
+                    <p class="text-xs text-blue-800 mt-0.5 leading-relaxed">
+                        Wali Kelas dapat menentukan akun siswa mana saja yang <strong>Aktif</strong> untuk login dan mengisi presensi foto bukti guru di kelas. Siswa dengan status <strong>Nonaktif</strong> tidak dapat login ke aplikasi.
+                    </p>
+                </div>
+            </div>
+
+            {{-- Stats & Bulk Actions --}}
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div class="bg-white rounded-2xl border border-slate-200 p-4">
+                    <p class="text-xs font-semibold text-slate-500">Total Siswa di Kelas</p>
+                    <p class="text-2xl font-black text-slate-800 mt-1">{{ $totalSiswaKelas }}</p>
+                </div>
+                <div class="bg-emerald-50 rounded-2xl border border-emerald-200 p-4">
+                    <p class="text-xs font-bold text-emerald-700">Akun Aktif (Bisa Absen)</p>
+                    <p class="text-2xl font-black text-emerald-800 mt-1">{{ $totalSiswaAktifKelas }}</p>
+                </div>
+                <div class="bg-rose-50 rounded-2xl border border-rose-200 p-4">
+                    <p class="text-xs font-bold text-rose-700">Akun Nonaktif</p>
+                    <p class="text-2xl font-black text-rose-800 mt-1">{{ $totalSiswaKelas - $totalSiswaAktifKelas }}</p>
+                </div>
+            </div>
+
+            {{-- Baris Filter & Aksi Cepat --}}
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                <form method="GET" class="flex items-center gap-2 flex-1 max-w-md">
+                    <input type="hidden" name="tab" value="siswa">
+                    <input type="hidden" name="kelas_id" value="{{ $selectedKelasId }}">
+                    <div class="relative flex-1">
+                        <input type="text" name="q" value="{{ $searchSiswa }}" placeholder="Cari nama atau NIS siswa..."
+                               class="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    </div>
+                    <button type="submit" class="px-3.5 py-2 bg-slate-800 text-white rounded-xl text-xs font-semibold hover:bg-slate-700 transition-colors cursor-pointer">Cari</button>
+                    @if($searchSiswa)
+                        <a href="{{ route('guru.wali-kelas.index', ['tab' => 'siswa', 'kelas_id' => $selectedKelasId]) }}" class="px-2.5 py-2 text-xs text-slate-500 hover:text-slate-700">Reset</a>
+                    @endif
+                </form>
+
+                <div class="flex items-center gap-2">
+                    <form action="{{ route('guru.wali-kelas.siswa.bulk') }}" method="POST" onsubmit="return confirm('Aktifkan semua akun siswa di kelas ini?')">
+                        @csrf
+                        <input type="hidden" name="kelas_id" value="{{ $selectedKelasId }}">
+                        <input type="hidden" name="action" value="aktifkan_semua">
+                        <button type="submit" class="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                            Aktifkan Semua
+                        </button>
+                    </form>
+
+                    <form action="{{ route('guru.wali-kelas.siswa.bulk') }}" method="POST" onsubmit="return confirm('Nonaktifkan semua akun siswa di kelas ini?')">
+                        @csrf
+                        <input type="hidden" name="kelas_id" value="{{ $selectedKelasId }}">
+                        <input type="hidden" name="action" value="nonaktifkan_semua">
+                        <button type="submit" class="px-3 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+                            Nonaktifkan Semua
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            {{-- Tabel Siswa --}}
+            <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 text-xs uppercase tracking-wider">
+                            <tr>
+                                <th class="px-4 py-3 w-12 text-center">No</th>
+                                <th class="px-4 py-3">Nama Siswa</th>
+                                <th class="px-4 py-3">NIS</th>
+                                <th class="px-4 py-3 text-center">Status Izin Absen</th>
+                                <th class="px-4 py-3 text-right">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            @forelse($daftarSiswa ?? [] as $idx => $s)
+                            <tr class="hover:bg-slate-50/60 transition-colors">
+                                <td class="px-4 py-3 text-center text-xs text-slate-400 font-mono">{{ $idx + 1 }}</td>
+                                <td class="px-4 py-3">
+                                    <p class="font-bold text-slate-800 leading-tight">{{ $s->name }}</p>
+                                    <p class="text-[11px] text-slate-400 mt-0.5">{{ $s->email ?? 'No email' }}</p>
+                                </td>
+                                <td class="px-4 py-3 text-xs font-mono text-slate-600">
+                                    {{ $s->siswaProfile?->nis ?? '-' }}
+                                </td>
+                                <td class="px-4 py-3 text-center">
+                                    @if($s->is_active)
+                                        <span class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                            Aktif (Bisa Absen)
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center gap-1 text-[11px] font-bold text-slate-500 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-full">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                                            Nonaktif
+                                        </span>
+                                    @endif
+                                </td>
+                                <td class="px-4 py-3 text-right">
+                                    <form action="{{ route('guru.wali-kelas.siswa.toggle', $s->id) }}" method="POST" class="inline-block">
+                                        @csrf
+                                        @if($s->is_active)
+                                            <button type="submit" class="px-3 py-1.5 rounded-lg border border-rose-200 text-rose-700 bg-rose-50 hover:bg-rose-100 text-xs font-semibold transition-colors cursor-pointer" title="Nonaktifkan agar tidak bisa login/absen">
+                                                Nonaktifkan
+                                            </button>
+                                        @else
+                                            <button type="submit" class="px-3 py-1.5 rounded-lg border border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 text-xs font-semibold transition-colors cursor-pointer" title="Aktifkan agar bisa login & absen">
+                                                Aktifkan
+                                            </button>
+                                        @endif
+                                    </form>
+                                </td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="5" class="px-4 py-8 text-center text-slate-400 text-sm">
+                                    Tidak ada data siswa yang ditemukan di kelas ini.
+                                </td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         @endif
     </div>
 

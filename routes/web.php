@@ -70,6 +70,8 @@ Route::middleware(['auth', 'role:guru'])->prefix('guru')->name('guru.')->group(f
     // Multi-Role untuk Guru
     Route::get('/bk', [BkController::class, 'index'])->name('bk.index');
     Route::get('/wali-kelas', [WaliKelasController::class, 'index'])->name('wali-kelas.index');
+    Route::post('/wali-kelas/siswa/{user}/toggle', [WaliKelasController::class, 'toggleSiswaActive'])->name('wali-kelas.siswa.toggle');
+    Route::post('/wali-kelas/siswa/bulk-active', [WaliKelasController::class, 'bulkSiswaActive'])->name('wali-kelas.siswa.bulk');
     Route::get('/wali-kelas/export-pdf', [WaliKelasController::class, 'exportPdf'])->name('wali-kelas.export-pdf');
     Route::get('/wali-kelas/export-excel', [WaliKelasController::class, 'exportExcel'])->name('wali-kelas.export-excel');
     Route::get('/kaprog', [KaprogController::class, 'index'])->name('kaprog.index');

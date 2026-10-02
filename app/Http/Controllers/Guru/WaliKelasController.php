@@ -7,6 +7,7 @@ use App\Models\KehadiranSiswa;
 use App\Models\Kelas;
 use App\Models\Pertemuan;
 use App\Models\Setting;
+use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
@@ -86,6 +87,33 @@ class WaliKelasController extends Controller
             );
         }
 
+        // 3. Data Akun Siswa Kelas Binaan (Pengaturan Siswa Aktif yang Bisa Absen)
+        $daftarSiswa = null;
+        $totalSiswaKelas = 0;
+        $totalSiswaAktifKelas = 0;
+        $searchSiswa = $request->get('q', '');
+        if ($tab === 'siswa' && $selectedKelasId) {
+            $siswaQuery = User::where('role', 'siswa')
+                ->whereHas('siswaProfile', function ($q) use ($selectedKelasId) {
+                    $q->where('kelas_id', $selectedKelasId);
+                })
+                ->with('siswaProfile');
+
+            $totalSiswaKelas = (clone $siswaQuery)->count();
+            $totalSiswaAktifKelas = (clone $siswaQuery)->where('is_active', true)->count();
+
+            if (! empty($searchSiswa)) {
+                $siswaQuery->where(function ($q) use ($searchSiswa) {
+                    $q->where('name', 'like', "%{$searchSiswa}%")
+                        ->orWhereHas('siswaProfile', function ($sq) use ($searchSiswa) {
+                            $sq->where('nis', 'like', "%{$searchSiswa}%");
+                        });
+                });
+            }
+
+            $daftarSiswa = $siswaQuery->orderBy('name')->get();
+        }
+
         $daftarTahunAjaran = Setting::getDaftarTahunAjaran();
         $daftarSemester = Setting::getDaftarSemester();
 
@@ -103,8 +131,47 @@ class WaliKelasController extends Controller
             'selectedKelasId',
             'rekapBulanan',
             'daftarTahunAjaran',
-            'daftarSemester'
+            'daftarSemester',
+            'daftarSiswa',
+            'totalSiswaKelas',
+            'totalSiswaAktifKelas',
+            'searchSiswa'
         ));
+    }
+
+    public function toggleSiswaActive(User $user): RedirectResponse
+    {
+        abort_unless($user->role === 'siswa', 403);
+        $kelas = $user->siswaProfile?->kelas;
+        abort_unless($kelas, 404, 'Siswa belum memiliki kelas binaan.');
+        $this->authorizeKelas($kelas);
+
+        $user->is_active = ! $user->is_active;
+        $user->save();
+
+        $statusStr = $user->is_active ? 'diaktifkan (dapat melakukan absen)' : 'dinonaktifkan (tidak dapat melakukan absen)';
+
+        return back()->with('success', "Akun siswa {$user->name} berhasil {$statusStr}.");
+    }
+
+    public function bulkSiswaActive(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'kelas_id' => ['required', 'exists:kelas,id'],
+            'action' => ['required', 'in:aktifkan_semua,nonaktifkan_semua'],
+        ]);
+
+        $kelas = Kelas::findOrFail($validated['kelas_id']);
+        $this->authorizeKelas($kelas);
+
+        $isActive = $validated['action'] === 'aktifkan_semua';
+        $count = User::where('role', 'siswa')
+            ->whereHas('siswaProfile', fn ($q) => $q->where('kelas_id', $kelas->id))
+            ->update(['is_active' => $isActive]);
+
+        $statusStr = $isActive ? 'diaktifkan (dapat absen)' : 'dinonaktifkan (tidak dapat absen)';
+
+        return back()->with('success', "Seluruh {$count} akun siswa di kelas {$kelas->nama} berhasil {$statusStr}.");
     }
 
     public function exportPdf(Request $request): Response|RedirectResponse
