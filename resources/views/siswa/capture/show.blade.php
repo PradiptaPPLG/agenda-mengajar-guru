@@ -314,49 +314,148 @@
                     @error('foto')<p class="text-xs text-red-600 mt-1">{{ $message }}</p>@enderror
                 </div>
 
-                {{-- Status guru --}}
+                {{-- Status per-JP guru --}}
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-2">Status Guru yang Anda Laporkan</label>
-                    <div class="grid grid-cols-3 gap-2">
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Status Guru Per Jam Pelajaran</label>
+
+                    @if($totalJp > 1)
+                    {{-- Multi-JP: per-JP status selector --}}
+                    <div class="text-[11px] text-slate-500 mb-2 flex items-center gap-1">
+                        <svg class="w-3.5 h-3.5 text-blue-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        Atur status guru per jam pelajaran — tiap JP bisa berbeda.
+                    </div>
+                    <div class="space-y-2" id="per-jp-container">
+                        @foreach($perJpData as $jp)
                         @php
-                            $curStatus = old('status_guru_dilaporkan') ?? $existingCapture?->status_guru_dilaporkan ?? 'hadir';
-                            // Normalize legacy status if needed
-                            if (in_array($curStatus, ['sakit', 'alpa', 'dispensasi'])) {
-                                $curStatus = 'tidak_hadir';
-                            }
+                            $jadwalId = $jp['jadwal']->id;
+                            $jpIndex = $jp['jp_index'];
+                            // Smart default: JP1 use existing or hadir, JP2+ default hadir
+                            $defaultStatus = $jp['current_status'] ?? ($jpIndex === 1 ? (old("status_jp.{$jadwalId}") ?? 'hadir') : (old("status_jp.{$jadwalId}") ?? 'hadir'));
                         @endphp
-                        {{-- Hadir --}}
+                        <div class="rounded-xl border border-slate-200 bg-slate-50 overflow-hidden jp-row" data-jp="{{ $jpIndex }}" data-jadwal="{{ $jadwalId }}">
+                            <div class="flex items-center justify-between px-3 py-2 bg-white border-b border-slate-100">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-700 text-[11px] font-bold flex items-center justify-center shrink-0">{{ $jpIndex }}</span>
+                                    <span class="text-xs font-semibold text-slate-700">JP{{ $jpIndex }}</span>
+                                    <span class="text-[11px] text-slate-400">{{ $jp['jam_mulai'] }}–{{ $jp['jam_selesai'] }}</span>
+                                </div>
+                                {{-- Status badge shown when collapsed --}}
+                                <span class="jp-status-badge text-[11px] font-bold px-2 py-0.5 rounded-full" data-jadwal="{{ $jadwalId }}"></span>
+                            </div>
+                            <div class="px-3 py-2.5">
+                                <div class="grid grid-cols-3 gap-1.5">
+                                    @php
+                                        $jpStatusOptions = [
+                                            'hadir'       => ['Hadir',       'border-emerald-500 bg-emerald-50 text-emerald-700', 'hover:border-emerald-300'],
+                                            'terlambat'   => ['Terlambat',   'border-amber-500 bg-amber-50 text-amber-700',       'hover:border-amber-300'],
+                                            'tidak_hadir' => ['Tidak Hadir', 'border-red-500 bg-red-50 text-red-700',             'hover:border-red-300'],
+                                        ];
+                                        $jpColorMap = ['hadir' => 'emerald', 'terlambat' => 'amber', 'tidak_hadir' => 'red'];
+                                        $jpLabelMap = ['hadir' => 'Hadir', 'terlambat' => 'Terlambat', 'tidak_hadir' => 'Tidak Hadir'];
+                                    @endphp
+                                    @foreach($jpStatusOptions as $jpVal => [$jpLabel, $jpCheckedClass, $jpHoverClass])
+                                    <label class="relative cursor-pointer">
+                                        <input type="radio"
+                                               name="status_jp[{{ $jadwalId }}]"
+                                               value="{{ $jpVal }}"
+                                               class="sr-only peer jp-status-radio"
+                                               data-jadwal="{{ $jadwalId }}"
+                                               data-color="{{ $jpColorMap[$jpVal] }}"
+                                               data-label="{{ $jpLabel }}"
+                                               {{ $defaultStatus === $jpVal ? 'checked' : '' }}
+                                               onchange="handleJpStatus({{ $jadwalId }}, this.value, '{{ $jpColorMap[$jpVal] }}', '{{ $jpLabel }}')">
+                                        <div class="text-center py-2 rounded-lg border border-slate-200 bg-white {{ $jpHoverClass }} transition-all text-[11px] font-semibold text-slate-500
+                                                    peer-checked:{{ $jpCheckedClass }}">
+                                            {{ $jpLabel }}
+                                        </div>
+                                    </label>
+                                    @endforeach
+                                </div>
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+
+                    {{-- Alasan tidak hadir (shown when any JP has tidak_hadir) --}}
+                    <div id="tidak-hadir-section" class="{{ collect($perJpData)->contains(fn($jp) => in_array($jp['current_status'], ['tidak_hadir','sakit','alpa','dispensasi'])) ? '' : 'hidden' }} mt-3 p-4 rounded-xl bg-red-50/60 border border-red-100 space-y-3">
+                        <p class="text-[11px] font-bold text-red-700 flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            Detail Ketidakhadiran (untuk JP yang ditandai Tidak Hadir)
+                        </p>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-2">Jenis Ketidakhadiran <span class="text-red-500">*</span></label>
+                            @php
+                                $curAlasan = old('alasan_tidak_hadir') ?? collect($perJpData)->map(fn($jp) => $jp['capture']?->alasan_tidak_hadir)->filter()->first() ?? '';
+                                $alasanOptions = [
+                                    'sakit' => 'Sakit',
+                                    'izin' => 'Izin',
+                                    'rapat_dinas' => 'Rapat Dinas',
+                                    'dinas_luar' => 'Dinas Luar',
+                                    'tugas_luar' => 'Tugas Luar',
+                                    'tanpa_keterangan' => 'Tanpa Keterangan (Alpa)',
+                                ];
+                            @endphp
+                            <div class="grid grid-cols-2 gap-2">
+                                @foreach($alasanOptions as $val => $label)
+                                <label class="relative cursor-pointer">
+                                    <input type="radio" name="alasan_tidak_hadir" value="{{ $val }}" class="sr-only peer" {{ $curAlasan === $val ? 'checked' : '' }}>
+                                    <div class="text-center py-2.5 px-3 rounded-xl border border-slate-200 bg-white peer-checked:border-red-500 peer-checked:bg-red-50 peer-checked:text-red-700 peer-checked:font-bold hover:border-red-300 transition-all text-xs font-medium text-slate-700 shadow-2xs flex items-center justify-center min-h-[40px]">
+                                        {{ $label }}
+                                    </div>
+                                </label>
+                                @endforeach
+                            </div>
+                            @error('alasan_tidak_hadir')<p class="text-xs text-red-600 mt-1">{{ $message }}</p>@enderror
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">Nama Guru Pengganti (Jika Ada)</label>
+                            <input type="text" name="guru_pengganti_nama"
+                                   value="{{ old('guru_pengganti_nama') ?? collect($perJpData)->map(fn($jp) => $jp['capture']?->guru_pengganti_nama)->filter()->first() }}"
+                                   placeholder="Tulis nama guru yang menggantikan jika ada..."
+                                   class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500">
+                        </div>
+                    </div>{{-- end #tidak-hadir-section multi-JP --}}
+
+                    @else
+                    {{-- Single JP: simple global selector (backward compatible) --}}
+                    @php
+                        $curStatus = old('status_guru_dilaporkan') ?? $existingCapture?->status_guru_dilaporkan ?? 'hadir';
+                        if (in_array($curStatus, ['sakit', 'alpa', 'dispensasi'])) { $curStatus = 'tidak_hadir'; }
+                    @endphp
+                    <div class="grid grid-cols-3 gap-2">
                         <label class="relative cursor-pointer">
                             <input type="radio" name="status_guru_dilaporkan" value="hadir" class="sr-only peer"
                                    {{ $curStatus === 'hadir' ? 'checked' : '' }}
                                    onchange="handleStatusGuru(this.value)">
-                            <div class="text-center py-3 rounded-xl border-2 border-slate-200 peer-checked:border-emerald-500 peer-checked:bg-emerald-50 peer-checked:text-emerald-700 hover:border-emerald-300 transition-all">
+                            <div class="text-center py-3 rounded-xl border-2 border-slate-200
+                                        peer-checked:border-emerald-500 peer-checked:bg-emerald-50 peer-checked:text-emerald-700
+                                        hover:border-emerald-300 transition-all">
                                 <span class="text-sm font-semibold flex items-center justify-center gap-1.5">
                                     <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
                                     Hadir
                                 </span>
                             </div>
                         </label>
-
-                        {{-- Terlambat --}}
                         <label class="relative cursor-pointer">
                             <input type="radio" name="status_guru_dilaporkan" value="terlambat" class="sr-only peer"
                                    {{ $curStatus === 'terlambat' ? 'checked' : '' }}
                                    onchange="handleStatusGuru(this.value)">
-                            <div class="text-center py-3 rounded-xl border-2 border-slate-200 peer-checked:border-amber-500 peer-checked:bg-amber-50 peer-checked:text-amber-700 hover:border-amber-300 transition-all">
+                            <div class="text-center py-3 rounded-xl border-2 border-slate-200
+                                        peer-checked:border-amber-500 peer-checked:bg-amber-50 peer-checked:text-amber-700
+                                        hover:border-amber-300 transition-all">
                                 <span class="text-sm font-semibold flex items-center justify-center gap-1.5">
                                     <span class="w-2 h-2 rounded-full bg-amber-500"></span>
                                     Terlambat
                                 </span>
                             </div>
                         </label>
-
-                        {{-- Tidak Hadir --}}
                         <label class="relative cursor-pointer">
                             <input type="radio" name="status_guru_dilaporkan" value="tidak_hadir" class="sr-only peer"
                                    {{ $curStatus === 'tidak_hadir' ? 'checked' : '' }}
                                    onchange="handleStatusGuru(this.value)">
-                            <div class="text-center py-3 rounded-xl border-2 border-slate-200 peer-checked:border-red-500 peer-checked:bg-red-50 peer-checked:text-red-700 hover:border-red-300 transition-all">
+                            <div class="text-center py-3 rounded-xl border-2 border-slate-200
+                                        peer-checked:border-red-500 peer-checked:bg-red-50 peer-checked:text-red-700
+                                        hover:border-red-300 transition-all">
                                 <span class="text-sm font-semibold flex items-center justify-center gap-1.5">
                                     <span class="w-2 h-2 rounded-full bg-red-500"></span>
                                     Tidak Hadir
@@ -364,46 +463,37 @@
                             </div>
                         </label>
                     </div>
-                    @error('status_guru_dilaporkan')<p class="text-xs text-red-600 mt-1">{{ $message }}</p>@enderror
-                </div>
-
-                {{-- Sub-Kategori / Alasan jika Tidak Hadir --}}
-                <div id="tidak-hadir-section" class="{{ $curStatus === 'tidak_hadir' ? '' : 'hidden' }} p-4 rounded-xl bg-red-50/60 border border-red-100 space-y-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-2">Jenis Ketidakhadiran Guru <span class="text-red-500">*</span></label>
-                        @php
-                            $curAlasan = old('alasan_tidak_hadir') ?? $existingCapture?->alasan_tidak_hadir ?? '';
-                            $alasanOptions = [
-                                'sakit' => 'Sakit',
-                                'izin' => 'Izin',
-                                'rapat_dinas' => 'Rapat Dinas',
-                                'dinas_luar' => 'Dinas Luar',
-                                'tugas_luar' => 'Tugas Luar',
-                                'tanpa_keterangan' => 'Tanpa Keterangan (Alpa)',
-                            ];
-                        @endphp
-                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                            @foreach($alasanOptions as $val => $label)
-                            <label class="relative cursor-pointer">
-                                <input type="radio" name="alasan_tidak_hadir" value="{{ $val }}" class="sr-only peer" {{ $curAlasan === $val ? 'checked' : '' }}>
-                                <div class="text-center py-2.5 px-3 rounded-xl border border-slate-200 bg-white peer-checked:border-red-500 peer-checked:bg-red-50 peer-checked:text-red-700 peer-checked:font-bold hover:border-red-300 transition-all text-xs font-medium text-slate-700 shadow-2xs flex items-center justify-center min-h-[44px]">
-                                    {{ $label }}
-                                </div>
-                            </label>
-                            @endforeach
+                    {{-- Alasan tidak hadir for single JP --}}
+                    <div id="tidak-hadir-section" class="{{ $curStatus === 'tidak_hadir' ? '' : 'hidden' }} mt-3 p-4 rounded-xl bg-red-50/60 border border-red-100 space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-2">Jenis Ketidakhadiran Guru <span class="text-red-500">*</span></label>
+                            @php
+                                $curAlasan = old('alasan_tidak_hadir') ?? $existingCapture?->alasan_tidak_hadir ?? '';
+                                $alasanOptions = ['sakit'=>'Sakit','izin'=>'Izin','rapat_dinas'=>'Rapat Dinas','dinas_luar'=>'Dinas Luar','tugas_luar'=>'Tugas Luar','tanpa_keterangan'=>'Tanpa Keterangan (Alpa)'];
+                            @endphp
+                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                @foreach($alasanOptions as $val => $label)
+                                <label class="relative cursor-pointer">
+                                    <input type="radio" name="alasan_tidak_hadir" value="{{ $val }}" class="sr-only peer" {{ $curAlasan === $val ? 'checked' : '' }}>
+                                    <div class="text-center py-2.5 px-3 rounded-xl border border-slate-200 bg-white peer-checked:border-red-500 peer-checked:bg-red-50 peer-checked:text-red-700 peer-checked:font-bold hover:border-red-300 transition-all text-xs font-medium text-slate-700 shadow-2xs flex items-center justify-center min-h-[44px]">
+                                        {{ $label }}
+                                    </div>
+                                </label>
+                                @endforeach
+                            </div>
+                            @error('alasan_tidak_hadir')<p class="text-xs text-red-600 mt-1.5">{{ $message }}</p>@enderror
                         </div>
-                        @error('alasan_tidak_hadir')<p class="text-xs text-red-600 mt-1.5">{{ $message }}</p>@enderror
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">Nama Guru Pengganti (Jika Ada)</label>
+                            <input type="text" name="guru_pengganti_nama"
+                                   value="{{ old('guru_pengganti_nama') ?? $existingCapture?->guru_pengganti_nama }}"
+                                   placeholder="Tulis nama guru yang menggantikan jika ada..."
+                                   class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500">
+                            <p class="text-[11px] text-slate-500 mt-1">Kosongkan bila kelas tidak ada guru pengganti.</p>
+                            @error('guru_pengganti_nama')<p class="text-xs text-red-600 mt-1">{{ $message }}</p>@enderror
+                        </div>
                     </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1.5">Nama Guru Pengganti (Jika Ada)</label>
-                        <input type="text" name="guru_pengganti_nama"
-                               value="{{ old('guru_pengganti_nama') ?? $existingCapture?->guru_pengganti_nama }}"
-                               placeholder="Tulis nama guru yang menggantikan jika ada..."
-                               class="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500">
-                        <p class="text-[11px] text-slate-500 mt-1">Kosongkan bila kelas tidak ada guru pengganti.</p>
-                        @error('guru_pengganti_nama')<p class="text-xs text-red-600 mt-1">{{ $message }}</p>@enderror
-                    </div>
+                    @endif
                 </div>
 
                 <button type="submit" id="btn-submit-capture"
@@ -411,6 +501,7 @@
                     {{ !empty($myCapture) ? 'Perbarui Foto Bukti & Presensi' : 'Kirim Foto Bukti & Presensi' }}
                 </button>
             </form>
+
         </div>
         @else
         <div class="bg-red-50 border border-red-200 rounded-2xl p-5 text-center">
@@ -614,12 +705,68 @@
             }
         }
 
+        // Per-JP status handler
+        function handleJpStatus(jadwalId, val, color, label) {
+            // Update badge
+            updateJpBadge(jadwalId, val, color, label);
+
+            // Show/hide "tidak-hadir-section" if any JP has tidak_hadir
+            checkAnyTidakHadir();
+        }
+
+        function updateJpBadge(jadwalId, val, color, label) {
+            const badge = document.querySelector(`.jp-status-badge[data-jadwal="${jadwalId}"]`);
+            if (!badge) return;
+
+            const colorMap = {
+                emerald: 'bg-emerald-100 text-emerald-700',
+                amber: 'bg-amber-100 text-amber-700',
+                red: 'bg-red-100 text-red-700',
+            };
+            badge.className = `jp-status-badge text-[11px] font-bold px-2 py-0.5 rounded-full ${colorMap[color] || ''}`;
+            badge.textContent = label;
+        }
+
+        function checkAnyTidakHadir() {
+            const radios = document.querySelectorAll('.jp-status-radio:checked');
+            let anyTidakHadir = false;
+            radios.forEach(r => {
+                if (r.value === 'tidak_hadir') anyTidakHadir = true;
+            });
+            const section = document.getElementById('tidak-hadir-section');
+            if (section) {
+                section.classList.toggle('hidden', !anyTidakHadir);
+            }
+        }
+
+        // Initialize badges on page load
+        document.addEventListener('DOMContentLoaded', function () {
+            const colorMap = { emerald: 'bg-emerald-100 text-emerald-700', amber: 'bg-amber-100 text-amber-700', red: 'bg-red-100 text-red-700' };
+            document.querySelectorAll('.jp-status-radio:checked').forEach(radio => {
+                const jadwalId = radio.dataset.jadwal;
+                const color = radio.dataset.color;
+                const label = radio.dataset.label;
+                updateJpBadge(jadwalId, radio.value, color, label);
+            });
+        });
+
         document.getElementById('capture-form')?.addEventListener('submit', function(e) {
             const finalInput = document.getElementById('final-foto-input');
             const hasExisting = {{ !empty($myCapture) ? 'true' : 'false' }};
             if (!hasExisting && (!finalInput.files || finalInput.files.length === 0)) {
                 e.preventDefault();
                 alert('Silakan ambil foto bukti kehadiran guru terlebih dahulu melalui kamera atau galeri.');
+                return false;
+            }
+
+            // Validate: if any JP has tidak_hadir, alasan must be selected
+            const anyTidakHadir = Array.from(document.querySelectorAll('.jp-status-radio:checked'))
+                .some(r => r.value === 'tidak_hadir');
+            const singleTidakHadir = document.querySelector('input[name="status_guru_dilaporkan"]:checked')?.value === 'tidak_hadir';
+
+            if ((anyTidakHadir || singleTidakHadir) && !document.querySelector('input[name="alasan_tidak_hadir"]:checked')) {
+                e.preventDefault();
+                alert('Silakan pilih jenis ketidakhadiran guru untuk JP yang ditandai Tidak Hadir.');
                 return false;
             }
         });
@@ -632,6 +779,7 @@
                 return false;
             }
         });
+
     </script>
     @endpush
 </x-layouts.siswa>

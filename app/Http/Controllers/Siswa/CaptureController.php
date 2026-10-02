@@ -89,6 +89,34 @@ class CaptureController extends Controller
         $jamCheckoutMulai = Carbon::createFromFormat('H:i', $jamSelesai)->subMinutes(15)->format('H:i');
         $canCheckout = ! $tanggalCarbon->isToday() || (now()->format('H:i') >= $jamCheckoutMulai);
 
+        // Load existing per-JP status for this student (from FotoBukti per consecutive sched)
+        // $subIds already declared above — reuse it
+        $pertemuansByJadwal = Pertemuan::whereIn('jadwal_id', $subIds)
+            ->whereDate('tanggal', $tanggalCarbon)
+            ->get()
+            ->keyBy('jadwal_id');
+
+        $existingCapturesByJadwal = FotoBukti::whereIn('pertemuan_id', $pertemuansByJadwal->pluck('id'))
+            ->where('siswa_id', $user->id)
+            ->get()
+            ->keyBy('pertemuan_id');
+
+        // Build per-JP data for the view
+        $perJpData = $consecutiveSchedules->map(function ($sched, $index) use ($pertemuansByJadwal, $existingCapturesByJadwal) {
+            $prt = $pertemuansByJadwal->get($sched->id);
+            $capture = $prt ? $existingCapturesByJadwal->get($prt->id) : null;
+
+            return [
+                'jadwal' => $sched,
+                'pertemuan' => $prt,
+                'capture' => $capture,
+                'jp_index' => $index + 1,
+                'jam_mulai' => substr($sched->jam_mulai, 0, 5),
+                'jam_selesai' => substr($sched->jam_selesai, 0, 5),
+                'current_status' => $capture?->status_guru_dilaporkan ?? null,
+            ];
+        });
+
         return view('siswa.capture.show', [
             'pertemuan' => $pertemuan->load(['jadwal.guru', 'jadwal.mataPelajaran', 'kehadiranGuru']),
             'existingCapture' => $existingCapture ?? $classCapture,
@@ -102,6 +130,7 @@ class CaptureController extends Controller
             'totalJp' => $consecutiveSchedules->count(),
             'jamMulai' => $jamMulai,
             'jamSelesai' => $jamSelesai,
+            'perJpData' => $perJpData,
         ]);
     }
 
@@ -147,8 +176,12 @@ class CaptureController extends Controller
 
         $validated = $request->validate([
             'foto' => ['nullable', 'image', 'max:10240'], // Max 10MB input, will be compressed to < 300KB WebP
-            'status_guru_dilaporkan' => ['required', 'in:hadir,terlambat,tidak_hadir,sakit,alpa,dispensasi'],
-            'alasan_tidak_hadir' => ['nullable', 'required_if:status_guru_dilaporkan,tidak_hadir', 'in:sakit,izin,rapat_dinas,dinas_luar,tugas_luar,tanpa_keterangan'],
+            // Per-JP statuses: keyed by jadwal_id (e.g., status_jp[123] = 'hadir')
+            'status_jp' => ['nullable', 'array'],
+            'status_jp.*' => ['required', 'in:hadir,terlambat,tidak_hadir,sakit,alpa,dispensasi'],
+            // Fallback global status for backward compatibility (single-JP schedules)
+            'status_guru_dilaporkan' => ['nullable', 'in:hadir,terlambat,tidak_hadir,sakit,alpa,dispensasi'],
+            'alasan_tidak_hadir' => ['nullable', 'in:sakit,izin,rapat_dinas,dinas_luar,tugas_luar,tanpa_keterangan'],
             'jenis_alpa_dilaporkan' => ['nullable', 'string', 'max:50'],
             'guru_pengganti_nama' => ['nullable', 'string', 'max:255'],
         ]);
@@ -172,14 +205,22 @@ class CaptureController extends Controller
             $fotoPath = $imageCompressor->compressAndStore($request->file('foto'), 'foto-bukti', 1200, 80);
         }
 
-        // Status Kehadiran Guru: Mengutamakan pilihan langsung dari siswa (tidak ditimpa toleransi sistem)
-        $statusGuru = $validated['status_guru_dilaporkan'];
-
         $hasNewFoto = $request->hasFile('foto');
 
-        // Save FotoBukti & automatically sync teacher attendance in KehadiranGuru for all consecutive schedules
-        DB::transaction(function () use ($consecutiveSchedules, $user, $fotoPath, $hasNewFoto, $validated, $statusGuru, $tanggalCarbon) {
-            foreach ($consecutiveSchedules as $sched) {
+        // Per-JP status map: keyed by jadwal_id
+        $perJpStatuses = $validated['status_jp'] ?? [];
+
+        // Determine global fallback status (for single-JP or when no per-JP data submitted)
+        $globalStatus = $validated['status_guru_dilaporkan'] ?? 'hadir';
+
+        // Save FotoBukti & sync KehadiranGuru per JP with individual statuses
+        DB::transaction(function () use ($consecutiveSchedules, $user, $fotoPath, $hasNewFoto, $validated, $perJpStatuses, $globalStatus, $tanggalCarbon) {
+            foreach ($consecutiveSchedules as $index => $sched) {
+                // Determine this JP's specific status:
+                // 1. Use per-JP input if provided
+                // 2. Fall back to global status for single-JP
+                $jpStatus = $perJpStatuses[$sched->id] ?? $globalStatus;
+
                 $targetPertemuan = Pertemuan::firstOrCreate(
                     ['jadwal_id' => $sched->id, 'tanggal' => $tanggalCarbon->format('Y-m-d 00:00:00')],
                     ['status' => 'menunggu']
@@ -189,35 +230,37 @@ class CaptureController extends Controller
                     ->where('siswa_id', $user->id)
                     ->first();
 
+                // Determine alasan for this JP (only relevant when status is tidak_hadir)
+                $alasanForJp = in_array($jpStatus, ['tidak_hadir', 'sakit', 'alpa', 'dispensasi'])
+                    ? ($validated['alasan_tidak_hadir'] ?? null)
+                    : null;
+
+                $fotoBuktiData = [
+                    'foto_path' => $fotoPath,
+                    'status_guru_dilaporkan' => $jpStatus,
+                    'alasan_tidak_hadir' => $alasanForJp,
+                    'jenis_alpa_dilaporkan' => $validated['jenis_alpa_dilaporkan'] ?? null,
+                    'guru_pengganti_nama' => $validated['guru_pengganti_nama'] ?? null,
+                ];
+
                 if ($schedExisting) {
                     if ($hasNewFoto && $schedExisting->foto_path && $schedExisting->foto_path !== $fotoPath) {
                         Storage::disk('public')->delete($schedExisting->foto_path);
                     }
-                    $schedExisting->update([
-                        'foto_path' => $fotoPath,
-                        'status_guru_dilaporkan' => $validated['status_guru_dilaporkan'],
-                        'alasan_tidak_hadir' => $validated['alasan_tidak_hadir'] ?? null,
-                        'jenis_alpa_dilaporkan' => $validated['jenis_alpa_dilaporkan'] ?? null,
-                        'guru_pengganti_nama' => $validated['guru_pengganti_nama'] ?? null,
-                    ]);
+                    $schedExisting->update($fotoBuktiData);
                 } else {
-                    FotoBukti::create([
+                    FotoBukti::create(array_merge($fotoBuktiData, [
                         'pertemuan_id' => $targetPertemuan->id,
                         'siswa_id' => $user->id,
-                        'foto_path' => $fotoPath,
-                        'status_guru_dilaporkan' => $validated['status_guru_dilaporkan'],
-                        'alasan_tidak_hadir' => $validated['alasan_tidak_hadir'] ?? null,
-                        'jenis_alpa_dilaporkan' => $validated['jenis_alpa_dilaporkan'] ?? null,
-                        'guru_pengganti_nama' => $validated['guru_pengganti_nama'] ?? null,
-                    ]);
+                    ]));
                 }
 
-                // Sync to KehadiranGuru
+                // Sync to KehadiranGuru with the per-JP status
                 KehadiranGuru::updateOrCreate(
                     ['pertemuan_id' => $targetPertemuan->id, 'guru_id' => $sched->guru_id],
                     [
-                        'status' => $statusGuru,
-                        'alasan_tidak_hadir' => $validated['alasan_tidak_hadir'] ?? null,
+                        'status' => $jpStatus,
+                        'alasan_tidak_hadir' => $alasanForJp,
                         'guru_pengganti_nama' => $validated['guru_pengganti_nama'] ?? null,
                         'waktu_hadir' => KehadiranGuru::where('pertemuan_id', $targetPertemuan->id)->where('guru_id', $sched->guru_id)->value('waktu_hadir') ?? now(),
                     ]
@@ -228,7 +271,7 @@ class CaptureController extends Controller
         });
 
         $msg = $consecutiveSchedules->count() > 1
-            ? "Foto bukti presensi guru berhasil disimpan untuk {$consecutiveSchedules->count()} jam pelajaran sekaligus!"
+            ? "Foto bukti presensi guru berhasil disimpan untuk {$consecutiveSchedules->count()} jam pelajaran (status per-JP tersimpan akurat)!"
             : 'Foto bukti dan presensi guru berhasil disimpan!';
 
         return redirect()->route('siswa.dashboard')->with('success', $msg);
