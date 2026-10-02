@@ -23,6 +23,8 @@ class SettingsController extends Controller
         'enable_checkout_foto',
         'default_siswa_status',
         'toleransi_keterlambatan_menit',
+        'toleransi_mapel_pertama_menit',
+        'toleransi_mapel_lanjutan_menit',
     ];
 
     public function index(): View
@@ -32,6 +34,8 @@ class SettingsController extends Controller
             $defaultVal = match ($key) {
                 'default_siswa_status' => 'aktif',
                 'toleransi_keterlambatan_menit' => '10',
+                'toleransi_mapel_pertama_menit' => '10',
+                'toleransi_mapel_lanjutan_menit' => '15',
                 default => '',
             };
             $settings[$key] = Setting::get($key, $defaultVal);
@@ -55,13 +59,20 @@ class SettingsController extends Controller
             'enable_checkout_foto' => ['nullable', 'in:0,1'],
             'default_siswa_status' => ['required', 'in:aktif,nonaktif'],
             'toleransi_keterlambatan_menit' => ['nullable', 'integer', 'min:0', 'max:60'],
+            'toleransi_mapel_pertama_menit' => ['nullable', 'integer', 'min:0', 'max:60'],
+            'toleransi_mapel_lanjutan_menit' => ['nullable', 'integer', 'min:0', 'max:60'],
             'apply_to_existing_siswa' => ['nullable', 'in:0,1'],
         ]);
 
         $validated['enable_checkout_foto'] = $request->has('enable_checkout_foto') ? '1' : '0';
-        if (! isset($validated['toleransi_keterlambatan_menit']) || $validated['toleransi_keterlambatan_menit'] === null) {
-            unset($validated['toleransi_keterlambatan_menit']);
+
+        // Sync legacy toleransi_keterlambatan_menit with toleransi_mapel_pertama_menit if provided
+        if (isset($validated['toleransi_mapel_pertama_menit'])) {
+            $validated['toleransi_keterlambatan_menit'] = $validated['toleransi_mapel_pertama_menit'];
+        } elseif (isset($validated['toleransi_keterlambatan_menit'])) {
+            $validated['toleransi_mapel_pertama_menit'] = $validated['toleransi_keterlambatan_menit'];
         }
+
         $applyToExisting = $request->has('apply_to_existing_siswa');
         $resetPasswords = $request->has('reset_passwords_to_nis');
         unset($validated['apply_to_existing_siswa']);

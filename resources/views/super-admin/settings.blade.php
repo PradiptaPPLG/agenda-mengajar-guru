@@ -86,18 +86,42 @@
                 <div>
                     <h3 class="text-sm font-semibold text-slate-900 mb-1">Toleransi Keterlambatan Guru</h3>
                     <p class="text-xs text-slate-500 mb-3">
-                        Batas waktu toleransi kehadiran guru (dalam menit) setelah jam mulai pelajaran sebelum sistem otomatis menetapkan status sebagai <strong>Terlambat</strong>.
+                        Batas waktu toleransi kehadiran guru (dalam menit) setelah jam mulai pelajaran sebelum siswa diperbolehkan menandai status <strong>Terlambat</strong>. Selama masa toleransi masih berlaku, tombol status <em>Terlambat</em> akan otomatis dinonaktifkan (disabled) di sisi siswa.
                     </p>
-                    <div class="flex items-center gap-3">
-                        <div class="relative w-36">
-                            <input type="number" name="toleransi_keterlambatan_menit" min="0" max="60"
-                                   value="{{ old('toleransi_keterlambatan_menit', $settings['toleransi_keterlambatan_menit'] ?: '10') }}" required
-                                   class="w-full px-3.5 py-2.5 border {{ $errors->has('toleransi_keterlambatan_menit') ? 'border-red-400' : 'border-slate-200' }} rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-xs font-bold text-slate-800">1. Toleransi Mapel Jam Pertama</span>
+                                <span class="text-[11px] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">Default: 10 Menit</span>
+                            </div>
+                            <p class="text-[11px] text-slate-500 mb-2">Batas toleransi kehadiran untuk jam pertama KBM di pagi hari.</p>
+                            <div class="flex items-center gap-2">
+                                <input type="number" name="toleransi_mapel_pertama_menit" min="0" max="60"
+                                       value="{{ old('toleransi_mapel_pertama_menit', $settings['toleransi_mapel_pertama_menit'] ?: ($settings['toleransi_keterlambatan_menit'] ?: '10')) }}" required
+                                       class="w-28 px-3 py-2 border {{ $errors->has('toleransi_mapel_pertama_menit') ? 'border-red-400' : 'border-slate-200' }} rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <span class="text-xs font-medium text-slate-600">Menit awal KBM</span>
+                            </div>
+                            <p class="text-[11px] text-slate-400 mt-1.5">Contoh: Mulai 07:00, foto hingga 07:10 terhitung tepat waktu.</p>
+                            @error('toleransi_mapel_pertama_menit')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                         </div>
-                        <span class="text-sm font-medium text-slate-700">Menit setelah jam mulai KBM</span>
+
+                        <div class="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-xs font-bold text-slate-800">2. Toleransi Mapel Ke-2 & Selanjutnya</span>
+                                <span class="text-[11px] font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">Default: 15 Menit</span>
+                            </div>
+                            <p class="text-[11px] text-slate-500 mb-2">Batas toleransi pergantian jam pelajaran ke-2 dan seterusnya.</p>
+                            <div class="flex items-center gap-2">
+                                <input type="number" name="toleransi_mapel_lanjutan_menit" min="0" max="60"
+                                       value="{{ old('toleransi_mapel_lanjutan_menit', $settings['toleransi_mapel_lanjutan_menit'] ?: '15') }}" required
+                                       class="w-28 px-3 py-2 border {{ $errors->has('toleransi_mapel_lanjutan_menit') ? 'border-red-400' : 'border-slate-200' }} rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <span class="text-xs font-medium text-slate-600">Menit pergantian KBM</span>
+                            </div>
+                            <p class="text-[11px] text-slate-400 mt-1.5">Contoh: Mulai 08:30, foto hingga 08:45 terhitung tepat waktu.</p>
+                            @error('toleransi_mapel_lanjutan_menit')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                        </div>
                     </div>
-                    <p class="text-xs text-slate-400 mt-1.5">Rekomendasi guru: <strong>10 – 12 menit</strong> (contoh: jika KBM mulai pukul 07:00, foto kehadiran hingga pukul 07:10–07:12 tetap tercatat sebagai <em>Hadir Tepat Waktu</em>).</p>
-                    @error('toleransi_keterlambatan_menit')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                 </div>
 
                 <hr class="border-slate-200">
