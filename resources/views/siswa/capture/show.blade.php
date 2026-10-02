@@ -611,6 +611,62 @@
             return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
         }
 
+        // Helper kompresi robust untuk iOS Safari & semua perangkat mobile
+        async function compressImageFile(file, maxDim = 1200, quality = 0.72) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                const url = URL.createObjectURL(file);
+
+                img.onload = () => {
+                    URL.revokeObjectURL(url);
+                    try {
+                        let width = img.width;
+                        let height = img.height;
+
+                        if (width > maxDim || height > maxDim) {
+                            if (width >= height) {
+                                height = Math.round((height / width) * maxDim);
+                                width = maxDim;
+                            } else {
+                                width = Math.round((width / height) * maxDim);
+                                height = maxDim;
+                            }
+                        }
+
+                        const canvas = document.createElement('canvas');
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        // Selalu gunakan image/jpeg untuk iOS Safari karena 100% kompatibel dan tidak jatuh ke format PNG
+                        canvas.toBlob((blob) => {
+                            if (!blob) {
+                                return reject(new Error('Canvas gagal menghasilkan blob'));
+                            }
+                            // Jika ukuran masih > 550KB (misal foto sangat detail/noise), turunkan quality ke 0.55
+                            if (blob.size > 550 * 1024) {
+                                canvas.toBlob((secondBlob) => {
+                                    resolve(secondBlob || blob);
+                                }, 'image/jpeg', 0.55);
+                            } else {
+                                resolve(blob);
+                            }
+                        }, 'image/jpeg', quality);
+                    } catch (e) {
+                        reject(e);
+                    }
+                };
+
+                img.onerror = () => {
+                    URL.revokeObjectURL(url);
+                    reject(new Error('Gagal membaca file gambar'));
+                };
+
+                img.src = url;
+            });
+        }
+
         async function handlePhotoSelection(input) {
             if (!input.files || !input.files[0]) return;
             const file = input.files[0];
@@ -632,54 +688,11 @@
             }
 
             try {
-                const img = new Image();
-                const url = URL.createObjectURL(file);
-
-                await new Promise((resolve, reject) => {
-                    img.onload = resolve;
-                    img.onerror = reject;
-                    img.src = url;
-                });
-
-                // Scale max 1200px
-                const maxDim = 1200;
-                let width = img.width;
-                let height = img.height;
-
-                if (width > maxDim || height > maxDim) {
-                    if (width >= height) {
-                        height = Math.round((height / width) * maxDim);
-                        width = maxDim;
-                    } else {
-                        width = Math.round((width / height) * maxDim);
-                        height = maxDim;
-                    }
-                }
-
-                const canvas = document.createElement('canvas');
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
-
-                // Convert to WebP blob (fallback to JPEG)
-                const blob = await new Promise((resolve) => {
-                    canvas.toBlob((b) => {
-                        if (b) {
-                            resolve(b);
-                        } else {
-                            canvas.toBlob((bJpeg) => resolve(bJpeg), 'image/jpeg', 0.82);
-                        }
-                    }, 'image/webp', 0.82);
-                });
-
+                const blob = await compressImageFile(file, 1200, 0.72);
                 const previewUrl = URL.createObjectURL(blob);
                 previewImg.src = previewUrl;
 
-                // Create compressed File and assign to form's file input
-                const ext = blob.type === 'image/webp' ? 'webp' : 'jpg';
-                const compressedFile = new File([blob], `foto_bukti.${ext}`, { type: blob.type });
-
+                const compressedFile = new File([blob], 'foto_bukti.jpg', { type: 'image/jpeg' });
                 const dataTransfer = new DataTransfer();
                 dataTransfer.items.add(compressedFile);
                 finalInput.files = dataTransfer.files;
@@ -687,14 +700,18 @@
                 const savedPct = Math.max(0, Math.round((1 - (compressedFile.size / originalSize)) * 100));
                 summarySpan.textContent = `${formatBytes(originalSize)} ➔ ${formatBytes(compressedFile.size)} (Hemat ${savedPct}%)`;
                 compressionStatus.classList.remove('hidden');
-
-                URL.revokeObjectURL(url);
             } catch (err) {
-                console.error('Compression error, fallback to raw file:', err);
-                const dataTransfer = new DataTransfer();
-                dataTransfer.items.add(file);
-                finalInput.files = dataTransfer.files;
-                previewImg.src = URL.createObjectURL(file);
+                console.error('Compression error:', err);
+                if (file.size <= 850 * 1024) {
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(file);
+                    finalInput.files = dataTransfer.files;
+                    previewImg.src = URL.createObjectURL(file);
+                } else {
+                    alert('Foto asli terlalu besar (' + formatBytes(file.size) + ') dan kompresi browser gagal. Harap gunakan foto dengan resolusi standar agar pengiriman lancar.');
+                    previewContainer.classList.add('hidden');
+                    finalInput.value = '';
+                }
             } finally {
                 indicator.classList.add('hidden');
                 if (btnSubmit) {
@@ -717,51 +734,11 @@
             indicator.classList.remove('hidden');
 
             try {
-                const img = new Image();
-                const url = URL.createObjectURL(file);
-
-                await new Promise((resolve, reject) => {
-                    img.onload = resolve;
-                    img.onerror = reject;
-                    img.src = url;
-                });
-
-                const maxDim = 1200;
-                let width = img.width;
-                let height = img.height;
-
-                if (width > maxDim || height > maxDim) {
-                    if (width >= height) {
-                        height = Math.round((height / width) * maxDim);
-                        width = maxDim;
-                    } else {
-                        width = Math.round((width / height) * maxDim);
-                        height = maxDim;
-                    }
-                }
-
-                const canvas = document.createElement('canvas');
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
-
-                const blob = await new Promise((resolve) => {
-                    canvas.toBlob((b) => {
-                        if (b) {
-                            resolve(b);
-                        } else {
-                            canvas.toBlob((bJpeg) => resolve(bJpeg), 'image/jpeg', 0.82);
-                        }
-                    }, 'image/webp', 0.82);
-                });
-
+                const blob = await compressImageFile(file, 1200, 0.72);
                 const previewUrl = URL.createObjectURL(blob);
                 previewImg.src = previewUrl;
 
-                const ext = blob.type === 'image/webp' ? 'webp' : 'jpg';
-                const compressedFile = new File([blob], `foto_checkout.${ext}`, { type: blob.type });
-
+                const compressedFile = new File([blob], 'foto_checkout.jpg', { type: 'image/jpeg' });
                 const dataTransfer = new DataTransfer();
                 dataTransfer.items.add(compressedFile);
                 finalInput.files = dataTransfer.files;
@@ -769,16 +746,20 @@
                 if (btnSubmit) {
                     btnSubmit.disabled = false;
                 }
-
-                URL.revokeObjectURL(url);
             } catch (err) {
-                console.error('Compression error for checkout, fallback to raw file:', err);
-                const dataTransfer = new DataTransfer();
-                dataTransfer.items.add(file);
-                finalInput.files = dataTransfer.files;
-                previewImg.src = URL.createObjectURL(file);
-                if (btnSubmit) {
-                    btnSubmit.disabled = false;
+                console.error('Compression error for checkout:', err);
+                if (file.size <= 850 * 1024) {
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(file);
+                    finalInput.files = dataTransfer.files;
+                    previewImg.src = URL.createObjectURL(file);
+                    if (btnSubmit) {
+                        btnSubmit.disabled = false;
+                    }
+                } else {
+                    alert('Foto check-out terlalu besar (' + formatBytes(file.size) + '). Harap gunakan resolusi kamera standar.');
+                    previewContainer.classList.add('hidden');
+                    finalInput.value = '';
                 }
             } finally {
                 indicator.classList.add('hidden');

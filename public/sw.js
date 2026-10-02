@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sopan-agenda-v2';
+const CACHE_NAME = 'sopan-agenda-v3';
 const STATIC_ASSETS = [
   '/manifest.json',
   '/images/logo_new.png',
@@ -68,6 +68,22 @@ self.addEventListener('fetch', (event) => {
   }
 
   // HTML Navigation Strategy (Network First / Graceful Fallback)
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).catch(async () => {
+        const cached = await caches.match(event.request);
+        if (cached) return cached;
+        const root = await caches.match('/');
+        if (root) return root;
+        return new Response(
+          '<!DOCTYPE html><html lang="id"><head><meta charset="utf-8"><title>Koneksi Terputus - SOPAN</title><meta name="viewport" content="width=device-width, initial-scale=1"><style>body{font-family:system-ui,-apple-system,sans-serif;margin:0;padding:40px 20px;text-align:center;background:#0f172a;color:#f8fafc;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;}h1{font-size:20px;margin-bottom:8px;}p{font-size:14px;color:#94a3b8;max-width:320px;margin:0 auto 20px;}button{background:#2563eb;color:#fff;border:none;padding:12px 24px;border-radius:12px;font-weight:bold;font-size:14px;cursor:pointer;}</style></head><body><h1>Koneksi Jaringan Terputus</h1><p>Gagal memuat halaman. Pastikan koneksi internet aktif, lalu coba muat ulang.</p><button onclick="location.reload()">Coba Lagi</button></body></html>',
+          { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+        );
+      })
+    );
+    return;
+  }
+
   event.respondWith(
     fetch(event.request).catch(() => {
       return caches.match(event.request);
