@@ -10,6 +10,7 @@ use App\Models\MataPelajaran;
 use App\Models\Pertemuan;
 use App\Models\SiswaProfile;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -165,6 +166,8 @@ class RecentFeaturesAuditTest extends TestCase
 
     public function test_student_terlambat_status_and_rekap_percentage_calculation(): void
     {
+        Carbon::setTestNow(Carbon::create(2026, 10, 15, 8, 0, 0));
+
         $guru = User::factory()->create(['role' => 'guru']);
         $kelas = Kelas::factory()->create(['wali_kelas_id' => $guru->id]);
         $mapel = MataPelajaran::factory()->create();
@@ -235,6 +238,8 @@ class RecentFeaturesAuditTest extends TestCase
         $this->assertEquals(1, $rekapWali['rekapSiswa'][0]['sakit']);
         $this->assertEquals(4, $rekapWali['rekapSiswa'][0]['total']);
         $this->assertEquals(75.0, $rekapWali['rekapSiswa'][0]['persentase']);
+
+        Carbon::setTestNow();
     }
 
     public function test_wali_kelas_semester_filter_and_export(): void
