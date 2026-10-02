@@ -56,6 +56,7 @@ class KehadiranGuru extends Model
         return match ($this->alasan_tidak_hadir) {
             'sakit' => 'Sakit',
             'izin' => 'Izin',
+            'cuti' => 'Cuti',
             'rapat_dinas' => 'Rapat Dinas',
             'dinas_luar' => 'Dinas Luar',
             'tugas_luar' => 'Tugas Luar',
@@ -92,7 +93,7 @@ class KehadiranGuru extends Model
     public function isDispensasiCategory(): bool
     {
         return in_array($this->status, ['dispensasi', 'izin'])
-            || in_array($this->alasan_tidak_hadir, ['izin', 'rapat_dinas', 'dinas_luar', 'tugas_luar', 'dispensasi']);
+            || in_array($this->alasan_tidak_hadir, ['izin', 'cuti', 'rapat_dinas', 'dinas_luar', 'tugas_luar', 'dispensasi']);
     }
 
     public function isAlpaCategory(): bool

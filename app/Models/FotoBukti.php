@@ -22,6 +22,7 @@ class FotoBukti extends Model
         'alasan_tidak_hadir',
         'jenis_alpa_dilaporkan',
         'guru_pengganti_nama',
+        'keterangan',
     ];
 
     /** @var array<string, string> */

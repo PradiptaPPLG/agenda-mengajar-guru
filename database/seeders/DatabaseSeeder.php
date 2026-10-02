@@ -18,7 +18,9 @@ class DatabaseSeeder extends Seeder
         Setting::set('school_year', Setting::getTahunAjaranAktif());
         Setting::set('semester', '1');
         Setting::set('phone', '(0265) 771204');
-        Setting::set('toleransi_keterlambatan_menit', '10'); // Default toleransi 10 menit (rentang 10 - 12 menit)
+        Setting::set('toleransi_keterlambatan_menit', '10'); // Default toleransi jam pertama 10 menit
+        Setting::set('toleransi_mapel_pertama_menit', '10');
+        Setting::set('toleransi_mapel_lanjutan_menit', '15');
 
         // ── Master Jam Pelajaran ─────────────────────────────────────────────
         $this->call(MasterJamPelajaranSeeder::class);
