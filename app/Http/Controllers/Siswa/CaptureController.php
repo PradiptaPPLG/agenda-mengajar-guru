@@ -23,6 +23,13 @@ class CaptureController extends Controller
     public function show(int $jadwalId, string $tanggal): View|RedirectResponse
     {
         $user = Auth::user();
+        if (! $user->is_active) {
+            Auth::logout();
+            request()->session()->invalidate();
+            request()->session()->regenerateToken();
+
+            return redirect()->route('login')->withErrors(['identifier' => 'Akun Anda sedang dinonaktifkan oleh Wali Kelas atau Admin.']);
+        }
 
         // Check student is in this class
         $kelas = $user->siswaProfile?->kelas;
@@ -89,8 +96,26 @@ class CaptureController extends Controller
         $jamCheckoutMulai = Carbon::createFromFormat('H:i', $jamSelesai)->subMinutes(15)->format('H:i');
         $canCheckout = ! $tanggalCarbon->isToday() || (now()->format('H:i') >= $jamCheckoutMulai);
 
+        // Toleransi Waktu Keterlambatan:
+        // Opsi 1: Mapel jam pertama (default 10 menit awal)
+        // Opsi 2: Mapel ke-2 dan selanjutnya (default 15 menitan)
+        $toleransiMapelPertama = (int) Setting::get('toleransi_mapel_pertama_menit', Setting::get('toleransi_keterlambatan_menit', '10'));
+        $toleransiMapelLanjutan = (int) Setting::get('toleransi_mapel_lanjutan_menit', '15');
+
+        $firstSchedOfDayId = null;
+        if ($kelas && $kelas->is_sistem_blok) {
+            $activeJadwals = app(JadwalBlokResolverService::class)->resolveJadwal($kelas, $tanggalCarbon, (string) $jadwal->hari);
+            $firstSchedOfDayId = $activeJadwals->sortBy('jam_mulai')->first()?->id;
+        }
+        if (! $firstSchedOfDayId) {
+            $firstSchedOfDayId = JadwalPelajaran::where('kelas_id', $kelas?->id)
+                ->where('hari', $jadwal->hari)
+                ->orderBy('jam_mulai')
+                ->value('id');
+        }
+        $isFirstMapelOfDay = ($firstSchedOfDayId === $jadwalUtama->id);
+
         // Load existing per-JP status for this student (from FotoBukti per consecutive sched)
-        // $subIds already declared above — reuse it
         $pertemuansByJadwal = Pertemuan::whereIn('jadwal_id', $subIds)
             ->whereDate('tanggal', $tanggalCarbon)
             ->get()
@@ -102,20 +127,39 @@ class CaptureController extends Controller
             ->keyBy('pertemuan_id');
 
         // Build per-JP data for the view
-        $perJpData = $consecutiveSchedules->map(function ($sched, $index) use ($pertemuansByJadwal, $existingCapturesByJadwal) {
+        $perJpData = $consecutiveSchedules->map(function ($sched, $index) use ($pertemuansByJadwal, $existingCapturesByJadwal, $isFirstMapelOfDay, $toleransiMapelPertama, $toleransiMapelLanjutan, $tanggalCarbon) {
             $prt = $pertemuansByJadwal->get($sched->id);
             $capture = $prt ? $existingCapturesByJadwal->get($prt->id) : null;
+            $jpIndex = $index + 1;
+            $jamMulaiClean = substr($sched->jam_mulai, 0, 5);
+
+            // Toleransi: jam pertama KBM pagi dapat 10 menit, jam ke-2+ / mapel ke-2+ dapat 15 menit
+            $toleransiMenit = ($isFirstMapelOfDay && $index === 0) ? $toleransiMapelPertama : $toleransiMapelLanjutan;
+
+            $deadlineToleransi = Carbon::createFromFormat('H:i', $jamMulaiClean)->addMinutes($toleransiMenit);
+            $isWithinTolerance = false;
+            if ($tanggalCarbon->isToday()) {
+                $isWithinTolerance = now()->lt($deadlineToleransi);
+            }
 
             return [
                 'jadwal' => $sched,
                 'pertemuan' => $prt,
                 'capture' => $capture,
-                'jp_index' => $index + 1,
-                'jam_mulai' => substr($sched->jam_mulai, 0, 5),
+                'jp_index' => $jpIndex,
+                'jam_mulai' => $jamMulaiClean,
                 'jam_selesai' => substr($sched->jam_selesai, 0, 5),
                 'current_status' => $capture?->status_guru_dilaporkan ?? null,
+                'toleransi_menit' => $toleransiMenit,
+                'deadline_toleransi' => $deadlineToleransi->format('H:i'),
+                'is_within_tolerance' => $isWithinTolerance,
             ];
         });
+
+        // Toleransi sesi global (untuk single-JP)
+        $toleransiUtamaMenit = $isFirstMapelOfDay ? $toleransiMapelPertama : $toleransiMapelLanjutan;
+        $deadlineToleransiUtama = Carbon::createFromFormat('H:i', $jamMulai)->addMinutes($toleransiUtamaMenit);
+        $isWithinToleranceUtama = $tanggalCarbon->isToday() && now()->lt($deadlineToleransiUtama);
 
         return view('siswa.capture.show', [
             'pertemuan' => $pertemuan->load(['jadwal.guru', 'jadwal.mataPelajaran', 'kehadiranGuru']),
@@ -131,12 +175,26 @@ class CaptureController extends Controller
             'jamMulai' => $jamMulai,
             'jamSelesai' => $jamSelesai,
             'perJpData' => $perJpData,
+            'isFirstMapelOfDay' => $isFirstMapelOfDay,
+            'toleransiUtamaMenit' => $toleransiUtamaMenit,
+            'deadlineToleransiUtama' => $deadlineToleransiUtama->format('H:i'),
+            'isWithinToleranceUtama' => $isWithinToleranceUtama,
+            'toleransiMapelPertama' => $toleransiMapelPertama,
+            'toleransiMapelLanjutan' => $toleransiMapelLanjutan,
         ]);
     }
 
     public function store(Request $request, int $jadwalId, string $tanggal): RedirectResponse
     {
         $user = Auth::user();
+        if (! $user->is_active) {
+            Auth::logout();
+            request()->session()->invalidate();
+            request()->session()->regenerateToken();
+
+            return redirect()->route('login')->withErrors(['identifier' => 'Akun Anda sedang dinonaktifkan oleh Wali Kelas atau Admin.']);
+        }
+
         $kelas = $user->siswaProfile?->kelas;
 
         $jadwal = JadwalPelajaran::findOrFail($jadwalId);
@@ -179,11 +237,15 @@ class CaptureController extends Controller
             // Per-JP statuses: keyed by jadwal_id (e.g., status_jp[123] = 'hadir')
             'status_jp' => ['nullable', 'array'],
             'status_jp.*' => ['required', 'in:hadir,terlambat,tidak_hadir,sakit,alpa,dispensasi'],
+            'alasan_jp' => ['nullable', 'array'],
+            'alasan_jp.*' => ['nullable', 'in:sakit,izin,cuti,rapat_dinas,dinas_luar,tugas_luar,tanpa_keterangan'],
             // Fallback global status for backward compatibility (single-JP schedules)
             'status_guru_dilaporkan' => ['nullable', 'in:hadir,terlambat,tidak_hadir,sakit,alpa,dispensasi'],
-            'alasan_tidak_hadir' => ['nullable', 'in:sakit,izin,rapat_dinas,dinas_luar,tugas_luar,tanpa_keterangan'],
+            'alasan_tidak_hadir' => ['nullable', 'in:sakit,izin,cuti,rapat_dinas,dinas_luar,tugas_luar,tanpa_keterangan'],
             'jenis_alpa_dilaporkan' => ['nullable', 'string', 'max:50'],
             'guru_pengganti_nama' => ['nullable', 'string', 'max:255'],
+            'keterangan' => ['nullable', 'string', 'max:500'],
+            'keterangan_terlambat' => ['nullable', 'string', 'max:500'],
         ]);
 
         $subIds = $consecutiveSchedules->pluck('id')->all();
@@ -213,8 +275,47 @@ class CaptureController extends Controller
         // Determine global fallback status (for single-JP or when no per-JP data submitted)
         $globalStatus = $validated['status_guru_dilaporkan'] ?? 'hadir';
 
+        // Validasi Toleransi: Cegah status terlambat jika masih dalam masa toleransi pada hari ini
+        if ($tanggalCarbon->isToday()) {
+            $toleransiMapelPertama = (int) Setting::get('toleransi_mapel_pertama_menit', Setting::get('toleransi_keterlambatan_menit', '10'));
+            $toleransiMapelLanjutan = (int) Setting::get('toleransi_mapel_lanjutan_menit', '15');
+
+            $firstSchedOfDayId = null;
+            if ($kelas && $kelas->is_sistem_blok) {
+                $activeJadwals = app(JadwalBlokResolverService::class)->resolveJadwal($kelas, $tanggalCarbon, (string) $jadwal->hari);
+                $firstSchedOfDayId = $activeJadwals->sortBy('jam_mulai')->first()?->id;
+            }
+            if (! $firstSchedOfDayId) {
+                $firstSchedOfDayId = JadwalPelajaran::where('kelas_id', $kelas?->id)
+                    ->where('hari', $jadwal->hari)
+                    ->orderBy('jam_mulai')
+                    ->value('id');
+            }
+            $isFirstMapelOfDay = ($firstSchedOfDayId === $jadwalUtama->id);
+
+            foreach ($consecutiveSchedules as $index => $sched) {
+                $jpStatus = $perJpStatuses[$sched->id] ?? $globalStatus;
+                if ($jpStatus === 'terlambat') {
+                    $toleransiMenit = ($isFirstMapelOfDay && $index === 0) ? $toleransiMapelPertama : $toleransiMapelLanjutan;
+                    $jamMulaiClean = substr($sched->jam_mulai, 0, 5);
+                    $deadlineToleransi = Carbon::createFromFormat('H:i', $jamMulaiClean)->addMinutes($toleransiMenit);
+
+                    if (now()->lt($deadlineToleransi)) {
+                        $jpNum = $index + 1;
+
+                        return back()->withErrors([
+                            'status_guru_dilaporkan' => "Jam pelajaran ke-{$jpNum} ({$jamMulaiClean}) masih dalam masa toleransi keterlambatan ({$toleransiMenit} menit, hingga pukul {$deadlineToleransi->format('H:i')} WIB). Guru belum dapat ditandai Terlambat.",
+                        ])->withInput();
+                    }
+                }
+            }
+        }
+
+        $keteranganInput = trim((string) ($request->input('keterangan') ?: $request->input('keterangan_terlambat') ?: ''));
+        $alasanPerJp = $validated['alasan_jp'] ?? [];
+
         // Save FotoBukti & sync KehadiranGuru per JP with individual statuses
-        DB::transaction(function () use ($consecutiveSchedules, $user, $fotoPath, $hasNewFoto, $validated, $perJpStatuses, $globalStatus, $tanggalCarbon) {
+        DB::transaction(function () use ($consecutiveSchedules, $user, $fotoPath, $hasNewFoto, $validated, $perJpStatuses, $globalStatus, $tanggalCarbon, $keteranganInput, $alasanPerJp) {
             foreach ($consecutiveSchedules as $index => $sched) {
                 // Determine this JP's specific status:
                 // 1. Use per-JP input if provided
@@ -232,7 +333,11 @@ class CaptureController extends Controller
 
                 // Determine alasan for this JP (only relevant when status is tidak_hadir)
                 $alasanForJp = in_array($jpStatus, ['tidak_hadir', 'sakit', 'alpa', 'dispensasi'])
-                    ? ($validated['alasan_tidak_hadir'] ?? null)
+                    ? ($alasanPerJp[$sched->id] ?? $validated['alasan_tidak_hadir'] ?? null)
+                    : null;
+
+                $keteranganForJp = in_array($jpStatus, ['terlambat', 'tidak_hadir', 'sakit', 'alpa', 'dispensasi'])
+                    ? ($keteranganInput ?: null)
                     : null;
 
                 $fotoBuktiData = [
@@ -241,6 +346,7 @@ class CaptureController extends Controller
                     'alasan_tidak_hadir' => $alasanForJp,
                     'jenis_alpa_dilaporkan' => $validated['jenis_alpa_dilaporkan'] ?? null,
                     'guru_pengganti_nama' => $validated['guru_pengganti_nama'] ?? null,
+                    'keterangan' => $keteranganForJp,
                 ];
 
                 if ($schedExisting) {
@@ -262,7 +368,10 @@ class CaptureController extends Controller
                         'status' => $jpStatus,
                         'alasan_tidak_hadir' => $alasanForJp,
                         'guru_pengganti_nama' => $validated['guru_pengganti_nama'] ?? null,
-                        'waktu_hadir' => KehadiranGuru::where('pertemuan_id', $targetPertemuan->id)->where('guru_id', $sched->guru_id)->value('waktu_hadir') ?? now(),
+                        'keterangan' => $keteranganForJp,
+                        'waktu_hadir' => in_array($jpStatus, ['hadir', 'terlambat'])
+                            ? (KehadiranGuru::where('pertemuan_id', $targetPertemuan->id)->where('guru_id', $sched->guru_id)->value('waktu_hadir') ?? now())
+                            : null,
                     ]
                 );
 
@@ -283,6 +392,14 @@ class CaptureController extends Controller
     public function storeCheckout(Request $request, int $jadwalId, string $tanggal): RedirectResponse
     {
         $user = Auth::user();
+        if (! $user->is_active) {
+            Auth::logout();
+            request()->session()->invalidate();
+            request()->session()->regenerateToken();
+
+            return redirect()->route('login')->withErrors(['identifier' => 'Akun Anda sedang dinonaktifkan oleh Wali Kelas atau Admin.']);
+        }
+
         $kelas = $user->siswaProfile?->kelas;
 
         $jadwal = JadwalPelajaran::findOrFail($jadwalId);

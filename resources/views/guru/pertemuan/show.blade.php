@@ -155,6 +155,7 @@
                                             <p class="text-[10px] text-red-600 font-medium truncate">Alasan: {{ match($foto->alasan_tidak_hadir) {
                                                 'sakit' => 'Sakit',
                                                 'izin' => 'Izin',
+                                                'cuti' => 'Cuti',
                                                 'rapat_dinas' => 'Rapat Dinas',
                                                 'dinas_luar' => 'Dinas Luar',
                                                 'tugas_luar' => 'Tugas Luar',

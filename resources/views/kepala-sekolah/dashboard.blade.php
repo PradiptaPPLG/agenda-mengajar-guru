@@ -231,6 +231,7 @@
                         <option value="{{ request()->fullUrlWithQuery(['alasan' => 'all']) }}" {{ $selectedAlasan === 'all' ? 'selected' : '' }}>Semua Alasan</option>
                         <option value="{{ request()->fullUrlWithQuery(['alasan' => 'sakit']) }}" {{ $selectedAlasan === 'sakit' ? 'selected' : '' }}>Sakit</option>
                         <option value="{{ request()->fullUrlWithQuery(['alasan' => 'izin']) }}" {{ $selectedAlasan === 'izin' ? 'selected' : '' }}>Izin</option>
+                        <option value="{{ request()->fullUrlWithQuery(['alasan' => 'cuti']) }}" {{ $selectedAlasan === 'cuti' ? 'selected' : '' }}>Cuti</option>
                         <option value="{{ request()->fullUrlWithQuery(['alasan' => 'rapat_dinas']) }}" {{ $selectedAlasan === 'rapat_dinas' ? 'selected' : '' }}>Rapat Dinas</option>
                         <option value="{{ request()->fullUrlWithQuery(['alasan' => 'dinas_luar']) }}" {{ $selectedAlasan === 'dinas_luar' ? 'selected' : '' }}>Dinas Luar</option>
                         <option value="{{ request()->fullUrlWithQuery(['alasan' => 'tugas_luar']) }}" {{ $selectedAlasan === 'tugas_luar' ? 'selected' : '' }}>Tugas Luar</option>

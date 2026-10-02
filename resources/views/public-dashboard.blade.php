@@ -337,6 +337,7 @@
                         <option value="{{ request()->fullUrlWithQuery(['alasan' => 'all']) }}#monitoring-kbm" {{ $selectedAlasan === 'all' ? 'selected' : '' }}>Semua Alasan</option>
                         <option value="{{ request()->fullUrlWithQuery(['alasan' => 'sakit']) }}#monitoring-kbm" {{ $selectedAlasan === 'sakit' ? 'selected' : '' }}>Sakit</option>
                         <option value="{{ request()->fullUrlWithQuery(['alasan' => 'izin']) }}#monitoring-kbm" {{ $selectedAlasan === 'izin' ? 'selected' : '' }}>Izin</option>
+                        <option value="{{ request()->fullUrlWithQuery(['alasan' => 'cuti']) }}#monitoring-kbm" {{ $selectedAlasan === 'cuti' ? 'selected' : '' }}>Cuti</option>
                         <option value="{{ request()->fullUrlWithQuery(['alasan' => 'rapat_dinas']) }}#monitoring-kbm" {{ $selectedAlasan === 'rapat_dinas' ? 'selected' : '' }}>Rapat Dinas</option>
                         <option value="{{ request()->fullUrlWithQuery(['alasan' => 'dinas_luar']) }}#monitoring-kbm" {{ $selectedAlasan === 'dinas_luar' ? 'selected' : '' }}>Dinas Luar</option>
                         <option value="{{ request()->fullUrlWithQuery(['alasan' => 'tugas_luar']) }}#monitoring-kbm" {{ $selectedAlasan === 'tugas_luar' ? 'selected' : '' }}>Tugas Luar</option>
