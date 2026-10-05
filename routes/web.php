@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\KalenderBlokController as AdminKalenderBlokContro
 use App\Http\Controllers\Admin\KelasController as AdminKelasController;
 use App\Http\Controllers\Admin\KelasPklController as AdminKelasPklController;
 use App\Http\Controllers\Admin\KelasSiswaController;
+use App\Http\Controllers\Admin\KenaikanKelasController as AdminKenaikanKelasController;
 use App\Http\Controllers\Admin\MataPelajaranController as AdminMataPelajaranController;
 use App\Http\Controllers\Admin\PemetaanBlokController;
 use App\Http\Controllers\Admin\PenggunaController;
@@ -175,6 +176,13 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
     // Toggle sistem blok untuk kelas
     Route::match(['post', 'patch'], '/kelas/{kelas}/toggle-blok', [AdminKelasController::class, 'toggleBlok'])->name('kelas.toggle-blok');
     Route::match(['post', 'patch'], '/kelas/{kelas}/update-blok', [AdminKelasController::class, 'updateBlok'])->name('kelas.update-blok');
+
+    // Kenaikan Kelas & Tutup Tahun Ajaran
+    Route::prefix('kenaikan-kelas')->name('kenaikan-kelas.')->group(function () {
+        Route::get('/', [AdminKenaikanKelasController::class, 'index'])->name('index');
+        Route::get('/siswa/{kelas}', [AdminKenaikanKelasController::class, 'getSiswaKelas'])->name('siswa');
+        Route::post('/process', [AdminKenaikanKelasController::class, 'process'])->name('process');
+    });
 });
 
 // ─── Guru / Petugas Piket ────────────────────────────────────────────────────

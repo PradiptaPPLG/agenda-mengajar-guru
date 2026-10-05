@@ -2,6 +2,15 @@
     <x-slot:title>Manajemen Kelas</x-slot:title>
     <x-slot:actions>
         <div class="flex items-center gap-2">
+            @if(Route::has('admin.kenaikan-kelas.index'))
+            <a href="{{ route('admin.kenaikan-kelas.index') }}"
+               class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-sm font-semibold rounded-xl border border-indigo-200 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+                Kenaikan Kelas
+            </a>
+            @endif
             <a href="{{ route('admin.kalender-blok.index') }}"
                class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 text-sm font-semibold rounded-xl border border-blue-200 transition-colors">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
