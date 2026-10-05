@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\KehadiranGuru;
 use App\Models\KehadiranSiswa;
 use App\Models\Kelas;
+use App\Models\KelasPkl;
 use App\Models\MasterJamPelajaran;
 use App\Models\Pertemuan;
 use App\Models\User;
@@ -290,6 +291,8 @@ class DashboardController extends Controller
             'dispensasi' => round($siswaPie['dispensasi'] / $siswaPieTotal * 100, 1),
         ];
 
+        $kelasPklHariIni = KelasPkl::with('kelas')->sedangBerlangsung($today)->get();
+
         return view('kepala-sekolah.dashboard', compact(
             'stats',
             'recentKehadiran',
@@ -307,7 +310,8 @@ class DashboardController extends Controller
             'selectedTingkat',
             'selectedStatus',
             'selectedAlasan',
-            'monitoringCards'
+            'monitoringCards',
+            'kelasPklHariIni'
         ));
     }
 }

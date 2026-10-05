@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Database\Factories\KelasFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -61,5 +62,36 @@ class Kelas extends Model
     public function jadwalPelajarans(): HasMany
     {
         return $this->hasMany(JadwalPelajaran::class);
+    }
+
+    public function pkls(): HasMany
+    {
+        return $this->hasMany(KelasPkl::class);
+    }
+
+    public function isSedangPkl(Carbon|string|null $date = null): bool
+    {
+        $dateStr = $date instanceof Carbon
+            ? $date->toDateString()
+            : ($date ? Carbon::parse($date)->toDateString() : Carbon::today()->toDateString());
+
+        return $this->pkls()
+            ->where('is_aktif', true)
+            ->whereDate('tanggal_mulai', '<=', $dateStr)
+            ->whereDate('tanggal_selesai', '>=', $dateStr)
+            ->exists();
+    }
+
+    public function activePkl(Carbon|string|null $date = null): ?KelasPkl
+    {
+        $dateStr = $date instanceof Carbon
+            ? $date->toDateString()
+            : ($date ? Carbon::parse($date)->toDateString() : Carbon::today()->toDateString());
+
+        return $this->pkls()
+            ->where('is_aktif', true)
+            ->whereDate('tanggal_mulai', '<=', $dateStr)
+            ->whereDate('tanggal_selesai', '>=', $dateStr)
+            ->first();
     }
 }

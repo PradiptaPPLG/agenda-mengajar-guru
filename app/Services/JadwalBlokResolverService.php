@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\JadwalPelajaran;
 use App\Models\KalenderBlokMinggu;
 use App\Models\Kelas;
+use App\Models\KelasPkl;
 use App\Models\Setting;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -30,6 +31,11 @@ class JadwalBlokResolverService
     public function resolveJadwal(Kelas $kelas, ?Carbon $tanggal = null, ?string $hari = null): Collection
     {
         $tanggal ??= Carbon::today();
+
+        // Jika kelas sedang melaksanakan PKL pada tanggal target, seluruh jadwal kelas dinonaktifkan
+        if ($kelas->isSedangPkl($tanggal)) {
+            return new Collection;
+        }
 
         $query = JadwalPelajaran::with(['mataPelajaran', 'guru.guruProfile'])
             ->where('kelas_id', $kelas->id);
@@ -102,7 +108,14 @@ class JadwalBlokResolverService
         $tanggal ??= Carbon::today();
         $allJadwal = new Collection;
 
+        // Ambil semua ID kelas yang sedang berstatus PKL aktif pada tanggal target
+        $pklKelasIds = KelasPkl::getActivePklKelasIds($tanggal);
+
         foreach ($kelasList as $kelas) {
+            if ($pklKelasIds->contains($kelas->id)) {
+                continue;
+            }
+
             $jadwal = $this->resolveJadwal($kelas, $tanggal, $hari);
             $allJadwal = $allJadwal->merge($jadwal);
         }

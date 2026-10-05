@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\HariLiburController as AdminHariLiburController;
 use App\Http\Controllers\Admin\JadwalController as AdminJadwalController;
 use App\Http\Controllers\Admin\KalenderBlokController as AdminKalenderBlokController;
 use App\Http\Controllers\Admin\KelasController as AdminKelasController;
+use App\Http\Controllers\Admin\KelasPklController as AdminKelasPklController;
 use App\Http\Controllers\Admin\KelasSiswaController;
 use App\Http\Controllers\Admin\MataPelajaranController as AdminMataPelajaranController;
 use App\Http\Controllers\Admin\PemetaanBlokController;
@@ -150,6 +151,10 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
     Route::post('jadwal/bulk-destroy', [AdminJadwalController::class, 'bulkDestroy'])->name('jadwal.bulk-destroy');
     Route::resource('jadwal', AdminJadwalController::class)->except(['show']);
     Route::resource('hari-libur', AdminHariLiburController::class)->only(['index', 'store', 'destroy']);
+
+    // PKL Kelas Management
+    Route::post('kelas-pkl/{kelasPkl}/toggle', [AdminKelasPklController::class, 'toggleAktif'])->name('kelas-pkl.toggle');
+    Route::resource('kelas-pkl', AdminKelasPklController::class)->except(['show', 'create', 'edit']);
 
     // Kalender Blok Sistem Jadwal A/B
     Route::prefix('kalender-blok')->name('kalender-blok.')->group(function () {

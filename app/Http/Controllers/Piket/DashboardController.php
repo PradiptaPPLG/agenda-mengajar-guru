@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Piket;
 use App\Http\Controllers\Controller;
 use App\Models\KalenderBlokMinggu;
 use App\Models\Kelas;
+use App\Models\KelasPkl;
 use App\Models\MasterJamPelajaran;
 use App\Models\Pertemuan;
 use App\Services\JadwalBlokResolverService;
@@ -178,6 +179,9 @@ class DashboardController extends Controller
         $mingguAktif = KalenderBlokMinggu::aktif($today)->first();
         $kelasSistemBlok = Kelas::where('is_sistem_blok', true)->orderBy('nama')->get();
 
+        // Ambil daftar kelas yang sedang berstatus PKL hari ini
+        $kelasPklHariIni = KelasPkl::with('kelas')->sedangBerlangsung($today)->get();
+
         return view('piket.dashboard', compact(
             'filteredItems',
             'timeSlots',
@@ -189,7 +193,8 @@ class DashboardController extends Controller
             'today',
             'nowTime',
             'mingguAktif',
-            'kelasSistemBlok'
+            'kelasSistemBlok',
+            'kelasPklHariIni'
         ));
     }
 }

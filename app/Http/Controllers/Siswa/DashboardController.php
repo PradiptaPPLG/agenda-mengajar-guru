@@ -99,6 +99,7 @@ class DashboardController extends Controller
         });
 
         $hariLiburHariIni = HariLibur::getLibur($today);
+        $activePkl = $kelas?->activePkl($today);
 
         return view('siswa.dashboard', [
             'jadwalsWithStatus' => $jadwalsWithStatus,
@@ -106,6 +107,8 @@ class DashboardController extends Controller
             'nowTime' => $nowTime,
             'hariLiburHariIni' => $hariLiburHariIni,
             'enableCheckout' => $enableCheckout,
+            'activePkl' => $activePkl,
+            'kelas' => $kelas,
         ]);
     }
 }

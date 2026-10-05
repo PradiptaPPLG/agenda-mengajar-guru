@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\KehadiranGuru;
 use App\Models\KehadiranSiswa;
 use App\Models\Kelas;
+use App\Models\KelasPkl;
 use App\Models\MasterJamPelajaran;
 use App\Models\Pertemuan;
 use App\Models\User;
@@ -264,6 +265,8 @@ class PublicDashboardController extends Controller
             'alpa' => round($siswaPie['alpa'] / $siswaPieTotal * 100, 1),
         ];
 
+        $kelasPklHariIni = KelasPkl::with('kelas')->sedangBerlangsung($today)->get();
+
         return view('public-dashboard', compact(
             'stats',
             'guruPie',
@@ -278,7 +281,8 @@ class PublicDashboardController extends Controller
             'selectedTingkat',
             'selectedStatus',
             'selectedAlasan',
-            'monitoringCards'
+            'monitoringCards',
+            'kelasPklHariIni'
         ));
     }
 }

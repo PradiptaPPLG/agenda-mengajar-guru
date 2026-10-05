@@ -32,6 +32,27 @@
         </div>
         @endif
 
+        @if(isset($activePkl) && $activePkl)
+        <div class="bg-indigo-50 border border-indigo-200 rounded-2xl p-5 text-indigo-950 shadow-xs">
+            <div class="flex items-start gap-3.5">
+                <div class="w-11 h-11 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                </div>
+                <div>
+                    <span class="inline-block px-2.5 py-0.5 rounded-full bg-indigo-200/80 text-indigo-800 text-[10px] font-bold tracking-wide uppercase mb-1">Status PKL Aktif</span>
+                    <p class="font-bold text-base text-indigo-950">Kelas Sedang Melaksanakan Praktik Kerja Lapangan (PKL)</p>
+                    <p class="text-xs text-indigo-800 mt-1 leading-relaxed">
+                        Periode: <span class="font-semibold">{{ $activePkl->tanggal_mulai->translatedFormat('d F Y') }}</span> s/d <span class="font-semibold">{{ $activePkl->tanggal_selesai->translatedFormat('d F Y') }}</span>
+                        {{ $activePkl->keterangan ? '('.$activePkl->keterangan.')' : '' }}.
+                    </p>
+                    <p class="text-xs text-indigo-700/80 mt-1.5">
+                        Jadwal pelajaran di sekolah dinonaktifkan sementara. Siswa tidak perlu melakukan foto presensi guru selama masa PKL.
+                    </p>
+                </div>
+            </div>
+        </div>
+        @endif
+
         {{-- Jadwal list --}}
         @if($jadwalsWithStatus->count() > 0)
         <div class="space-y-3">

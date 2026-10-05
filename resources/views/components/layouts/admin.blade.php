@@ -72,6 +72,13 @@
                     Kelas
                 </x-admin-nav-link>
 
+                @if(Route::has('admin.kenaikan-kelas.index'))
+                <x-admin-nav-link href="{{ route('admin.kenaikan-kelas.index') }}" :active="request()->routeIs('admin.kenaikan-kelas.*')">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                    Kenaikan Kelas
+                </x-admin-nav-link>
+                @endif
+
                 <x-admin-nav-link href="{{ route('admin.mata-pelajaran.index') }}" :active="request()->routeIs('admin.mata-pelajaran.*')">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                     Mata Pelajaran
@@ -86,6 +93,13 @@
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v4l2 2"/></svg>
                     Hari Libur
                 </x-admin-nav-link>
+
+                @if(Route::has('admin.kelas-pkl.index'))
+                <x-admin-nav-link href="{{ route('admin.kelas-pkl.index') }}" :active="request()->routeIs('admin.kelas-pkl.*')">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                    Status PKL
+                </x-admin-nav-link>
+                @endif
 
                 <x-admin-nav-link href="{{ route('admin.kalender-blok.index') }}" :active="request()->routeIs('admin.kalender-blok.*')">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>

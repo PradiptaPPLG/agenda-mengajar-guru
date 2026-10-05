@@ -42,6 +42,26 @@
             </div>
         </div>
 
+        {{-- Banner Info Kelas PKL --}}
+        @if(isset($kelasPklList) && $kelasPklList->isNotEmpty())
+            <div class="mb-4 bg-indigo-50 border border-indigo-200 rounded-2xl p-4 flex items-start gap-3">
+                <div class="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0 mt-0.5">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2">
+                        <span class="px-2 py-0.5 rounded-md bg-indigo-200/60 text-indigo-800 text-[10px] font-bold">INFO PKL</span>
+                        <h4 class="text-xs font-bold text-indigo-950">Kelas Sedang Melaksanakan PKL</h4>
+                    </div>
+                    <p class="text-xs text-indigo-800 mt-1 leading-relaxed">
+                        Jadwal mengajar Anda untuk kelas
+                        <span class="font-bold">{{ $kelasPklList->pluck('kelas.nama')->unique()->join(', ') }}</span>
+                        saat ini <strong>dinonaktifkan</strong> karena siswa sedang melaksanakan PKL. Sesi ini tidak dihitung dan tidak mempengaruhi persentase kehadiran Anda.
+                    </p>
+                </div>
+            </div>
+        @endif
+
         {{-- Rekapitulasi & Unduh Laporan Shortcut (Point 9) --}}
         <div class="mb-4 bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 text-white rounded-2xl p-4 shadow-sm flex items-center justify-between gap-3">
             <div>

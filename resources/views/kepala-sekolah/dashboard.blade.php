@@ -182,6 +182,30 @@
                 </div>
             </div>
 
+            {{-- Banner Kelas PKL --}}
+            @if(isset($kelasPklHariIni) && $kelasPklHariIni->isNotEmpty())
+                <div class="bg-indigo-50 border border-indigo-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="px-2 py-0.5 rounded-full bg-indigo-200/70 text-indigo-800 text-[10px] font-bold">INFO PKL</span>
+                                <h4 class="text-xs font-bold text-indigo-950">{{ $kelasPklHariIni->count() }} Kelas Sedang Melaksanakan PKL</h4>
+                            </div>
+                            <p class="text-xs text-indigo-800 mt-0.5">
+                                Kelas: <span class="font-bold">{{ $kelasPklHariIni->pluck('kelas.nama')->unique()->join(', ') }}</span>. 
+                                Jadwal KBM dinonaktifkan sementara dan tidak dihitung ke status belum hadir.
+                            </p>
+                        </div>
+                    </div>
+                    <span class="text-xs font-semibold px-2.5 py-1 rounded-lg bg-indigo-100 text-indigo-700 self-start sm:self-auto">
+                        Jadwal Di-Bypass
+                    </span>
+                </div>
+            @endif
+
             {{-- Filter Bar: 4 Dropdowns Sejajar (Di Bawah Pie Chart, Di Atas Card Grid) --}}
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
                 {{-- Dropdown Jam Pelajaran --}}

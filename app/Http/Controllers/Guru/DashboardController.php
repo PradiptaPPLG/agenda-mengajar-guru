@@ -7,6 +7,7 @@ use App\Models\HariLibur;
 use App\Models\JadwalPelajaran;
 use App\Models\KehadiranGuru;
 use App\Models\Kelas;
+use App\Models\KelasPkl;
 use App\Services\JadwalBlokResolverService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -73,8 +74,13 @@ class DashboardController extends Controller
             ];
         }
 
-        // Attendance statistics for the logged-in teacher
+        // Attendance statistics for the logged-in teacher (kecualikan presensi pada jadwal kelas saat masa PKL)
         $kehadiranStats = KehadiranGuru::where('guru_id', $user->id)
+            ->whereDoesntHave('pertemuan.jadwal.kelas.pkls', function ($q) {
+                $q->where('is_aktif', true)
+                    ->whereColumn('kelas_pkls.tanggal_mulai', '<=', 'pertemuans.tanggal')
+                    ->whereColumn('kelas_pkls.tanggal_selesai', '>=', 'pertemuans.tanggal');
+            })
             ->selectRaw('status, count(*) as total')
             ->groupBy('status')
             ->pluck('total', 'status');
@@ -85,14 +91,29 @@ class DashboardController extends Controller
             ? round(($totalHadir / $totalKehadiran) * 100, 1)
             : 0;
 
+        $izinCount = KehadiranGuru::where('guru_id', $user->id)
+            ->where('alasan_tidak_hadir', 'izin')
+            ->whereDoesntHave('pertemuan.jadwal.kelas.pkls', function ($q) {
+                $q->where('is_aktif', true)
+                    ->whereColumn('kelas_pkls.tanggal_mulai', '<=', 'pertemuans.tanggal')
+                    ->whereColumn('kelas_pkls.tanggal_selesai', '>=', 'pertemuans.tanggal');
+            })
+            ->count();
+
         $stats = [
             'total' => $totalKehadiran,
             'hadir' => $totalHadir,
             'sakit' => $kehadiranStats->get('sakit', 0),
-            'izin' => KehadiranGuru::where('guru_id', $user->id)->where('alasan_tidak_hadir', 'izin')->count(),
+            'izin' => $izinCount,
             'alpa' => $kehadiranStats->get('alpa', 0) + $kehadiranStats->get('tidak_hadir', 0),
             'persentase' => $persentaseHadir,
         ];
+
+        // Daftar kelas yang diampu guru ini yang sedang dalam masa PKL
+        $kelasPklList = KelasPkl::with('kelas')
+            ->whereIn('kelas_id', $kelasIds)
+            ->sedangBerlangsung($weekStart)
+            ->get();
 
         return view('guru.dashboard', [
             'mingguIni' => $mingguIni,
@@ -103,6 +124,7 @@ class DashboardController extends Controller
             'nextWeek' => $weekStart->copy()->addWeek()->toDateString(),
             'today' => Carbon::today(),
             'stats' => $stats,
+            'kelasPklList' => $kelasPklList,
         ]);
     }
 }

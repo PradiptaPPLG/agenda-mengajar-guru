@@ -39,6 +39,10 @@ class CaptureController extends Controller
 
         $tanggalCarbon = Carbon::parse($tanggal);
 
+        if ($kelas && $kelas->isSedangPkl($tanggalCarbon)) {
+            return redirect()->route('siswa.dashboard')->with('error', 'Kelas Anda sedang dalam masa Praktik Kerja Lapangan (PKL). Presensi ditiadakan.');
+        }
+
         // Check if schedule is active for this class on this date in block system
         if ($kelas && $kelas->is_sistem_blok) {
             $activeJadwals = app(JadwalBlokResolverService::class)->resolveJadwal($kelas, $tanggalCarbon, (string) $jadwal->hari);
@@ -201,6 +205,10 @@ class CaptureController extends Controller
         abort_unless($jadwal->kelas_id === $kelas?->id, 403);
 
         $tanggalCarbon = Carbon::parse($tanggal);
+
+        if ($kelas && $kelas->isSedangPkl($tanggalCarbon)) {
+            return redirect()->route('siswa.dashboard')->with('error', 'Kelas Anda sedang dalam masa Praktik Kerja Lapangan (PKL). Presensi ditiadakan.');
+        }
 
         // Check if schedule is active for this class on this date in block system
         if ($kelas && $kelas->is_sistem_blok) {

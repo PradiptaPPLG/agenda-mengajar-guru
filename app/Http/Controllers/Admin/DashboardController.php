@@ -60,8 +60,13 @@ class DashboardController extends Controller
         $chartDataSiswa['data'][3] = $totalStatsSiswa['alpa'] ?? 0;
         $chartDataSiswa['data'][4] = $totalStatsSiswa['dispensasi'] ?? 0;
 
-        // Leaderboard Top Guru
+        // Leaderboard Top Guru (kecualikan jika ada catatan presensi saat kelas PKL)
         $topGurus = KehadiranGuru::with('guru')
+            ->whereDoesntHave('pertemuan.jadwal.kelas.pkls', function ($q) {
+                $q->where('is_aktif', true)
+                    ->whereColumn('kelas_pkls.tanggal_mulai', '<=', 'pertemuans.tanggal')
+                    ->whereColumn('kelas_pkls.tanggal_selesai', '>=', 'pertemuans.tanggal');
+            })
             ->selectRaw("guru_id, 
                 COUNT(*) as total_sesi, 
                 SUM(CASE WHEN status IN ('hadir', 'terlambat') THEN 1 ELSE 0 END) as total_hadir,
