@@ -52,8 +52,21 @@ Aplikasi ini mendigitalkan seluruh alur pencatatan KBM: mulai dari pelaporan fot
 * **Petugas Piket**: Mengawasi kelas secara langsung, mengirim teguran untuk guru yang belum hadir, dan mendata guru pengganti.
 * **Tata Usaha & Kepala Sekolah**: Rekapitulasi kehadiran menyeluruh dengan ekspor laporan ke format **PDF** dan **Excel (.xlsx)**.
 
-### 6. 📱 Dukungan Progressive Web App (PWA)
+### 6. 🎓 Otomatisasi Kenaikan Kelas & Tutup Tahun Ajaran
+* **Smart Mapping Antar Tingkat**: Algoritma cerdas yang memetakan rombel tingkat 10 &rarr; 11 (menyesuaikan singkatan kejuruan Kurikulum Merdeka seperti AKL &rarr; AK, MPLB &rarr; MP, PPLG &rarr; RPL) dan 11 &rarr; 12.
+* **Penanganan Siswa Tinggal Kelas**: Admin dapat menandai siswa tertentu untuk tetap tinggal di kelas asalnya.
+* **Kelulusan Kelas 12 Transaksional**: Akun siswa dinonaktifkan dan rombel aktif dilepas menjadi Alumni tanpa merusak riwayat arsip absensi.
+* **Rollover Tahun Ajaran & Reset Semester**: Menghitung otomatis tahun ajaran baru (contoh: 2026/2027 &rarr; 2027/2028) dan mereset ke Semester 1 (Ganjil).
+
+### 7. 🏭 Manajemen Status PKL / Prakerin Kelas 12
+* **Bypass Jadwal KBM Otomatis**: Kelas 12 yang sedang PKL otomatis dinonaktifkan jadwal harian KBM-nya.
+* **Proteksi Presensi Guru**: Guru pengajar di kelas PKL tidak dihitung mangkir/alpa sehingga persentase kehadiran guru tetap adil dan terjaga.
+* **Banner Multi-Dashboard**: Notifikasi lintas peran untuk siswa, guru, piket, dan monitoring publik.
+
+### 8. 📱 Dukungan Progressive Web App (PWA)
 * Aplikasi dapat diinstal langsung ke layar utama (*Add to Home Screen*) perangkat ponsel cerdas layaknya aplikasi native melalui Service Worker yang terintegrasi.
+
+> 📖 **Dokumentasi Lengkap Fitur**: Untuk melihat daftar seluruh fitur dan kemampuan sistem secara mendalam, silakan baca [Katalog Fitur SOPAN](docs/FITUR.md).
 
 ---
 
