@@ -64,6 +64,10 @@ Route::middleware(['auth', 'role:guru'])->prefix('guru')->name('guru.')->group(f
         ->name('pertemuan.show');
     Route::patch('/pertemuan/{pertemuan}/save-all', [GuruPertemuanController::class, 'saveAll'])
         ->name('pertemuan.save-all');
+    Route::get('/foto-bukti/{fotoBukti}/download', [GuruPertemuanController::class, 'downloadFoto'])
+        ->name('foto-bukti.download');
+    Route::get('/pertemuan/{pertemuan}/download-foto-all', [GuruPertemuanController::class, 'downloadAllFoto'])
+        ->name('pertemuan.download-foto-all');
 
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');

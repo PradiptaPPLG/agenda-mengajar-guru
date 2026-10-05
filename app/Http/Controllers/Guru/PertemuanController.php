@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Guru;
 
 use App\Http\Controllers\Controller;
+use App\Models\FotoBukti;
 use App\Models\JadwalPelajaran;
 use App\Models\KehadiranGuru;
 use App\Models\KehadiranSiswa;
@@ -12,7 +13,11 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use ZipArchive;
 
 class PertemuanController extends Controller
 {
@@ -150,5 +155,166 @@ class PertemuanController extends Controller
             : 'Agenda mengajar dan presensi siswa berhasil disimpan.';
 
         return back()->with('success', $successMsg);
+    }
+
+    /**
+     * Download individual photo proof (masuk or checkout).
+     */
+    public function downloadFoto(Request $request, FotoBukti $fotoBukti): BinaryFileResponse|RedirectResponse
+    {
+        $user = Auth::user();
+        $jadwal = $fotoBukti->pertemuan?->jadwal;
+        $isOwner = $jadwal && (int) $jadwal->guru_id === (int) $user->id;
+        $isPengganti = $fotoBukti->pertemuan?->kehadiranGuru && ($fotoBukti->pertemuan->kehadiranGuru->guru_pengganti_nama === $user->name);
+        $hasPrivilege = in_array($user->role, ['admin', 'super_admin', 'piket', 'kepala_sekolah'])
+            || $user->hasAnyRole(['admin', 'super_admin', 'piket', 'kepala_sekolah']);
+
+        abort_unless($isOwner || $isPengganti || $hasPrivilege, 403, 'Anda tidak memiliki akses untuk mengunduh foto ini.');
+
+        $type = $request->query('type', 'masuk');
+        $path = ($type === 'checkout') ? $fotoBukti->foto_checkout_path : $fotoBukti->foto_path;
+
+        if (empty($path)) {
+            return back()->with('error', 'Foto bukti belum diunggah.');
+        }
+
+        $fullPath = $this->resolvePhotoFullPath($path);
+
+        if (! $fullPath || ! file_exists($fullPath)) {
+            return back()->with('error', 'File foto tidak ditemukan di penyimpanan server.');
+        }
+
+        $extension = pathinfo($fullPath, PATHINFO_EXTENSION) ?: 'webp';
+        $kelasNama = Str::slug($jadwal?->kelas?->nama ?? 'Kelas', '-');
+        $mapelNama = Str::slug($jadwal?->mataPelajaran?->nama ?? 'Mapel', '-');
+        $siswaNama = Str::slug($fotoBukti->siswa?->name ?? 'Siswa', '-');
+        $tanggalStr = Carbon::parse($fotoBukti->pertemuan?->tanggal ?? now())->format('Y-m-d');
+        $typeLabel = ($type === 'checkout') ? 'Checkout' : 'Masuk';
+
+        $downloadFilename = "Foto-Presensi_{$kelasNama}_{$mapelNama}_{$tanggalStr}_{$typeLabel}_{$siswaNama}.{$extension}";
+
+        return response()->download($fullPath, $downloadFilename, [
+            'Content-Type' => mime_content_type($fullPath) ?: 'image/webp',
+        ]);
+    }
+
+    /**
+     * Download all photo proofs for a meeting as a ZIP archive.
+     */
+    public function downloadAllFoto(Pertemuan $pertemuan): BinaryFileResponse|RedirectResponse
+    {
+        $user = Auth::user();
+        $jadwal = $pertemuan->jadwal;
+        $isOwner = $jadwal && (int) $jadwal->guru_id === (int) $user->id;
+        $isPengganti = $pertemuan->kehadiranGuru && ($pertemuan->kehadiranGuru->guru_pengganti_nama === $user->name);
+        $hasPrivilege = in_array($user->role, ['admin', 'super_admin', 'piket', 'kepala_sekolah'])
+            || $user->hasAnyRole(['admin', 'super_admin', 'piket', 'kepala_sekolah']);
+
+        abort_unless($isOwner || $isPengganti || $hasPrivilege, 403, 'Anda tidak memiliki akses untuk mengunduh foto pertemuan ini.');
+
+        $pertemuan->load(['fotoBuktis.siswa', 'jadwal.kelas', 'jadwal.mataPelajaran']);
+        $fotoBuktis = $pertemuan->fotoBuktis;
+
+        if ($fotoBuktis->isEmpty()) {
+            return back()->with('error', 'Belum ada foto bukti yang diunggah untuk pertemuan ini.');
+        }
+
+        $filesToZip = [];
+
+        foreach ($fotoBuktis as $idx => $foto) {
+            $siswaNama = Str::slug($foto->siswa?->name ?? 'Siswa', '-');
+            $indexNum = sprintf('%02d', $idx + 1);
+
+            // Foto Masuk
+            if (! empty($foto->foto_path)) {
+                $filePath = $this->resolvePhotoFullPath($foto->foto_path);
+                if ($filePath && file_exists($filePath)) {
+                    $ext = pathinfo($filePath, PATHINFO_EXTENSION) ?: 'webp';
+                    $entryName = "{$indexNum}_Masuk_{$siswaNama}.{$ext}";
+                    $filesToZip[$entryName] = $filePath;
+                }
+            }
+
+            // Foto Checkout
+            if (! empty($foto->foto_checkout_path)) {
+                $filePathOut = $this->resolvePhotoFullPath($foto->foto_checkout_path);
+                if ($filePathOut && file_exists($filePathOut)) {
+                    $ext = pathinfo($filePathOut, PATHINFO_EXTENSION) ?: 'webp';
+                    $entryName = "{$indexNum}_Checkout_{$siswaNama}.{$ext}";
+                    $filesToZip[$entryName] = $filePathOut;
+                }
+            }
+        }
+
+        if (empty($filesToZip)) {
+            return back()->with('error', 'File fisik foto bukti tidak ditemukan di penyimpanan server.');
+        }
+
+        $kelasNama = Str::slug($jadwal?->kelas?->nama ?? 'Kelas', '-');
+        $mapelNama = Str::slug($jadwal?->mataPelajaran?->nama ?? 'Mapel', '-');
+        $tanggalStr = Carbon::parse($pertemuan->tanggal)->format('Y-m-d');
+        $zipFilename = "Semua-Foto-Presensi_{$kelasNama}_{$mapelNama}_{$tanggalStr}.zip";
+
+        $tempZipPath = tempnam(sys_get_temp_dir(), 'foto_zip_');
+        $zip = new ZipArchive;
+
+        if ($zip->open($tempZipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+            @unlink($tempZipPath);
+
+            return back()->with('error', 'Gagal membuat arsip ZIP foto.');
+        }
+
+        foreach ($filesToZip as $entryName => $filePath) {
+            $zip->addFile($filePath, $entryName);
+        }
+        $zip->close();
+
+        return response()->download($tempZipPath, $zipFilename, [
+            'Content-Type' => 'application/zip',
+        ])->deleteFileAfterSend(true);
+    }
+
+    /**
+     * Resolve the absolute path of a photo stored in disk public or public directory.
+     */
+    private function resolvePhotoFullPath(?string $path): ?string
+    {
+        if (empty($path)) {
+            return null;
+        }
+
+        $trimmed = ltrim($path, '/\\');
+
+        if (str_starts_with($trimmed, 'images/')) {
+            $candidate = public_path($trimmed);
+            if (file_exists($candidate)) {
+                return $candidate;
+            }
+        }
+
+        $disk = Storage::disk('public');
+        if ($disk->exists($trimmed)) {
+            return $disk->path($trimmed);
+        }
+
+        // If path has prefix 'storage/', strip it for public disk check
+        if (str_starts_with($trimmed, 'storage/')) {
+            $stripped = substr($trimmed, 8);
+            if ($disk->exists($stripped)) {
+                return $disk->path($stripped);
+            }
+        }
+
+        $storageCandidate = public_path('storage/'.$trimmed);
+        if (file_exists($storageCandidate)) {
+            return $storageCandidate;
+        }
+
+        $publicDirectCandidate = public_path($trimmed);
+        if (file_exists($publicDirectCandidate)) {
+            return $publicDirectCandidate;
+        }
+
+        return null;
     }
 }

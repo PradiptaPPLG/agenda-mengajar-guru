@@ -100,7 +100,7 @@
                                 </td>
                                 <td class="px-4 py-3 text-center">
                                     @if(!empty($item['foto']))
-                                        <a href="{{ $item['foto'] }}" target="_blank" class="inline-block hover:opacity-80 transition-opacity">
+                                        <a href="{{ $item['foto'] }}" target="_blank" download class="inline-block hover:opacity-80 transition-opacity" title="Lihat / Unduh Foto Bukti Presensi">
                                             <img src="{{ $item['foto'] }}" alt="Bukti" class="w-8 h-8 rounded-lg object-cover border border-slate-200 mx-auto">
                                         </a>
                                     @else

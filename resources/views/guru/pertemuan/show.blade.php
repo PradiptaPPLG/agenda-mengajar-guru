@@ -112,35 +112,58 @@
                     </div>
 
                     {{-- Preview Foto Bukti dari Siswa --}}
+                    {{-- Preview & Unduh Foto Bukti dari Siswa --}}
                     @if($pertemuan->fotoBuktis->isNotEmpty())
                     <div class="mt-4 pt-3.5 border-t border-slate-100">
-                        <p class="text-xs font-semibold text-slate-800 mb-2 flex items-center gap-1.5">
-                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                            Foto Bukti Presensi Siswa ({{ $pertemuan->fotoBuktis->count() }})
-                        </p>
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div class="flex items-center justify-between gap-2 mb-2.5">
+                            <p class="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
+                                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                Foto Bukti Presensi Siswa ({{ $pertemuan->fotoBuktis->count() }})
+                            </p>
+                            <a href="{{ route('guru.pertemuan.download-foto-all', $pertemuan->id) }}"
+                               class="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors shadow-2xs"
+                               title="Unduh semua foto bukti ke dalam arsip ZIP">
+                                <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                <span>Unduh Semua (.zip)</span>
+                            </a>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                             @foreach($pertemuan->fotoBuktis as $foto)
                             @php
                                 $imgSrc = str_starts_with($foto->foto_path, 'images/') ? asset($foto->foto_path) : asset('storage/' . $foto->foto_path);
+                                $downloadSrc = route('guru.foto-bukti.download', ['fotoBukti' => $foto->id, 'type' => 'masuk']);
                             @endphp
-                            <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2 hover:border-blue-300 transition-all">
+                            <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2.5 hover:border-blue-300 transition-all">
                                 <div class="flex items-center gap-3">
                                     <div class="flex items-center gap-2">
-                                        <div class="text-center">
-                                            <a href="{{ $imgSrc }}" target="_blank" title="Foto Check-in (Awal)" class="w-14 h-14 rounded-lg overflow-hidden bg-slate-200 block border border-slate-200 relative group">
+                                        <div class="text-center relative">
+                                            <button type="button"
+                                                    onclick="openFotoPreviewModal('{{ $imgSrc }}', '{{ $downloadSrc }}', 'Foto Masuk (Awal)', '{{ addslashes($foto->siswa->name ?? 'Siswa') }}', '{{ ucfirst($foto->status_guru_dilaporkan) }}', '{{ $foto->created_at->format('H:i') }} WIB')"
+                                                    title="Klik untuk melihat foto lebih besar"
+                                                    class="w-14 h-14 rounded-lg overflow-hidden bg-slate-200 block border border-slate-200 relative group cursor-pointer text-left">
                                                 <img src="{{ $imgSrc }}" alt="Bukti Masuk {{ $foto->siswa->name }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform">
                                                 <span class="absolute bottom-0 inset-x-0 bg-black/60 text-[9px] text-white py-0.5 text-center font-bold">Masuk</span>
-                                            </a>
+                                                <div class="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/></svg>
+                                                </div>
+                                            </button>
                                         </div>
                                         @if($foto->foto_checkout_path)
                                             @php
                                                 $imgOut = str_starts_with($foto->foto_checkout_path, 'images/') ? asset($foto->foto_checkout_path) : asset('storage/' . $foto->foto_checkout_path);
+                                                $downloadOut = route('guru.foto-bukti.download', ['fotoBukti' => $foto->id, 'type' => 'checkout']);
                                             @endphp
-                                            <div class="text-center">
-                                                <a href="{{ $imgOut }}" target="_blank" title="Foto Check-out (Pulang/Akhir)" class="w-14 h-14 rounded-lg overflow-hidden bg-slate-200 block border border-emerald-300 relative group">
+                                            <div class="text-center relative">
+                                                <button type="button"
+                                                        onclick="openFotoPreviewModal('{{ $imgOut }}', '{{ $downloadOut }}', 'Foto Keluar (Akhir)', '{{ addslashes($foto->siswa->name ?? 'Siswa') }}', '{{ ucfirst($foto->status_guru_dilaporkan) }}', '{{ $foto->checkout_at ? $foto->checkout_at->format('H:i') . ' WIB' : '-' }}')"
+                                                        title="Klik untuk melihat foto lebih besar"
+                                                        class="w-14 h-14 rounded-lg overflow-hidden bg-slate-200 block border border-emerald-300 relative group cursor-pointer text-left">
                                                     <img src="{{ $imgOut }}" alt="Bukti Checkout {{ $foto->siswa->name }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform">
                                                     <span class="absolute bottom-0 inset-x-0 bg-emerald-700/80 text-[9px] text-white py-0.5 text-center font-bold">Keluar</span>
-                                                </a>
+                                                    <div class="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/></svg>
+                                                    </div>
+                                                </button>
                                             </div>
                                         @endif
                                     </div>
@@ -164,6 +187,24 @@
                                             } }}</p>
                                         @endif
                                     </div>
+                                </div>
+
+                                {{-- Tombol Unduh Foto --}}
+                                <div class="pt-2 border-t border-slate-200/70 flex items-center gap-1.5">
+                                    <a href="{{ $downloadSrc }}"
+                                       class="flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 bg-white hover:bg-blue-50 text-blue-700 border border-slate-200 hover:border-blue-300 rounded-lg text-[10px] font-semibold transition-all shadow-2xs"
+                                       title="Unduh foto masuk siswa ini">
+                                        <svg class="w-3.5 h-3.5 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                        <span>Unduh Masuk</span>
+                                    </a>
+                                    @if($foto->foto_checkout_path)
+                                    <a href="{{ $downloadOut }}"
+                                       class="flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 bg-white hover:bg-emerald-50 text-emerald-700 border border-slate-200 hover:border-emerald-300 rounded-lg text-[10px] font-semibold transition-all shadow-2xs"
+                                       title="Unduh foto keluar siswa ini">
+                                        <svg class="w-3.5 h-3.5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                        <span>Unduh Keluar</span>
+                                    </a>
+                                    @endif
                                 </div>
                             </div>
                             @endforeach
@@ -296,6 +337,40 @@
         </form>
 
 
+    </div>
+
+    {{-- Lightbox Modal untuk Preview dan Unduh Foto Bukti Siswa --}}
+    <div id="foto-preview-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs" onclick="closeFotoPreviewModal(event)">
+        <div class="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl border border-slate-200 flex flex-col max-h-[90vh]" onclick="event.stopPropagation()">
+            <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                <div class="min-w-0 pr-2">
+                    <h3 id="modal-foto-title" class="text-sm font-bold text-slate-900 truncate">Foto Bukti Kehadiran</h3>
+                    <p id="modal-foto-subtitle" class="text-xs text-slate-500 mt-0.5 truncate"></p>
+                </div>
+                <button type="button" onclick="closeFotoPreviewModalDirect()" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-200 text-slate-500 transition-colors" title="Tutup (Esc)">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="p-3 bg-slate-950 flex items-center justify-center overflow-auto max-h-[58vh]">
+                <img id="modal-foto-img" src="" alt="Bukti Foto" class="max-w-full max-h-[55vh] object-contain rounded-lg shadow-sm">
+            </div>
+            <div class="p-3 bg-white border-t border-slate-100 flex items-center justify-between gap-2">
+                <span id="modal-foto-meta" class="text-xs text-slate-500 font-medium truncate"></span>
+                <div class="flex items-center gap-2 shrink-0">
+                    <a id="modal-foto-open-btn" href="#" target="_blank"
+                       class="inline-flex items-center gap-1 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-colors"
+                       title="Buka gambar di tab baru">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                        <span class="hidden sm:inline">Tab Baru</span>
+                    </a>
+                    <a id="modal-foto-download-btn" href="#"
+                       class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors">
+                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                        <span>Unduh Foto</span>
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
 
     @push('scripts')
@@ -506,6 +581,52 @@
             else if (val === 'alpa') selectEl.classList.add('border-red-200', 'bg-red-50', 'text-red-800');
             else if (val === 'dispensasi') selectEl.classList.add('border-purple-200', 'bg-purple-50', 'text-purple-800');
         }
+
+        // Preview & Download Foto Modal Handlers
+        function openFotoPreviewModal(src, downloadUrl, title, nama, status, waktu) {
+            const modal = document.getElementById('foto-preview-modal');
+            const img = document.getElementById('modal-foto-img');
+            const titleEl = document.getElementById('modal-foto-title');
+            const subtitleEl = document.getElementById('modal-foto-subtitle');
+            const metaEl = document.getElementById('modal-foto-meta');
+            const openBtn = document.getElementById('modal-foto-open-btn');
+            const downloadBtn = document.getElementById('modal-foto-download-btn');
+
+            if (!modal) return;
+
+            if (img) img.src = src;
+            if (titleEl) titleEl.textContent = title + ' - ' + nama;
+            if (subtitleEl) subtitleEl.textContent = 'Diunggah oleh: ' + nama + ' • Status: ' + status;
+            if (metaEl) metaEl.textContent = 'Waktu: ' + waktu;
+            if (openBtn) openBtn.href = src;
+            if (downloadBtn) downloadBtn.href = downloadUrl;
+
+            modal.classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+        }
+
+        function closeFotoPreviewModalDirect() {
+            const modal = document.getElementById('foto-preview-modal');
+            const img = document.getElementById('modal-foto-img');
+            if (modal) modal.classList.add('hidden');
+            if (img) img.src = '';
+            document.body.classList.remove('overflow-hidden');
+        }
+
+        function closeFotoPreviewModal(e) {
+            if (e.target.id === 'foto-preview-modal') {
+                closeFotoPreviewModalDirect();
+            }
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const modal = document.getElementById('foto-preview-modal');
+                if (modal && !modal.classList.contains('hidden')) {
+                    closeFotoPreviewModalDirect();
+                }
+            }
+        });
     </script>
     @endpush
 </x-layouts.guru>
