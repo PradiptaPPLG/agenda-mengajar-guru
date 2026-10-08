@@ -136,88 +136,132 @@
             </div>
         </div>
 
-        {{-- KPI Summary Cards --}}
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3 shadow-xs">
-                <div class="shrink-0 w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
-                    <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                </div>
-                <div class="min-w-0">
-                    <p class="text-2xl font-bold text-slate-900 leading-none">{{ $stats['guru_hadir_hari_ini'] }}</p>
-                    <p class="text-xs text-slate-500 mt-1 font-medium truncate">Guru Hadir</p>
-                </div>
-            </div>
+        {{-- Catatan Ringkas Penghitungan Data Publik --}}
+        <div class="flex items-center gap-2 px-3.5 py-2.5 bg-blue-50/70 border border-blue-200/60 rounded-xl text-slate-700 shadow-2xs">
+            <svg class="w-4 h-4 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <p class="text-[11px] sm:text-xs leading-relaxed text-slate-600">
+                <strong class="font-semibold text-slate-900">Catatan Data:</strong> Statistik dihitung <strong>per orang / individu fisik</strong> per hari (setiap guru dan siswa yang hadir mengikuti KBM hari ini dihitung 1 kali).
+            </p>
+        </div>
 
-            <div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3 shadow-xs">
-                <div class="shrink-0 w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
-                    <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                </div>
-                <div class="min-w-0">
-                    <p class="text-2xl font-bold text-slate-900 leading-none">{{ $stats['guru_terlambat_hari_ini'] }}</p>
-                    <p class="text-xs text-slate-500 mt-1 font-medium truncate">Guru Terlambat</p>
-                </div>
+        {{-- Row 1: Kehadiran Guru --}}
+        <div>
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-2">
+                <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-blue-600"></span>
+                    Statistik Kehadiran Guru Hari Ini
+                </p>
+                <span class="text-[11px] text-slate-500 font-medium">Dihitung per individu guru aktif di sekolah</span>
             </div>
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3 shadow-xs">
+                    <div class="shrink-0 w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-baseline justify-between gap-1">
+                            <p class="text-2xl font-bold text-slate-900 leading-none">{{ $stats['guru_hadir_hari_ini'] }}</p>
+                            @if($stats['total_guru'] > 0)
+                                <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">{{ round(($stats['guru_hadir_hari_ini'] / $stats['total_guru']) * 100, 1) }}%</span>
+                            @endif
+                        </div>
+                        <p class="text-xs text-slate-700 mt-1 font-semibold truncate">Guru Hadir</p>
+                        <p class="text-[10px] text-slate-400 truncate mt-0.5">Hadir mengajar hari ini</p>
+                    </div>
+                </div>
 
-            <div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3 shadow-xs">
-                <div class="shrink-0 w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center">
-                    <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3 shadow-xs">
+                    <div class="shrink-0 w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-2xl font-bold text-slate-900 leading-none">{{ $stats['guru_terlambat_hari_ini'] }}</p>
+                        <p class="text-xs text-slate-700 mt-1 font-semibold truncate">Guru Terlambat</p>
+                        <p class="text-[10px] text-slate-400 truncate mt-0.5">Hadir melebihi jam masuk</p>
+                    </div>
                 </div>
-                <div class="min-w-0">
-                    <p class="text-2xl font-bold text-slate-900 leading-none">{{ $stats['guru_tidak_hadir_hari_ini'] }}</p>
-                    <p class="text-xs text-slate-500 mt-1 font-medium truncate">Tidak Hadir / Izin</p>
-                </div>
-            </div>
 
-            <div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3 shadow-xs">
-                <div class="shrink-0 w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                <div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3 shadow-xs">
+                    <div class="shrink-0 w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-2xl font-bold text-slate-900 leading-none">{{ $stats['guru_tidak_hadir_hari_ini'] }}</p>
+                        <p class="text-xs text-slate-700 mt-1 font-semibold truncate">Tidak Hadir / Izin</p>
+                        <p class="text-[10px] text-slate-400 truncate mt-0.5">Sakit, izin, atau dinas luar</p>
+                    </div>
                 </div>
-                <div class="min-w-0">
-                    <p class="text-2xl font-bold text-slate-900 leading-none">{{ $stats['total_guru'] }}</p>
-                    <p class="text-xs text-slate-500 mt-1 font-medium truncate">Total Tenaga Pengajar</p>
+
+                <div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3 shadow-xs">
+                    <div class="shrink-0 w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-2xl font-bold text-slate-900 leading-none">{{ $stats['total_guru'] }}</p>
+                        <p class="text-xs text-slate-700 mt-1 font-semibold truncate">Total Guru</p>
+                        <p class="text-[10px] text-blue-600 font-medium truncate mt-0.5">Total guru terdaftar</p>
+                    </div>
                 </div>
             </div>
         </div>
 
         {{-- Row 2: KPI Ringkasan Statistik Siswa --}}
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-            <div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3 shadow-xs">
-                <div class="shrink-0 w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
-                    <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-                </div>
-                <div class="min-w-0">
-                    <p class="text-2xl font-bold text-slate-900 leading-none">{{ $stats['siswa_hadir_hari_ini'] }}</p>
-                    <p class="text-xs text-slate-500 mt-1 font-medium truncate">Siswa Hadir</p>
-                </div>
+        <div class="mt-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-2">
+                <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-600"></span>
+                    Statistik Kehadiran Siswa Hari Ini
+                </p>
+                <span class="text-[11px] text-slate-500 font-medium">Dihitung per orang (siswa yang hadir mengikuti KBM hari ini)</span>
             </div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3 shadow-xs">
+                    <div class="shrink-0 w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-baseline justify-between gap-1">
+                            <p class="text-2xl font-bold text-slate-900 leading-none">{{ number_format($stats['siswa_hadir_hari_ini'], 0, ',', '.') }}</p>
+                            @if($stats['total_siswa'] > 0)
+                                <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">{{ round(($stats['siswa_hadir_hari_ini'] / $stats['total_siswa']) * 100, 1) }}%</span>
+                            @endif
+                        </div>
+                        <p class="text-xs text-slate-700 mt-1 font-semibold truncate">Siswa Hadir</p>
+                        <p class="text-[10px] text-slate-400 truncate mt-0.5">Siswa hadir KBM hari ini</p>
+                    </div>
+                </div>
 
-            <div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3 shadow-xs">
-                <div class="shrink-0 w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
-                    <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3 shadow-xs">
+                    <div class="shrink-0 w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-2xl font-bold text-slate-900 leading-none">{{ number_format($stats['siswa_terlambat_hari_ini'], 0, ',', '.') }}</p>
+                        <p class="text-xs text-slate-700 mt-1 font-semibold truncate">Siswa Terlambat</p>
+                        <p class="text-[10px] text-slate-400 truncate mt-0.5">Hadir melebihi jam masuk</p>
+                    </div>
                 </div>
-                <div class="min-w-0">
-                    <p class="text-2xl font-bold text-slate-900 leading-none">{{ $stats['siswa_terlambat_hari_ini'] }}</p>
-                    <p class="text-xs text-slate-500 mt-1 font-medium truncate">Siswa Terlambat</p>
-                </div>
-            </div>
 
-            <div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3 shadow-xs">
-                <div class="shrink-0 w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center">
-                    <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3 shadow-xs">
+                    <div class="shrink-0 w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-2xl font-bold text-slate-900 leading-none">{{ number_format($stats['siswa_tidak_hadir_hari_ini'], 0, ',', '.') }}</p>
+                        <p class="text-xs text-slate-700 mt-1 font-semibold truncate">Siswa Alpa / Izin / Sakit</p>
+                        <p class="text-[10px] text-slate-400 truncate mt-0.5">Tidak hadir KBM hari ini</p>
+                    </div>
                 </div>
-                <div class="min-w-0">
-                    <p class="text-2xl font-bold text-slate-900 leading-none">{{ $stats['siswa_tidak_hadir_hari_ini'] }}</p>
-                    <p class="text-xs text-slate-500 mt-1 font-medium truncate">Siswa Alpa / Izin / Sakit</p>
-                </div>
-            </div>
 
-            <div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3 shadow-xs">
-                <div class="shrink-0 w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                </div>
-                <div class="min-w-0">
-                    <p class="text-2xl font-bold text-slate-900 leading-none">{{ $stats['total_siswa'] }}</p>
-                    <p class="text-xs text-slate-500 mt-1 font-medium truncate">Total Siswa</p>
+                <div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3 shadow-xs">
+                    <div class="shrink-0 w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-2xl font-bold text-slate-900 leading-none">{{ number_format($stats['total_siswa'], 0, ',', '.') }}</p>
+                        <p class="text-xs text-slate-700 mt-1 font-semibold truncate">Total Siswa</p>
+                        <p class="text-[10px] text-blue-600 font-medium truncate mt-0.5">Total siswa aktif terdaftar</p>
+                    </div>
                 </div>
             </div>
         </div>
