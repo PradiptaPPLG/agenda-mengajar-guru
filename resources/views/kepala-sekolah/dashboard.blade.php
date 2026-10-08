@@ -2,22 +2,128 @@
     <x-slot:title>Dashboard Kepala Sekolah</x-slot:title>
 
     <div class="space-y-6">
+        {{-- ═══ PANDUAN PERHITUNGAN & TRANSPARANSI STATISTIK KEHADIRAN ═══ --}}
+        <div class="bg-gradient-to-r from-blue-50/90 via-indigo-50/80 to-emerald-50/80 border border-blue-200/80 rounded-2xl p-4 shadow-xs" x-data="{ openDetail: false }">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div class="flex items-start gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </div>
+                    <div class="space-y-0.5">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <h3 class="text-xs font-bold text-slate-900">Penjelasan & Transparansi Angka Statistik Kehadiran</h3>
+                            <span class="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[10px] font-bold">Basis Log Sesi KBM (Jam Pelajaran)</span>
+                        </div>
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                            Angka kehadiran siswa & guru dihitung dari <strong>akumulasi log presensi per sesi/jam pelajaran (KBM)</strong>. Karena 1 siswa mengikuti rata-rata <strong>4–5 sesi mapel/hari</strong>, maka {{ number_format($stats['total_siswa'], 0, ',', '.') }} siswa fisik menghasilkan total <strong>{{ number_format($stats['siswa_total_log'], 0, ',', '.') }} log presensi</strong> hari ini.
+                        </p>
+                    </div>
+                </div>
+                <button type="button" @click="openDetail = !openDetail" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-blue-200 text-blue-700 hover:bg-blue-50 text-xs font-semibold shadow-2xs transition-all shrink-0 self-start md:self-center cursor-pointer">
+                    <span x-text="openDetail ? 'Tutup Rincian Hitungan' : 'Lihat Rincian Rumus & Hitungan'">Lihat Rincian Rumus & Hitungan</span>
+                    <svg class="w-4 h-4 transition-transform duration-200" :class="{ 'rotate-180': openDetail }" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+            </div>
+
+            {{-- Detail Rincian Rumus & Simulasi Hitungan --}}
+            <div x-show="openDetail" x-transition class="mt-4 pt-4 border-t border-blue-200/60 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {{-- Card 1: Siswa --}}
+                <div class="bg-white/95 rounded-xl border border-slate-200 p-3.5 space-y-2 shadow-2xs">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                            Hitungan Log Siswa Hadir
+                        </span>
+                        <span class="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">Presensi Sesi</span>
+                    </div>
+                    <p class="text-[11px] text-slate-600 leading-relaxed">
+                        Guru mapel mengabsen siswa setiap jam pertemuan KBM. Total log adalah hasil kali jumlah siswa dengan jumlah sesi mapel yang berlangsung hari ini.
+                    </p>
+                    <div class="bg-slate-50 rounded-lg p-2 font-mono text-[11px] text-slate-800 space-y-1 border border-slate-100">
+                        <div class="flex justify-between"><span>• Total Log Hari Ini:</span><span class="font-bold">{{ number_format($stats['siswa_total_log'], 0, ',', '.') }} presensi</span></div>
+                        <div class="flex justify-between"><span>• Siswa Hadir (Sesi):</span><span class="font-bold text-emerald-600">{{ number_format($stats['siswa_hadir_hari_ini'], 0, ',', '.') }} ({{ $stats['siswa_persen_sesi_hadir'] }}%)</span></div>
+                        <div class="flex justify-between"><span>• Siswa Alpa/Izin/Sakit:</span><span class="font-bold text-red-600">{{ number_format($stats['siswa_tidak_hadir_hari_ini'], 0, ',', '.') }}</span></div>
+                        <div class="flex justify-between border-t border-slate-200 pt-1 text-slate-700"><span>• Siswa Fisik Hadir:</span><span class="font-bold text-blue-700">{{ number_format($stats['siswa_fisik_hadir'], 0, ',', '.') }} / {{ number_format($stats['total_siswa'], 0, ',', '.') }} ({{ $stats['siswa_fisik_persen'] }}%)</span></div>
+                    </div>
+                </div>
+
+                {{-- Card 2: Guru --}}
+                <div class="bg-white/95 rounded-xl border border-slate-200 p-3.5 space-y-2 shadow-2xs">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-blue-600"></span>
+                            Hitungan Sesi Guru Hadir
+                        </span>
+                        <span class="text-[10px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">Sesi Mengajar</span>
+                    </div>
+                    <p class="text-[11px] text-slate-600 leading-relaxed">
+                        1 guru mengajar di lebih dari 1 rombel/jam kelas per hari. Angka dihitung dari akumulasi sesi mengajar yang diampu guru hari ini.
+                    </p>
+                    <div class="bg-slate-50 rounded-lg p-2 font-mono text-[11px] text-slate-800 space-y-1 border border-slate-100">
+                        <div class="flex justify-between"><span>• Total Sesi KBM:</span><span class="font-bold">{{ number_format($stats['guru_total_sesi'], 0, ',', '.') }} sesi</span></div>
+                        <div class="flex justify-between"><span>• Guru Hadir (Sesi):</span><span class="font-bold text-emerald-600">{{ number_format($stats['guru_hadir_hari_ini'], 0, ',', '.') }} ({{ $stats['guru_persen_sesi_hadir'] }}%)</span></div>
+                        <div class="flex justify-between"><span>• Tidak Hadir / Izin:</span><span class="font-bold text-red-600">{{ number_format($stats['guru_tidak_hadir_hari_ini'], 0, ',', '.') }} sesi</span></div>
+                        <div class="flex justify-between border-t border-slate-200 pt-1 text-slate-700"><span>• Guru Fisik Hadir:</span><span class="font-bold text-blue-700">{{ $stats['guru_fisik_hadir'] }} / {{ $stats['total_guru'] }} ({{ $stats['guru_fisik_persen'] }}%)</span></div>
+                    </div>
+                </div>
+
+                {{-- Card 3: Distribusi 7 Hari --}}
+                <div class="bg-white/95 rounded-xl border border-slate-200 p-3.5 space-y-2 shadow-2xs">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-purple-600"></span>
+                            Rumus Persentase (7 Hari)
+                        </span>
+                        <span class="text-[10px] font-semibold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200">Rasio Pembagian</span>
+                    </div>
+                    <p class="text-[11px] text-slate-600 leading-relaxed">
+                        Persentase di grafik pie dihitung dari total log status dibagi total keseluruhan akumulasi sesi dalam 7 hari terakhir:
+                    </p>
+                    <div class="bg-slate-50 rounded-lg p-2 font-mono text-[11px] text-slate-800 space-y-1 border border-slate-100">
+                        <div>• Guru: <span class="font-bold text-emerald-700">({{ number_format($guruPie['hadir'], 0, ',', '.') }} ÷ {{ number_format($guruPieTotalReal, 0, ',', '.') }}) × 100% = {{ $guruPiePct['hadir'] }}%</span></div>
+                        <div>• Siswa: <span class="font-bold text-emerald-700">({{ number_format($siswaPie['hadir'], 0, ',', '.') }} ÷ {{ number_format($siswaPieTotalReal, 0, ',', '.') }}) × 100% = {{ $siswaPiePct['hadir'] }}%</span></div>
+                        <div class="text-[10px] text-slate-500 pt-1 border-t border-slate-200">Total data: {{ number_format($guruPieTotalReal, 0, ',', '.') }} sesi guru & {{ number_format($siswaPieTotalReal, 0, ',', '.') }} log siswa.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         {{-- KPI Cards: Guru & Siswa --}}
         <div class="space-y-4">
             {{-- Row 1: Guru --}}
             <div>
-                <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                    <span class="w-2 h-2 rounded-full bg-blue-600"></span>
-                    Statistik Kehadiran Guru Hari Ini
-                </p>
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-2">
+                    <p class="text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-blue-600"></span>
+                        Statistik Kehadiran Guru Hari Ini
+                        <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200 normal-case">Dihitung per Sesi Mengajar</span>
+                    </p>
+                    <span class="text-[11px] font-medium text-slate-500">
+                        Guru Fisik Aktif: <strong class="text-blue-700">{{ $stats['guru_fisik_hadir'] }}</strong> dari {{ $stats['total_guru'] }} guru ({{ $stats['guru_fisik_persen'] }}%)
+                    </span>
+                </div>
+
                 <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                    {{-- Sesi Hadir --}}
                     <div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3 shadow-xs">
                         <div class="shrink-0 w-10 h-10 aspect-square rounded-lg bg-emerald-50 flex items-center justify-center">
                             <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         </div>
-                        <div class="min-w-0">
-                            <p class="text-2xl font-bold text-slate-900 leading-none">{{ $stats['guru_hadir_hari_ini'] }}</p>
-                            <p class="text-xs text-slate-500 mt-1 font-medium truncate">Guru Hadir</p>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-baseline justify-between gap-1">
+                                <p class="text-2xl font-bold text-slate-900 leading-none">{{ number_format($stats['guru_hadir_hari_ini'], 0, ',', '.') }}</p>
+                                @if($stats['guru_total_sesi'] > 0)
+                                    <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">{{ $stats['guru_persen_sesi_hadir'] }}%</span>
+                                @endif
+                            </div>
+                            <p class="text-xs text-slate-700 mt-1 font-semibold truncate">Sesi Guru Hadir</p>
+                            <p class="text-[10px] text-slate-500 truncate mt-0.5" title="Akumulasi jam mengajar terlaksana hari ini">
+                                @if($stats['guru_total_sesi'] > 0)
+                                    Dari total {{ number_format($stats['guru_total_sesi'], 0, ',', '.') }} sesi KBM
+                                @else
+                                    Sesi jam mengajar hadir
+                                @endif
+                            </p>
                         </div>
                     </div>
 
@@ -27,8 +133,9 @@
                             <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         </div>
                         <div class="min-w-0">
-                            <p class="text-2xl font-bold text-slate-900 leading-none">{{ $stats['guru_terlambat_hari_ini'] }}</p>
-                            <p class="text-xs text-slate-500 mt-1 font-medium truncate">Guru Terlambat</p>
+                            <p class="text-2xl font-bold text-slate-900 leading-none">{{ number_format($stats['guru_terlambat_hari_ini'], 0, ',', '.') }}</p>
+                            <p class="text-xs text-slate-700 mt-1 font-semibold truncate">Sesi Terlambat</p>
+                            <p class="text-[10px] text-slate-500 truncate mt-0.5">Sesi dimulai terlambat</p>
                         </div>
                     </div>
 
@@ -38,8 +145,9 @@
                             <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         </div>
                         <div class="min-w-0">
-                            <p class="text-2xl font-bold text-slate-900 leading-none">{{ $stats['guru_tidak_hadir_hari_ini'] }}</p>
-                            <p class="text-xs text-slate-500 mt-1 font-medium truncate">Tidak Hadir / Izin</p>
+                            <p class="text-2xl font-bold text-slate-900 leading-none">{{ number_format($stats['guru_tidak_hadir_hari_ini'], 0, ',', '.') }}</p>
+                            <p class="text-xs text-slate-700 mt-1 font-semibold truncate">Sesi Tidak Hadir / Izin</p>
+                            <p class="text-[10px] text-slate-500 truncate mt-0.5">Sakit, izin, alpa, dinas luar</p>
                         </div>
                     </div>
 
@@ -49,8 +157,9 @@
                             <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                         </div>
                         <div class="min-w-0">
-                            <p class="text-2xl font-bold text-slate-900 leading-none">{{ $stats['total_guru'] }}</p>
-                            <p class="text-xs text-slate-500 mt-1 font-medium truncate">Total Tenaga Pengajar</p>
+                            <p class="text-2xl font-bold text-slate-900 leading-none">{{ number_format($stats['total_guru'], 0, ',', '.') }}</p>
+                            <p class="text-xs text-slate-700 mt-1 font-semibold truncate">Total Guru (Fisik Unik)</p>
+                            <p class="text-[10px] text-blue-700 font-semibold truncate mt-0.5">{{ $stats['guru_fisik_hadir'] }} guru mengajar hari ini</p>
                         </div>
                     </div>
                 </div>
@@ -58,19 +167,38 @@
 
             {{-- Row 2: Murid / Siswa --}}
             <div>
-                <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                    <span class="w-2 h-2 rounded-full bg-emerald-600"></span>
-                    Statistik Kehadiran Murid Hari Ini
-                </p>
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-2">
+                    <p class="text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-emerald-600"></span>
+                        Statistik Kehadiran Murid Hari Ini
+                        <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 normal-case">Dihitung per Log Sesi Mapel (~{{ $stats['siswa_rata_sesi'] ?: '4-5' }} sesi/siswa)</span>
+                    </p>
+                    <span class="text-[11px] font-medium text-slate-500">
+                        Siswa Fisik Hadir: <strong class="text-emerald-700">{{ number_format($stats['siswa_fisik_hadir'], 0, ',', '.') }}</strong> dari {{ number_format($stats['total_siswa'], 0, ',', '.') }} siswa ({{ $stats['siswa_fisik_persen'] }}%)
+                    </span>
+                </div>
+
                 <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
                     {{-- Siswa Hadir --}}
                     <div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3 shadow-xs">
                         <div class="shrink-0 w-10 h-10 aspect-square rounded-lg bg-emerald-50 flex items-center justify-center">
                             <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
                         </div>
-                        <div class="min-w-0">
-                            <p class="text-2xl font-bold text-slate-900 leading-none">{{ $stats['siswa_hadir_hari_ini'] }}</p>
-                            <p class="text-xs text-slate-500 mt-1 font-medium truncate">Siswa Hadir</p>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-baseline justify-between gap-1">
+                                <p class="text-2xl font-bold text-slate-900 leading-none">{{ number_format($stats['siswa_hadir_hari_ini'], 0, ',', '.') }}</p>
+                                @if($stats['siswa_total_log'] > 0)
+                                    <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">{{ $stats['siswa_persen_sesi_hadir'] }}%</span>
+                                @endif
+                            </div>
+                            <p class="text-xs text-slate-700 mt-1 font-semibold truncate">Log Sesi Siswa Hadir</p>
+                            <p class="text-[10px] text-slate-500 truncate mt-0.5" title="Akumulasi presensi per jam pelajaran">
+                                @if($stats['siswa_total_log'] > 0)
+                                    Dari total {{ number_format($stats['siswa_total_log'], 0, ',', '.') }} log presensi
+                                @else
+                                    Akumulasi presensi KBM hadir
+                                @endif
+                            </p>
                         </div>
                     </div>
 
@@ -80,8 +208,9 @@
                             <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         </div>
                         <div class="min-w-0">
-                            <p class="text-2xl font-bold text-slate-900 leading-none">{{ $stats['siswa_terlambat_hari_ini'] }}</p>
-                            <p class="text-xs text-slate-500 mt-1 font-medium truncate">Siswa Terlambat</p>
+                            <p class="text-2xl font-bold text-slate-900 leading-none">{{ number_format($stats['siswa_terlambat_hari_ini'], 0, ',', '.') }}</p>
+                            <p class="text-xs text-slate-700 mt-1 font-semibold truncate">Log Sesi Terlambat</p>
+                            <p class="text-[10px] text-slate-500 truncate mt-0.5">Terlambat di jam pertemuan</p>
                         </div>
                     </div>
 
@@ -91,8 +220,9 @@
                             <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         </div>
                         <div class="min-w-0">
-                            <p class="text-2xl font-bold text-slate-900 leading-none">{{ $stats['siswa_tidak_hadir_hari_ini'] }}</p>
-                            <p class="text-xs text-slate-500 mt-1 font-medium truncate">Siswa Alpa / Izin / Sakit</p>
+                            <p class="text-2xl font-bold text-slate-900 leading-none">{{ number_format($stats['siswa_tidak_hadir_hari_ini'], 0, ',', '.') }}</p>
+                            <p class="text-xs text-slate-700 mt-1 font-semibold truncate">Log Alpa / Izin / Sakit</p>
+                            <p class="text-[10px] text-slate-500 truncate mt-0.5">Akumulasi sesi tidak hadir</p>
                         </div>
                     </div>
 
@@ -102,8 +232,9 @@
                             <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                         </div>
                         <div class="min-w-0">
-                            <p class="text-2xl font-bold text-slate-900 leading-none">{{ $stats['total_siswa'] }}</p>
-                            <p class="text-xs text-slate-500 mt-1 font-medium truncate">Total Siswa</p>
+                            <p class="text-2xl font-bold text-slate-900 leading-none">{{ number_format($stats['total_siswa'], 0, ',', '.') }}</p>
+                            <p class="text-xs text-slate-700 mt-1 font-semibold truncate">Total Siswa (Fisik Unik)</p>
+                            <p class="text-[10px] text-emerald-700 font-semibold truncate mt-0.5">{{ number_format($stats['siswa_fisik_hadir'], 0, ',', '.') }} siswa hadir fisik ({{ $stats['siswa_fisik_persen'] }}%)</p>
                         </div>
                     </div>
                 </div>
@@ -130,8 +261,11 @@
                 {{-- Right Side: Dual Pie Charts Widget (Guru & Siswa side-by-side) --}}
                 <div class="lg:col-span-7 bg-slate-50/80 border border-slate-200 rounded-xl p-3 space-y-2">
                     <div class="flex items-center justify-between border-b border-slate-200/60 pb-1.5">
-                        <span class="text-xs font-bold text-slate-800">Distribusi Kehadiran (7 Hari)</span>
-                        <span class="text-[10px] font-semibold text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200">Guru & Siswa</span>
+                        <div>
+                            <span class="text-xs font-bold text-slate-800">Distribusi Kehadiran (7 Hari Terakhir)</span>
+                            <span class="text-[10px] text-slate-500 block">Dihitung dari persentase log sesi per status terhadap total akumulasi sesi</span>
+                        </div>
+                        <span class="text-[10px] font-semibold text-slate-600 bg-white px-2 py-0.5 rounded border border-slate-200 shadow-2xs">Guru & Siswa</span>
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -141,18 +275,24 @@
                                 <canvas id="guruPieChartHeader"></canvas>
                             </div>
                             <div class="space-y-1 w-full min-w-0">
-                                <p class="text-[11px] font-bold text-slate-900 border-b border-slate-100 pb-0.5">Kehadiran Guru</p>
+                                <div class="border-b border-slate-100 pb-1 flex items-center justify-between">
+                                    <p class="text-[11px] font-bold text-slate-900">Kehadiran Guru</p>
+                                    <span class="text-[9px] text-slate-500 font-semibold" title="Total akumulasi sesi mengajar guru 7 hari terakhir">Total: {{ number_format($guruPieTotalReal, 0, ',', '.') }} Sesi</span>
+                                </div>
                                 <div class="flex items-center justify-between text-[10px]">
                                     <span class="flex items-center gap-1 truncate"><span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>Hadir</span>
-                                    <span class="font-bold text-slate-900">{{ $guruPiePct['hadir'] }}%</span>
+                                    <span class="font-bold text-slate-900" title="{{ number_format($guruPie['hadir'], 0, ',', '.') }} dari {{ number_format($guruPieTotalReal, 0, ',', '.') }} sesi mengajar">{{ $guruPiePct['hadir'] }}% <span class="text-[9px] font-normal text-slate-400">({{ number_format($guruPie['hadir'], 0, ',', '.') }})</span></span>
                                 </div>
                                 <div class="flex items-center justify-between text-[10px]">
                                     <span class="flex items-center gap-1 truncate"><span class="w-2 h-2 rounded-full bg-amber-400 shrink-0"></span>Terlambat</span>
-                                    <span class="font-bold text-slate-900">{{ $guruPiePct['terlambat'] }}%</span>
+                                    <span class="font-bold text-slate-900" title="{{ number_format($guruPie['terlambat'], 0, ',', '.') }} dari {{ number_format($guruPieTotalReal, 0, ',', '.') }} sesi mengajar">{{ $guruPiePct['terlambat'] }}% <span class="text-[9px] font-normal text-slate-400">({{ number_format($guruPie['terlambat'], 0, ',', '.') }})</span></span>
                                 </div>
                                 <div class="flex items-center justify-between text-[10px]">
-                                    <span class="flex items-center gap-1 truncate"><span class="w-2 h-2 rounded-full bg-red-400 shrink-0"></span>Alpa</span>
-                                    <span class="font-bold text-slate-900">{{ $guruPiePct['tidak_hadir'] }}%</span>
+                                    <span class="flex items-center gap-1 truncate"><span class="w-2 h-2 rounded-full bg-red-400 shrink-0"></span>Alpa/Izin</span>
+                                    <span class="font-bold text-slate-900" title="{{ number_format($guruPie['tidak_hadir'], 0, ',', '.') }} dari {{ number_format($guruPieTotalReal, 0, ',', '.') }} sesi mengajar">{{ $guruPiePct['tidak_hadir'] }}% <span class="text-[9px] font-normal text-slate-400">({{ number_format($guruPie['tidak_hadir'], 0, ',', '.') }})</span></span>
+                                </div>
+                                <div class="text-[9px] text-slate-400 pt-0.5 border-t border-slate-50 font-mono text-right" title="Formula pembagian data">
+                                    Rumus: (Sesi ÷ {{ number_format($guruPieTotalReal, 0, ',', '.') }}) × 100%
                                 </div>
                             </div>
                         </div>
@@ -163,18 +303,24 @@
                                 <canvas id="siswaPieChartHeader"></canvas>
                             </div>
                             <div class="space-y-1 w-full min-w-0">
-                                <p class="text-[11px] font-bold text-slate-900 border-b border-slate-100 pb-0.5">Kehadiran Siswa</p>
-                                <div class="flex items-center justify-between text-[10px]">
-                                    <span class="flex items-center gap-1 truncate"><span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>Hadir</span>
-                                    <span class="font-bold text-slate-900">{{ $siswaPiePct['hadir'] }}%</span>
+                                <div class="border-b border-slate-100 pb-1 flex items-center justify-between">
+                                    <p class="text-[11px] font-bold text-slate-900">Kehadiran Siswa</p>
+                                    <span class="text-[9px] text-slate-500 font-semibold" title="Total catatan presensi per sesi mapel 7 hari terakhir">Total: {{ number_format($siswaPieTotalReal, 0, ',', '.') }} Log</span>
                                 </div>
                                 <div class="flex items-center justify-between text-[10px]">
-                                    <span class="flex items-center gap-1 truncate"><span class="w-2 h-2 rounded-full bg-amber-400 shrink-0"></span>Sakit / Izin</span>
-                                    <span class="font-bold text-slate-900">{{ $siswaPiePct['sakit'] + $siswaPiePct['izin'] }}%</span>
+                                    <span class="flex items-center gap-1 truncate"><span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>Hadir</span>
+                                    <span class="font-bold text-slate-900" title="{{ number_format($siswaPie['hadir'], 0, ',', '.') }} dari {{ number_format($siswaPieTotalReal, 0, ',', '.') }} log presensi">{{ $siswaPiePct['hadir'] }}% <span class="text-[9px] font-normal text-slate-400">({{ number_format($siswaPie['hadir'], 0, ',', '.') }})</span></span>
+                                </div>
+                                <div class="flex items-center justify-between text-[10px]">
+                                    <span class="flex items-center gap-1 truncate"><span class="w-2 h-2 rounded-full bg-amber-400 shrink-0"></span>Sakit/Izin</span>
+                                    <span class="font-bold text-slate-900" title="{{ number_format($siswaPie['sakit'] + $siswaPie['izin'], 0, ',', '.') }} dari {{ number_format($siswaPieTotalReal, 0, ',', '.') }} log presensi">{{ round($siswaPiePct['sakit'] + $siswaPiePct['izin'], 1) }}% <span class="text-[9px] font-normal text-slate-400">({{ number_format($siswaPie['sakit'] + $siswaPie['izin'], 0, ',', '.') }})</span></span>
                                 </div>
                                 <div class="flex items-center justify-between text-[10px]">
                                     <span class="flex items-center gap-1 truncate"><span class="w-2 h-2 rounded-full bg-red-400 shrink-0"></span>Alpa</span>
-                                    <span class="font-bold text-slate-900">{{ $siswaPiePct['alpa'] }}%</span>
+                                    <span class="font-bold text-slate-900" title="{{ number_format($siswaPie['alpa'], 0, ',', '.') }} dari {{ number_format($siswaPieTotalReal, 0, ',', '.') }} log presensi">{{ $siswaPiePct['alpa'] }}% <span class="text-[9px] font-normal text-slate-400">({{ number_format($siswaPie['alpa'], 0, ',', '.') }})</span></span>
+                                </div>
+                                <div class="text-[9px] text-slate-400 pt-0.5 border-t border-slate-50 font-mono text-right" title="Formula pembagian data">
+                                    Rumus: (Log ÷ {{ number_format($siswaPieTotalReal, 0, ',', '.') }}) × 100%
                                 </div>
                             </div>
                         </div>
@@ -449,7 +595,9 @@
                         label: (ctx) => {
                             const total = ctx.dataset.data.reduce((a, b) => a + b, 0) || 1;
                             const pct = Math.round(ctx.parsed / total * 100);
-                            return ` ${ctx.label}: ${ctx.parsed} (${pct}%)`;
+                            const parsedFmt = new Intl.NumberFormat('id-ID').format(ctx.parsed);
+                            const totalFmt = new Intl.NumberFormat('id-ID').format(total);
+                            return ` ${ctx.label}: ${parsedFmt} data (${pct}% dari total ${totalFmt})`;
                         }
                     }
                 }

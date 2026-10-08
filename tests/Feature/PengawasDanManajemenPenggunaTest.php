@@ -190,4 +190,19 @@ class PengawasDanManajemenPenggunaTest extends TestCase
         $response = $this->actingAs($this->pengawas)->get(route('super-admin.dashboard'));
         $response->assertStatus(403);
     }
+
+    public function test_dashboard_displays_statistical_explanations_and_distinct_metrics(): void
+    {
+        $response = $this->actingAs($this->pengawas)->get(route('kepala-sekolah.dashboard'));
+
+        $response->assertStatus(200);
+        $response->assertSee('Transparansi Angka Statistik Kehadiran');
+        $response->assertSee('Basis Log Sesi KBM');
+        $response->assertSee('Log Sesi Siswa Hadir');
+        $response->assertSee('Sesi Guru Hadir');
+        $response->assertSee('Total Guru (Fisik Unik)');
+        $response->assertSee('Total Siswa (Fisik Unik)');
+        $response->assertSee('Distribusi Kehadiran (7 Hari Terakhir)');
+        $response->assertSee('Rumus:');
+    }
 }

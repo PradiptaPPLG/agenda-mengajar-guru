@@ -24,18 +24,50 @@ class DashboardController extends Controller
         $nowTime = Carbon::now()->format('H:i');
 
         // Statistik agregat hari ini (berdasarkan tanggal pertemuan, bukan created_at)
+        $guruHadirSesi = KehadiranGuru::whereHas('pertemuan', fn ($q) => $q->whereDate('tanggal', $today))->where('status', 'hadir')->count();
+        $guruTerlambatSesi = KehadiranGuru::whereHas('pertemuan', fn ($q) => $q->whereDate('tanggal', $today))->where('status', 'terlambat')->count();
+        $guruTidakHadirSesi = KehadiranGuru::whereHas('pertemuan', fn ($q) => $q->whereDate('tanggal', $today))->whereIn('status', ['tidak_hadir', 'sakit', 'alpa', 'dispensasi'])->count();
+        $guruTotalSesi = $guruHadirSesi + $guruTerlambatSesi + $guruTidakHadirSesi;
+        $totalGuruFisik = User::where('role', 'guru')->count();
+        $guruFisikHadir = KehadiranGuru::whereHas('pertemuan', fn ($q) => $q->whereDate('tanggal', $today))
+            ->where('status', 'hadir')
+            ->distinct()
+            ->pluck('guru_id')
+            ->count();
+
+        $siswaHadirSesi = KehadiranSiswa::whereHas('pertemuan', fn ($q) => $q->whereDate('tanggal', $today))->where('status', 'hadir')->count();
+        $siswaTerlambatSesi = KehadiranSiswa::whereHas('pertemuan', fn ($q) => $q->whereDate('tanggal', $today))->where('status', 'terlambat')->count();
+        $siswaTidakHadirSesi = KehadiranSiswa::whereHas('pertemuan', fn ($q) => $q->whereDate('tanggal', $today))->whereIn('status', ['sakit', 'izin', 'alpa', 'dispensasi'])->count();
+        $siswaTotalLog = $siswaHadirSesi + $siswaTerlambatSesi + $siswaTidakHadirSesi;
+        $totalSiswaFisik = User::where('role', 'siswa')->count();
+        $siswaFisikHadir = KehadiranSiswa::whereHas('pertemuan', fn ($q) => $q->whereDate('tanggal', $today))
+            ->where('status', 'hadir')
+            ->distinct()
+            ->pluck('siswa_id')
+            ->count();
+
         $stats = [
-            'guru_hadir_hari_ini' => KehadiranGuru::whereHas('pertemuan', fn ($q) => $q->whereDate('tanggal', $today))->where('status', 'hadir')->count(),
-            'guru_terlambat_hari_ini' => KehadiranGuru::whereHas('pertemuan', fn ($q) => $q->whereDate('tanggal', $today))->where('status', 'terlambat')->count(),
-            'guru_tidak_hadir_hari_ini' => KehadiranGuru::whereHas('pertemuan', fn ($q) => $q->whereDate('tanggal', $today))->whereIn('status', ['tidak_hadir', 'sakit', 'alpa', 'dispensasi'])->count(),
-            'total_guru' => User::where('role', 'guru')->count(),
+            // Guru: Akumulasi Sesi & Fisik
+            'guru_hadir_hari_ini' => $guruHadirSesi,
+            'guru_terlambat_hari_ini' => $guruTerlambatSesi,
+            'guru_tidak_hadir_hari_ini' => $guruTidakHadirSesi,
+            'total_guru' => $totalGuruFisik,
+            'guru_total_sesi' => $guruTotalSesi,
+            'guru_persen_sesi_hadir' => $guruTotalSesi > 0 ? round(($guruHadirSesi / $guruTotalSesi) * 100, 1) : 0,
+            'guru_fisik_hadir' => $guruFisikHadir,
+            'guru_fisik_persen' => $totalGuruFisik > 0 ? round(($guruFisikHadir / $totalGuruFisik) * 100, 1) : 0,
             'pertemuan_hari_ini' => Pertemuan::whereDate('tanggal', $today)->count(),
 
-            // Siswa Stats Hari Ini (berdasarkan sesi mapel pertemuan)
-            'siswa_hadir_hari_ini' => KehadiranSiswa::whereHas('pertemuan', fn ($q) => $q->whereDate('tanggal', $today))->where('status', 'hadir')->count(),
-            'siswa_terlambat_hari_ini' => KehadiranSiswa::whereHas('pertemuan', fn ($q) => $q->whereDate('tanggal', $today))->where('status', 'terlambat')->count(),
-            'siswa_tidak_hadir_hari_ini' => KehadiranSiswa::whereHas('pertemuan', fn ($q) => $q->whereDate('tanggal', $today))->whereIn('status', ['sakit', 'izin', 'alpa', 'dispensasi'])->count(),
-            'total_siswa' => User::where('role', 'siswa')->count(),
+            // Siswa: Akumulasi Sesi Mapel & Fisik
+            'siswa_hadir_hari_ini' => $siswaHadirSesi,
+            'siswa_terlambat_hari_ini' => $siswaTerlambatSesi,
+            'siswa_tidak_hadir_hari_ini' => $siswaTidakHadirSesi,
+            'total_siswa' => $totalSiswaFisik,
+            'siswa_total_log' => $siswaTotalLog,
+            'siswa_persen_sesi_hadir' => $siswaTotalLog > 0 ? round(($siswaHadirSesi / $siswaTotalLog) * 100, 1) : 0,
+            'siswa_fisik_hadir' => $siswaFisikHadir,
+            'siswa_fisik_persen' => $totalSiswaFisik > 0 ? round(($siswaFisikHadir / $totalSiswaFisik) * 100, 1) : 0,
+            'siswa_rata_sesi' => ($totalSiswaFisik > 0 && $siswaTotalLog > 0) ? round($siswaTotalLog / $totalSiswaFisik, 1) : 0,
         ];
 
         // ── Real-Time Monitoring KBM Hari Ini Berbasis Kartu & Jam Berjalan (sistem blok aware) ──
@@ -249,7 +281,8 @@ class DashboardController extends Controller
             'terlambat' => array_sum($chartTerlambat),
             'tidak_hadir' => array_sum($chartTidakHadir),
         ];
-        $guruPieTotal = array_sum($guruPie) ?: 1;
+        $guruPieTotalReal = array_sum($guruPie);
+        $guruPieTotal = $guruPieTotalReal ?: 1;
         $guruPiePct = [
             'hadir' => round($guruPie['hadir'] / $guruPieTotal * 100, 1),
             'terlambat' => round($guruPie['terlambat'] / $guruPieTotal * 100, 1),
@@ -282,7 +315,8 @@ class DashboardController extends Controller
             'alpa' => (clone $siswaQuery7)->where('status', 'alpa')->count(),
             'dispensasi' => (clone $siswaQuery7)->where('status', 'dispensasi')->count(),
         ];
-        $siswaPieTotal = array_sum($siswaPie) ?: 1;
+        $siswaPieTotalReal = array_sum($siswaPie);
+        $siswaPieTotal = $siswaPieTotalReal ?: 1;
         $siswaPiePct = [
             'hadir' => round($siswaPie['hadir'] / $siswaPieTotal * 100, 1),
             'sakit' => round($siswaPie['sakit'] / $siswaPieTotal * 100, 1),
@@ -298,9 +332,13 @@ class DashboardController extends Controller
             'recentKehadiran',
             'chartData',
             'guruPie',
+            'guruPieTotal',
+            'guruPieTotalReal',
             'guruPiePct',
             'siswaChartData',
             'siswaPie',
+            'siswaPieTotal',
+            'siswaPieTotalReal',
             'siswaPiePct',
             'today',
             'nowTime',
