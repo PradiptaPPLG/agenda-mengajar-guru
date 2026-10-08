@@ -103,7 +103,11 @@ class PenggunaController extends Controller
         $email = $validated['email'] ?? null;
         if (empty($email) && ! empty($validated['nip'])) {
             $cleanNip = preg_replace('/\s+/', '', $validated['nip']);
-            $email = $cleanNip.'@sekolah.sch.id';
+            $candidateEmail = $cleanNip.'@sekolah.sch.id';
+            if (User::where('email', $candidateEmail)->exists()) {
+                $candidateEmail = $cleanNip.'_'.substr(uniqid(), -4).'@sekolah.sch.id';
+            }
+            $email = $candidateEmail;
         }
 
         $rawPassword = $validated['password'] ?? null;

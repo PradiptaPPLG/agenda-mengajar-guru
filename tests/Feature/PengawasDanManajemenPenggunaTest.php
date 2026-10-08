@@ -150,4 +150,44 @@ class PengawasDanManajemenPenggunaTest extends TestCase
         $reportSiswa = $this->actingAs($this->pengawas)->get(route('kepala-sekolah.report.siswa'));
         $reportSiswa->assertStatus(200);
     }
+
+    public function test_user_cannot_delete_own_account(): void
+    {
+        $response = $this->actingAs($this->superAdmin)->delete(route('admin.pengguna.destroy', $this->superAdmin));
+
+        $response->assertSessionHas('error');
+        $this->assertDatabaseHas('users', ['id' => $this->superAdmin->id]);
+    }
+
+    public function test_non_superadmin_cannot_edit_or_delete_superadmin(): void
+    {
+        $admin = User::create([
+            'name' => 'Regular Admin',
+            'email' => 'regularadmin@test.com',
+            'password' => Hash::make('password'),
+            'role' => 'admin',
+            'is_active' => true,
+        ]);
+
+        // Cannot edit superadmin
+        $editResponse = $this->actingAs($admin)->get(route('admin.pengguna.edit', $this->superAdmin));
+        $editResponse->assertStatus(403);
+
+        // Cannot update superadmin
+        $updateResponse = $this->actingAs($admin)->put(route('admin.pengguna.update', $this->superAdmin), [
+            'name' => 'Hacked Name',
+            'role' => 'admin',
+        ]);
+        $updateResponse->assertStatus(403);
+
+        // Cannot delete superadmin
+        $deleteResponse = $this->actingAs($admin)->delete(route('admin.pengguna.destroy', $this->superAdmin));
+        $deleteResponse->assertStatus(403);
+    }
+
+    public function test_pengawas_cannot_access_superadmin_dashboard(): void
+    {
+        $response = $this->actingAs($this->pengawas)->get(route('super-admin.dashboard'));
+        $response->assertStatus(403);
+    }
 }

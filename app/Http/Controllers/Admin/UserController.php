@@ -235,7 +235,7 @@ class UserController extends Controller
                 'unique:users,email',
             ],
             'password' => [
-                Rule::requiredIf(fn () => ! in_array($request->input('role'), ['guru', 'siswa'])),
+                Rule::requiredIf(fn () => ! in_array($request->input('role'), ['guru', 'siswa', 'kepala_sekolah', 'pengawas'])),
                 'nullable',
                 'string',
                 'min:8',
@@ -269,7 +269,7 @@ class UserController extends Controller
 
         $rawPassword = $validated['password'] ?? null;
         if (! $rawPassword) {
-            if ($validated['role'] === 'guru' && ! empty($validated['nip'])) {
+            if (in_array($validated['role'], ['guru', 'kepala_sekolah', 'pengawas']) && ! empty($validated['nip'])) {
                 $rawPassword = preg_replace('/\s+/', '', $validated['nip']);
             } elseif ($validated['role'] === 'siswa' && ! empty($validated['nis'])) {
                 $rawPassword = preg_replace('/\s+/', '', $validated['nis']);
