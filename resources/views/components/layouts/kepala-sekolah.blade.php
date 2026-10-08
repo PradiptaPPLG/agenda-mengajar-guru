@@ -27,7 +27,7 @@
                     </div>
                     <div>
                         <p class="text-sm font-bold text-slate-900 leading-tight">{{ \App\Models\Setting::get('school_name', 'Agenda Mengajar') }}</p>
-                        <p class="text-xs text-slate-500">Kepala Sekolah</p>
+                        <p class="text-xs text-slate-500">{{ auth()->user()->role === 'pengawas' ? 'Pengawas Sekolah' : 'Kepala Sekolah' }}</p>
                     </div>
                 </div>
 
@@ -72,7 +72,7 @@
                     </div>
                     <div class="flex-1 min-w-0">
                         <p class="text-sm font-medium text-slate-900 truncate">{{ auth()->user()->name }}</p>
-                        <p class="text-xs text-slate-500 truncate">Kepala Sekolah</p>
+                        <p class="text-xs text-slate-500 truncate">{{ auth()->user()->role === 'pengawas' ? 'Pengawas Sekolah' : 'Kepala Sekolah' }}</p>
                     </div>
                     <form method="POST" action="{{ route('logout') }}" onsubmit="event.preventDefault(); window.dispatchEvent(new CustomEvent('open-logout-modal', { detail: { form: this } }));">
                         @csrf

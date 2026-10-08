@@ -1,7 +1,7 @@
 @php
     $layout = match (auth()->user()?->role) {
         'super_admin', 'admin' => 'layouts.admin',
-        'kepala_sekolah' => 'layouts.kepala-sekolah',
+        'kepala_sekolah', 'pengawas' => 'layouts.kepala-sekolah',
         'guru' => 'layouts.guru',
         'siswa' => 'layouts.siswa',
         default => 'layouts.app',
@@ -101,15 +101,15 @@
                 </div>
                 @endif
 
-                {{-- Kepala Sekolah --}}
-                @if(auth()->user()?->role === 'kepala_sekolah')
+                {{-- Kepala Sekolah & Pengawas --}}
+                @if(in_array(auth()->user()?->role, ['kepala_sekolah', 'pengawas']))
                 <div class="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm relative overflow-hidden">
                     <div class="flex items-center gap-4 mb-6">
                         <div class="w-14 h-14 bg-violet-100 text-violet-600 rounded-2xl flex items-center justify-center shrink-0">
                             <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
                         </div>
                         <div>
-                            <h3 class="text-2xl font-bold text-slate-900">Panduan Kepala Sekolah</h3>
+                            <h3 class="text-2xl font-bold text-slate-900">Panduan {{ auth()->user()?->role === 'pengawas' ? 'Pengawas Sekolah' : 'Kepala Sekolah' }}</h3>
                             <p class="text-slate-500">Pemantauan kegiatan akademik dan rekapitulasi.</p>
                         </div>
                     </div>

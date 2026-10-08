@@ -66,7 +66,12 @@ class User extends Authenticatable
 
     public function isKepalaSekolah(): bool
     {
-        return $this->role === 'kepala_sekolah';
+        return in_array($this->role, ['kepala_sekolah', 'pengawas']);
+    }
+
+    public function isPengawas(): bool
+    {
+        return $this->role === 'pengawas';
     }
 
     public function isPiket(): bool
@@ -115,10 +120,12 @@ class User extends Authenticatable
             'super_admin' => 'Super Admin',
             'admin' => 'Admin',
             'kepala_sekolah' => 'Kepala Sekolah',
+            'pengawas' => 'Pengawas Sekolah',
             'guru' => 'Guru',
             'siswa' => 'Siswa',
             'piket' => 'Guru Piket',
-            default => ucfirst($this->role),
+            'tu' => 'Tata Usaha (TU)',
+            default => ucfirst(str_replace('_', ' ', $this->role)),
         };
     }
 

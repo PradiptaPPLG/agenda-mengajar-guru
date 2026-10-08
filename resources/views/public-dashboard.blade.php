@@ -43,7 +43,7 @@
                             'admin', 'super_admin' => route('admin.dashboard'),
                             'guru' => route('guru.dashboard'),
                             'siswa' => route('siswa.dashboard'),
-                            'kepala_sekolah' => route('kepala-sekolah.dashboard'),
+                            'kepala_sekolah', 'pengawas' => route('kepala-sekolah.dashboard'),
                             'piket' => route('piket.dashboard'),
                             default => route('login'),
                         };

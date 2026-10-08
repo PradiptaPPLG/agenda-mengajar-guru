@@ -114,7 +114,7 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
     Route::resource('users', AdminUserController::class);
 
     // Manajemen Semua Pengguna (Role & Spatie Role)
-    Route::resource('pengguna', PenggunaController::class)->only(['index', 'edit', 'update']);
+    Route::resource('pengguna', PenggunaController::class);
 
     // Role & Permission Management
     Route::resource('permission-categories', PermissionCategoryController::class)->except(['show']);
@@ -207,8 +207,8 @@ Route::middleware(['auth', 'role:tu,super_admin,admin'])
         // Bisa tambahkan route export disini
     });
 
-// ─── Kepala Sekolah ──────────────────────────────────────────────────────────
-Route::middleware(['auth', 'role:kepala_sekolah,super_admin'])
+// ─── Kepala Sekolah & Pengawas ───────────────────────────────────────────────
+Route::middleware(['auth', 'role:kepala_sekolah,super_admin,pengawas'])
     ->prefix('kepala-sekolah')
     ->name('kepala-sekolah.')
     ->group(function () {

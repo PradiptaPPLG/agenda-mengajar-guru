@@ -166,8 +166,8 @@ class PertemuanController extends Controller
         $jadwal = $fotoBukti->pertemuan?->jadwal;
         $isOwner = $jadwal && (int) $jadwal->guru_id === (int) $user->id;
         $isPengganti = $fotoBukti->pertemuan?->kehadiranGuru && ($fotoBukti->pertemuan->kehadiranGuru->guru_pengganti_nama === $user->name);
-        $hasPrivilege = in_array($user->role, ['admin', 'super_admin', 'piket', 'kepala_sekolah'])
-            || $user->hasAnyRole(['admin', 'super_admin', 'piket', 'kepala_sekolah']);
+        $hasPrivilege = in_array($user->role, ['admin', 'super_admin', 'piket', 'kepala_sekolah', 'pengawas'])
+            || $user->hasAnyRole(['admin', 'super_admin', 'piket', 'kepala_sekolah', 'pengawas']);
 
         abort_unless($isOwner || $isPengganti || $hasPrivilege, 403, 'Anda tidak memiliki akses untuk mengunduh foto ini.');
 
@@ -207,8 +207,8 @@ class PertemuanController extends Controller
         $jadwal = $pertemuan->jadwal;
         $isOwner = $jadwal && (int) $jadwal->guru_id === (int) $user->id;
         $isPengganti = $pertemuan->kehadiranGuru && ($pertemuan->kehadiranGuru->guru_pengganti_nama === $user->name);
-        $hasPrivilege = in_array($user->role, ['admin', 'super_admin', 'piket', 'kepala_sekolah'])
-            || $user->hasAnyRole(['admin', 'super_admin', 'piket', 'kepala_sekolah']);
+        $hasPrivilege = in_array($user->role, ['admin', 'super_admin', 'piket', 'kepala_sekolah', 'pengawas'])
+            || $user->hasAnyRole(['admin', 'super_admin', 'piket', 'kepala_sekolah', 'pengawas']);
 
         abort_unless($isOwner || $isPengganti || $hasPrivilege, 403, 'Anda tidak memiliki akses untuk mengunduh foto pertemuan ini.');
 
