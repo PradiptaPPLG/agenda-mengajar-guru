@@ -241,7 +241,7 @@ class UserController extends Controller
                 'min:8',
                 'confirmed',
             ],
-            'role' => ['required', 'in:guru,siswa,piket,tu'],
+            'role' => ['required', 'in:guru,siswa,piket,tu,kepala_sekolah,pengawas,admin,super_admin'],
             'spatie_roles' => ['nullable', 'array'],
             'spatie_roles.*' => ['exists:roles,name'],
             'nip' => [
@@ -290,7 +290,7 @@ class UserController extends Controller
             $user->syncRoles($validated['spatie_roles']);
         }
 
-        if ($validated['role'] === 'guru') {
+        if (in_array($validated['role'], ['guru', 'kepala_sekolah', 'pengawas']) || ! empty($validated['nip'])) {
             $hasKaprogRole = collect($validated['spatie_roles'] ?? [])->contains(fn ($r) => str_contains(strtolower($r), 'kaprog'));
 
             $user->guruProfile()->create([
@@ -362,7 +362,7 @@ class UserController extends Controller
                 Rule::unique('users')->ignore($user->id),
             ],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
-            'role' => ['required', 'in:guru,siswa,piket,tu'],
+            'role' => ['required', 'in:guru,siswa,piket,tu,kepala_sekolah,pengawas,admin,super_admin'],
             'spatie_roles' => ['nullable', 'array'],
             'spatie_roles.*' => ['exists:roles,name'],
             'nip' => [
@@ -406,7 +406,7 @@ class UserController extends Controller
         $user->syncRoles($validated['spatie_roles'] ?? []);
 
         // Manage Guru specific data
-        if ($validated['role'] === 'guru') {
+        if (in_array($validated['role'], ['guru', 'kepala_sekolah', 'pengawas']) || ! empty($validated['nip'])) {
             $hasKaprogRole = collect($validated['spatie_roles'] ?? [])->contains(fn ($r) => str_contains(strtolower($r), 'kaprog'));
 
             $user->guruProfile()->updateOrCreate(

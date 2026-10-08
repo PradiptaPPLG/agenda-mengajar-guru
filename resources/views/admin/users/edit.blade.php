@@ -27,7 +27,7 @@
                             @error('name')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                         </div>
 
-                        <div id="nip-field" class="{{ old('role', $user->role) === 'guru' ? '' : 'hidden' }}">
+                        <div id="nip-field" class="{{ in_array(old('role', $user->role), ['guru', 'kepala_sekolah', 'pengawas']) ? '' : 'hidden' }}">
                             <label class="block text-sm font-medium text-slate-700 mb-1.5">NIP (opsional)</label>
                             <input type="text" name="nip" value="{{ old('nip', $user->guruProfile?->nip) }}"
                                    placeholder="Contoh: 198109152006041043"
@@ -45,7 +45,21 @@
                             <label class="block text-sm font-medium text-slate-700 mb-1.5">Role Sistem Utama <span class="text-red-500">*</span></label>
                             <select name="role" required onchange="handleRoleChange(this.value)"
                                     class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50">
-                                @foreach(['guru' => 'Guru', 'piket' => 'Guru Piket', 'tu' => 'Tata Usaha (TU)', 'siswa' => 'Siswa'] as $val => $label)
+                                @php
+                                    $availableRoles = [
+                                        'guru' => 'Guru',
+                                        'kepala_sekolah' => 'Kepala Sekolah',
+                                        'pengawas' => 'Pengawas Sekolah',
+                                        'admin' => 'Admin',
+                                        'piket' => 'Guru Piket',
+                                        'tu' => 'Tata Usaha (TU)',
+                                        'siswa' => 'Siswa',
+                                    ];
+                                    if (auth()->user()->isSuperAdmin()) {
+                                        $availableRoles['super_admin'] = 'Super Admin';
+                                    }
+                                @endphp
+                                @foreach($availableRoles as $val => $label)
                                 <option value="{{ $val }}" {{ old('role', $user->role) === $val ? 'selected' : '' }}>{{ $label }}</option>
                                 @endforeach
                             </select>
@@ -498,7 +512,8 @@
             const emailMark = document.getElementById('email-required-mark');
             const emailHint = document.getElementById('email-optional-hint');
 
-            if (nipField) nipField.classList.toggle('hidden', val !== 'guru');
+            const showNip = ['guru', 'kepala_sekolah', 'pengawas'].includes(val);
+            if (nipField) nipField.classList.toggle('hidden', !showNip);
             if (guruFields) guruFields.classList.toggle('hidden', val !== 'guru');
             if (siswaFields) siswaFields.classList.toggle('hidden', val !== 'siswa');
 

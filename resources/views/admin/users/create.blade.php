@@ -27,7 +27,7 @@
                             @error('name')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                         </div>
 
-                        <div id="nip-field" class="{{ old('role') === 'guru' ? '' : 'hidden' }}">
+                        <div id="nip-field" class="{{ in_array(old('role'), ['guru', 'kepala_sekolah', 'pengawas']) ? '' : 'hidden' }}">
                             <label class="block text-sm font-medium text-slate-700 mb-1.5">NIP (opsional)</label>
                             <input type="text" name="nip" value="{{ old('nip') }}"
                                    placeholder="Contoh: 198109152006041043"
@@ -47,6 +47,12 @@
                                     class="w-full px-3.5 py-2.5 border {{ $errors->has('role') ? 'border-red-400' : 'border-slate-200' }} rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50">
                                 <option value="">Pilih role...</option>
                                 <option value="guru" {{ old('role') === 'guru' ? 'selected' : '' }}>Guru</option>
+                                <option value="kepala_sekolah" {{ old('role') === 'kepala_sekolah' ? 'selected' : '' }}>Kepala Sekolah</option>
+                                <option value="pengawas" {{ old('role') === 'pengawas' ? 'selected' : '' }}>Pengawas Sekolah</option>
+                                <option value="admin" {{ old('role') === 'admin' ? 'selected' : '' }}>Admin</option>
+                                @if(auth()->user()->isSuperAdmin())
+                                <option value="super_admin" {{ old('role') === 'super_admin' ? 'selected' : '' }}>Super Admin</option>
+                                @endif
                                 <option value="piket" {{ old('role') === 'piket' ? 'selected' : '' }}>Guru Piket</option>
                                 <option value="tu" {{ old('role') === 'tu' ? 'selected' : '' }}>Tata Usaha (TU)</option>
                                 <option value="siswa" {{ old('role') === 'siswa' ? 'selected' : '' }}>Siswa</option>
@@ -263,7 +269,8 @@
             const emailMark = document.getElementById('email-required-mark');
             const emailHint = document.getElementById('email-optional-hint');
 
-            if (nipField) nipField.classList.toggle('hidden', val !== 'guru');
+            const showNip = ['guru', 'kepala_sekolah', 'pengawas'].includes(val);
+            if (nipField) nipField.classList.toggle('hidden', !showNip);
             if (guruFields) guruFields.classList.toggle('hidden', val !== 'guru');
             if (siswaFields) siswaFields.classList.toggle('hidden', val !== 'siswa');
 
