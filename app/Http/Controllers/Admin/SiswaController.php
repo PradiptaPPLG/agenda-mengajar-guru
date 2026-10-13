@@ -79,9 +79,10 @@ class SiswaController extends Controller
             'ids.*' => ['exists:users,id'],
         ]);
 
-        User::whereIn('id', $request->input('ids'))->where('role', 'siswa')->delete();
+        $ids = $request->input('ids');
+        User::whereIn('id', $ids)->where('role', 'siswa')->delete();
 
-        return redirect()->route('admin.siswa.index')->with('success', count($request->input('ids')).' siswa berhasil dihapus.');
+        return redirect()->route('admin.siswa.index')->with('success', count($ids).' siswa berhasil dihapus.');
     }
 
     public function index(Request $request)

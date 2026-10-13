@@ -141,7 +141,7 @@
                                                     onclick="openFotoPreviewModal('{{ $imgSrc }}', '{{ $downloadSrc }}', 'Foto Masuk (Awal)', '{{ addslashes($foto->siswa->name ?? 'Siswa') }}', '{{ ucfirst($foto->status_guru_dilaporkan) }}', '{{ $foto->created_at->format('H:i') }} WIB')"
                                                     title="Klik untuk melihat foto lebih besar"
                                                     class="w-14 h-14 rounded-lg overflow-hidden bg-slate-200 block border border-slate-200 relative group cursor-pointer text-left">
-                                                <img src="{{ $imgSrc }}" alt="Bukti Masuk {{ $foto->siswa->name }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform">
+                                                <img src="{{ $imgSrc }}" alt="Bukti Masuk {{ $foto->siswa?->name ?? 'Siswa' }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform">
                                                 <span class="absolute bottom-0 inset-x-0 bg-black/60 text-[9px] text-white py-0.5 text-center font-bold">Masuk</span>
                                                 <div class="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                                     <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/></svg>
@@ -158,7 +158,7 @@
                                                         onclick="openFotoPreviewModal('{{ $imgOut }}', '{{ $downloadOut }}', 'Foto Keluar (Akhir)', '{{ addslashes($foto->siswa->name ?? 'Siswa') }}', '{{ ucfirst($foto->status_guru_dilaporkan) }}', '{{ $foto->checkout_at ? $foto->checkout_at->format('H:i') . ' WIB' : '-' }}')"
                                                         title="Klik untuk melihat foto lebih besar"
                                                         class="w-14 h-14 rounded-lg overflow-hidden bg-slate-200 block border border-emerald-300 relative group cursor-pointer text-left">
-                                                    <img src="{{ $imgOut }}" alt="Bukti Checkout {{ $foto->siswa->name }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform">
+                                                    <img src="{{ $imgOut }}" alt="Bukti Checkout {{ $foto->siswa?->name ?? 'Siswa' }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform">
                                                     <span class="absolute bottom-0 inset-x-0 bg-emerald-700/80 text-[9px] text-white py-0.5 text-center font-bold">Keluar</span>
                                                     <div class="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                                         <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/></svg>
@@ -168,7 +168,7 @@
                                         @endif
                                     </div>
                                     <div class="min-w-0 flex-1 space-y-0.5">
-                                        <p class="text-xs font-bold text-slate-800 truncate">{{ $foto->siswa->name }}</p>
+                                        <p class="text-xs font-bold text-slate-800 truncate">{{ $foto->siswa?->name ?? 'Siswa' }}</p>
                                         <p class="text-[11px] text-slate-500">Status: <span class="font-semibold {{ $foto->status_guru_dilaporkan === 'hadir' ? 'text-emerald-700' : 'text-red-600' }}">{{ ucfirst($foto->status_guru_dilaporkan) }}</span></p>
                                         <p class="text-[10px] text-slate-600 font-medium">Foto Masuk: {{ $foto->created_at->format('H:i') }} WIB</p>
                                         @if($foto->checkout_at)
@@ -265,15 +265,20 @@
 
                 @if($pertemuan->kehadiranSiswas->count() > 0)
                 <div class="divide-y divide-slate-100 pb-2" id="siswa-list-container">
-                    @foreach($pertemuan->kehadiranSiswas->sortBy('siswa.name') as $ks)
-                    <div class="px-4 py-3 flex items-center gap-3 siswa-row" data-name="{{ strtolower($ks->siswa->name ?? '') }} {{ strtolower($ks->siswa->siswaProfile?->nis ?? '') }}">
+                    @foreach($pertemuan->kehadiranSiswas->sortBy(fn($item) => $item->siswa?->name ?? 'ZZZ') as $ks)
+                    <div class="px-4 py-3 flex items-center gap-3 siswa-row" data-name="{{ strtolower($ks->siswa?->name ?? '') }} {{ strtolower($ks->siswa?->siswaProfile?->nis ?? '') }}">
                         {{-- Avatar --}}
                         <div class="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center shrink-0">
-                            <span class="text-xs font-bold text-slate-600">{{ substr($ks->siswa->name ?? '?', 0, 1) }}</span>
+                            <span class="text-xs font-bold text-slate-600">{{ substr($ks->siswa?->name ?? '?', 0, 1) }}</span>
                         </div>
                         <div class="flex-1 min-w-0">
-                            <p class="text-sm font-medium text-slate-900 truncate">{{ $ks->siswa->name }}</p>
-                            @if($ks->siswa->siswaProfile?->nis)
+                            <p class="text-sm font-medium text-slate-900 truncate">
+                                {{ $ks->siswa?->name ?? 'Siswa (Dihapus)' }}
+                                @if($ks->siswa?->trashed())
+                                    <span class="text-[11px] font-normal text-rose-500">(Dihapus)</span>
+                                @endif
+                            </p>
+                            @if($ks->siswa?->siswaProfile?->nis)
                                 <p class="text-[11px] text-slate-400">NIS: {{ $ks->siswa->siswaProfile->nis }}</p>
                             @endif
                         </div>

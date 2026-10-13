@@ -61,8 +61,8 @@
                 <tbody class="divide-y divide-slate-100">
                     @forelse($summary as $row)
                     <tr class="hover:bg-slate-50 transition-colors">
-                        <td class="px-6 py-4 font-medium text-slate-900">{{ $row['siswa']->user->name }}</td>
-                        <td class="px-6 py-4 text-slate-500">{{ $row['siswa']->kelas->nama }}</td>
+                        <td class="px-6 py-4 font-medium text-slate-900">{{ $row['siswa']->user?->name ?? 'Siswa (Dihapus)' }}</td>
+                        <td class="px-6 py-4 text-slate-500">{{ $row['siswa']->kelas?->nama ?? '-' }}</td>
                         <td class="px-6 py-4 text-center font-bold text-emerald-600">{{ $row['hadir'] }}</td>
                         <td class="px-6 py-4 text-center font-bold text-blue-600">{{ $row['sakit'] }}</td>
                         <td class="px-6 py-4 text-center font-bold text-amber-600">{{ $row['izin'] }}</td>

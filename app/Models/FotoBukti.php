@@ -37,7 +37,7 @@ class FotoBukti extends Model
 
     public function siswa(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'siswa_id');
+        return $this->belongsTo(User::class, 'siswa_id')->withTrashed();
     }
 
     public function getFotoUrlAttribute(): ?string

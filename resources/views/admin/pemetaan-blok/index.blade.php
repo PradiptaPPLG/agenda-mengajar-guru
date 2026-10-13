@@ -110,8 +110,8 @@
                                     <div class="w-5 h-5 rounded bg-slate-200 text-slate-500 flex items-center justify-center text-[10px] font-bold shrink-0">
                                         {{ $index + 1 }}
                                     </div>
-                                    <span class="text-xs font-medium text-slate-800 truncate" title="{{ $s->user->name }}">
-                                        {{ $s->user->name }}
+                                    <span class="text-xs font-medium text-slate-800 truncate" title="{{ $s->user?->name ?? 'Siswa (Dihapus)' }}">
+                                        {{ $s->user?->name ?? 'Siswa (Dihapus)' }}
                                     </span>
                                 </div>
                                 <div class="flex border border-slate-300 rounded-md overflow-hidden bg-white">

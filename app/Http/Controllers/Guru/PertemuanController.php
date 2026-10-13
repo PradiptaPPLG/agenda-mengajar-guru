@@ -56,6 +56,8 @@ class PertemuanController extends Controller
 
         $siswaIds = $siswaQuery->pluck('user_id')->filter();
 
+        $isLocked = $tanggalCarbon->lt(now()->subDays(7)->startOfDay()) || $tanggalCarbon->gt(now()->endOfDay());
+
         foreach ($siswaIds as $siswaId) {
             KehadiranSiswa::firstOrCreate(
                 ['pertemuan_id' => $pertemuan->id, 'siswa_id' => $siswaId],
@@ -63,9 +65,7 @@ class PertemuanController extends Controller
             );
         }
 
-        $pertemuan->load('kehadiranSiswas.siswa');
-
-        $isLocked = $tanggalCarbon->lt(now()->subDays(7)->startOfDay()) || $tanggalCarbon->gt(now()->endOfDay());
+        $pertemuan->load(['kehadiranSiswas.siswa.siswaProfile', 'fotoBuktis.siswa']);
 
         // Get consecutive schedules in the same session
         $consecutiveSchedules = $jadwal->getConsecutiveSchedules();

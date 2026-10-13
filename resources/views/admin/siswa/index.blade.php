@@ -102,11 +102,11 @@
                         @forelse($siswa as $s)
                         <tr class="hover:bg-slate-50 transition-colors">
                             <td class="px-6 py-4">
-                                <input type="checkbox" name="ids[]" value="{{ $s->user->id }}" form="bulk-delete-form" class="row-checkbox rounded border-slate-300 text-blue-600 shadow-sm focus:ring-blue-500">
+                                <input type="checkbox" name="ids[]" value="{{ $s->user?->id }}" form="bulk-delete-form" class="row-checkbox rounded border-slate-300 text-blue-600 shadow-sm focus:ring-blue-500">
                             </td>
                             <td class="px-6 py-4">
                                 <div class="font-medium text-slate-900 flex items-center gap-2">
-                                    {{ $s->user->name }}
+                                    {{ $s->user?->name ?? 'Siswa (Dihapus)' }}
                                     @if($s->kelas && $s->kelas->blok_awal === 'split' && $s->kelompok_blok)
                                         <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold {{ $s->kelompok_blok === 'kelompok_a' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700' }}">
                                             {{ $s->kelompok_blok === 'kelompok_a' ? 'Kel. A' : 'Kel. B' }}
