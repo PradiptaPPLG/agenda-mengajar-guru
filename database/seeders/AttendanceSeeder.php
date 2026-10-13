@@ -114,13 +114,13 @@ class AttendanceSeeder extends Seeder
         $mapels = MataPelajaran::all()->keyBy('kode');
 
         // Pastikan kelas 12RPL ada
-        if (! isset($allClasses['12RPL'])) {
+        if (! isset($allClasses['12PPLG'])) {
             $kelas12RPL = Kelas::create([
-                'nama' => '12RPL',
+                'nama' => '12PPLG',
                 'tingkat' => 'XII',
                 'tahun_ajaran' => Setting::getTahunAjaranAktif(),
             ]);
-            $allClasses['12RPL'] = $kelas12RPL;
+            $allClasses['12PPLG'] = $kelas12RPL;
         }
 
         $classListNames = [
@@ -131,7 +131,7 @@ class AttendanceSeeder extends Seeder
             '11KLN1', '11KLN2',
             '11DKV',
             '11PPLG',
-            '12RPL',
+            '12PPLG',
         ];
 
         // ── 3. Kurikulum dan Pemetaan Mapel per Kelas ─────────────────────────
@@ -156,7 +156,7 @@ class AttendanceSeeder extends Seeder
             '11KLN2' => ['KLN', 'KLN', 'INF', 'MTK', 'BIND', 'BING', 'PPK', 'SEJ'],
             '11DKV' => ['DKV', 'DKV', 'DKV', 'DKV', 'INF', 'MTK', 'BIND', 'BING', 'PPK', 'SEJ'],
             '11PPLG' => ['INF', 'RPL', 'RPL', 'RPL', 'PWB', 'PWB', 'BD', 'BD', 'MTK', 'BIND', 'BING', 'PPK', 'SEJ'],
-            '12RPL' => ['INF', 'RPL', 'RPL', 'RPL', 'PWB', 'PWB', 'BD', 'BD', 'MTK', 'BIND', 'BING', 'PPK', 'SEJ'],
+            '12PPLG' => ['INF', 'RPL', 'RPL', 'RPL', 'PWB', 'PWB', 'BD', 'BD', 'MTK', 'BIND', 'BING', 'PPK', 'SEJ'],
         ];
 
         // Sinkronkan relasi kelas_mata_pelajaran pivot table
@@ -194,10 +194,10 @@ class AttendanceSeeder extends Seeder
             }
             $subjects = $curriculum[$className];
             foreach ($subjects as $mapel) {
-                if ($mapel === 'INF' && in_array($className, ['11PPLG', '12RPL', '11DKV']) && $nastitiInfCount < 3) {
+                if ($mapel === 'INF' && in_array($className, ['11PPLG', '12PPLG', '11DKV']) && $nastitiInfCount < 3) {
                     $teacher = 'Nastiti, S.Pd.';
                     $nastitiInfCount++;
-                } elseif ($mapel === 'RPL' && in_array($className, ['11PPLG', '12RPL']) && $nastitiRplCount < 2) {
+                } elseif ($mapel === 'RPL' && in_array($className, ['11PPLG', '12PPLG']) && $nastitiRplCount < 2) {
                     $teacher = 'Nastiti, S.Pd.';
                     $nastitiRplCount++;
                 } else {
@@ -258,8 +258,8 @@ class AttendanceSeeder extends Seeder
         // Jadwal pasti Guru Reviewer (Nastiti)
         $bookSlot('11PPLG', 'Nastiti, S.Pd.', 'INF', 1, 1);
         $bookSlot('11PPLG', 'Nastiti, S.Pd.', 'RPL', 3, 1);
-        $bookSlot('12RPL', 'Nastiti, S.Pd.', 'INF', 2, 1);
-        $bookSlot('12RPL', 'Nastiti, S.Pd.', 'RPL', 4, 1);
+        $bookSlot('12PPLG', 'Nastiti, S.Pd.', 'INF', 2, 1);
+        $bookSlot('12PPLG', 'Nastiti, S.Pd.', 'RPL', 4, 1);
         $bookSlot('11DKV', 'Nastiti, S.Pd.', 'INF', 5, 1);
 
         // Jadwalkan sesi lainnya ke slot kosong
@@ -268,7 +268,7 @@ class AttendanceSeeder extends Seeder
             $mapel = $session['mapel'];
             $teacher = $session['guru'];
 
-            if ($teacher === 'Nastiti, S.Pd.' && in_array($className, ['11PPLG', '12RPL', '11DKV']) && in_array($mapel, ['INF', 'RPL'])) {
+            if ($teacher === 'Nastiti, S.Pd.' && in_array($className, ['11PPLG', '12PPLG', '11DKV']) && in_array($mapel, ['INF', 'RPL'])) {
                 $alreadyBooked = false;
                 foreach ($jadwals as $j) {
                     if ($j->kelas_id === ($allClasses[$className]->id ?? 0) && $j->guru_id === ($teachers[$teacher]->id ?? 0) && $j->mata_pelajaran_id === ($mapels[$mapel]->id ?? 0)) {

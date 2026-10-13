@@ -57,11 +57,11 @@ class MataPelajaranMerdekaSeeder extends Seeder
             ['nama' => 'Front Office', 'kode' => 'HTL-FO', 'jenis' => 'produktif'],
             ['nama' => 'Perhotelan', 'kode' => 'HTL', 'jenis' => 'produktif'],
 
-            // PPLG / RPL
+            // PPLG
             ['nama' => 'Pemrograman Web dan Bergerak', 'kode' => 'PPLG-PWB', 'jenis' => 'produktif'],
             ['nama' => 'Basis Data', 'kode' => 'BD', 'jenis' => 'produktif'],
             ['nama' => 'Desain UI/UX', 'kode' => 'PPLG-UIUX', 'jenis' => 'produktif'],
-            ['nama' => 'Rekayasa Perangkat Lunak', 'kode' => 'RPL', 'jenis' => 'produktif'],
+            ['nama' => 'Pengembangan Perangkat Lunak dan Gim', 'kode' => 'PPLG', 'jenis' => 'produktif'],
             ['nama' => 'Pemrograman Web', 'kode' => 'PWB', 'jenis' => 'produktif'],
 
             // DKV
@@ -77,7 +77,7 @@ class MataPelajaranMerdekaSeeder extends Seeder
 
         // Update existing records jenis
         MataPelajaran::whereIn('kode', ['MTK', 'BIND', 'BING', 'PPK', 'SEJ', 'INF', 'PAIBP', 'PPKN', 'PJOK', 'SB', 'IPAS', 'MULOK'])->update(['jenis' => 'umum']);
-        MataPelajaran::whereIn('kode', ['RPL', 'BD', 'PWB', 'DKV', 'AKL', 'PM', 'MPLB', 'HTL', 'KLN'])->update(['jenis' => 'produktif']);
+        MataPelajaran::whereIn('kode', ['PPLG', 'RPL', 'BD', 'PWB', 'DKV', 'AKL', 'PM', 'MPLB', 'HTL', 'KLN'])->update(['jenis' => 'produktif']);
 
         foreach (array_merge($umum, $produktif) as $item) {
             MataPelajaran::updateOrCreate(['kode' => $item['kode']], $item);

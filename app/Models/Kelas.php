@@ -36,7 +36,27 @@ class Kelas extends Model
 
         $query = $withTrashed ? self::withTrashed() : self::query();
 
-        return $query->whereRaw("LOWER(REPLACE(REPLACE(nama, ' ', ''), '-', '')) = ?", [$clean])->first();
+        $result = (clone $query)->whereRaw("LOWER(REPLACE(REPLACE(nama, ' ', ''), '-', '')) = ?", [$clean])->first();
+        if ($result) {
+            return $result;
+        }
+
+        // Alias fallback: RPL <-> PPLG (karena RPL dan PPLG adalah jurusan yang sama di SMKN 1 Ciamis)
+        if (str_contains($clean, 'rpl')) {
+            $altClean = str_replace('rpl', 'pplg', $clean);
+            $result = (clone $query)->whereRaw("LOWER(REPLACE(REPLACE(nama, ' ', ''), '-', '')) = ?", [$altClean])->first();
+            if ($result) {
+                return $result;
+            }
+        } elseif (str_contains($clean, 'pplg')) {
+            $altClean = str_replace('pplg', 'rpl', $clean);
+            $result = (clone $query)->whereRaw("LOWER(REPLACE(REPLACE(nama, ' ', ''), '-', '')) = ?", [$altClean])->first();
+            if ($result) {
+                return $result;
+            }
+        }
+
+        return null;
     }
 
     public function waliKelas(): BelongsTo

@@ -296,9 +296,15 @@ class KenaikanKelasController extends Controller
                 return $match;
             }
 
-            // PPLG -> RPL (misal: 10PPLG -> 11RPL)
-            $pplg = preg_replace('/^11PPLG/i', '11RPL', $expectedExact);
-            $match = $targetClasses->first(fn ($c) => strtoupper(trim($c->nama)) === $pplg);
+            // PPLG <-> RPL alias (mendukung format standar PPLG dan nama lama RPL)
+            $pplgDirect = preg_replace('/^11RPL/i', '11PPLG', $expectedExact);
+            $match = $targetClasses->first(fn ($c) => strtoupper(trim($c->nama)) === $pplgDirect);
+            if ($match) {
+                return $match;
+            }
+
+            $rplFallback = preg_replace('/^11PPLG/i', '11RPL', $expectedExact);
+            $match = $targetClasses->first(fn ($c) => strtoupper(trim($c->nama)) === $rplFallback);
             if ($match) {
                 return $match;
             }

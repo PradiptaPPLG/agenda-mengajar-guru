@@ -18,7 +18,7 @@
                     'Hotel': 2,
                     'Managemen Bisnis': 3,
                     'Desain Komunikasi Visual': 1,
-                    'Rekayasa Perangkat Lunak': 1
+                    'PPLG': 1
                 },
                 updateNama() {
                     if (!this.tingkat || !this.jurusan) return;

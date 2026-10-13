@@ -878,7 +878,7 @@ class UserController extends Controller
             'NIP' => '198001012010011001',
             'Email' => 'budi@sekolah.sch.id',
             'Mapel yang diampu' => 'MAT, INGG',
-            'Kelas' => '10 PPLG, 11 RPL',
+            'Kelas' => '10 PPLG, 11 PPLG',
         ]);
 
         $writer->close();
@@ -891,12 +891,18 @@ class UserController extends Controller
         $fromKelas = Kelas::all()->map(function ($k) {
             preg_match('/^\d+([A-Za-z]+)/', $k->nama, $matches);
 
-            return isset($matches[1]) ? strtoupper($matches[1]) : null;
+            $abbr = isset($matches[1]) ? strtoupper($matches[1]) : null;
+
+            return $abbr === 'RPL' ? 'PPLG' : $abbr;
         })->filter()->unique()->values()->toArray();
 
-        $default = ['AKL', 'PPLG', 'RPL', 'DKV', 'PM', 'MPLB', 'HTL', 'KLN', 'ITL'];
+        // 7 Jurusan resmi di SMKN 1 Ciamis: PPLG, DKV, MPLB, AKL, PM, KLN, HTL (ditambah rumpun ITL/PBS/AK bila ada)
+        $default = ['AKL', 'PPLG', 'DKV', 'PM', 'MPLB', 'HTL', 'KLN', 'ITL', 'PBS'];
 
-        return array_values(array_unique(array_merge($default, $fromKelas)));
+        $all = array_values(array_unique(array_merge($default, $fromKelas)));
+
+        // Hapus 'RPL' karena merupakan nama lama dari PPLG
+        return array_values(array_filter($all, fn ($j) => strtoupper($j) !== 'RPL'));
     }
 
     public function resetPasswordToNip(User $user): RedirectResponse

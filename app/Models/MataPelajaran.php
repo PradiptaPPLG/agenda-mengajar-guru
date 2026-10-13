@@ -32,7 +32,7 @@ class MataPelajaran extends Model
     public static function findMatchingMapel(string $rawNama, ?string $kelasNama = null): ?self
     {
         $s = strtoupper($rawNama);
-        $roomTags = ['LAB TIK', 'LAB RPL', 'LAB DKV', 'SIMDIG', 'L.MPLB-1', 'L.MPLB-2', 'KOMPAK-1', 'KOMPAK-2', 'L-PM-1', 'L-PM-2'];
+        $roomTags = ['LAB TIK', 'LAB RPL', 'LAB PPLG', 'LAB DKV', 'SIMDIG', 'L.MPLB-1', 'L.MPLB-2', 'KOMPAK-1', 'KOMPAK-2', 'L-PM-1', 'L-PM-2'];
         foreach ($roomTags as $rt) {
             $s = str_replace($rt, '', $s);
         }
@@ -143,7 +143,7 @@ class MataPelajaran extends Model
         // PKK
         if (str_contains($cond, 'PKK') || str_contains($cond, 'PRODUKKREATIF')) {
             if (str_contains($cond, 'RPL') || str_contains($cond, 'PPLG')) {
-                return self::findFirstByName('PRODUK KREATIF RPL', $all);
+                return self::findFirstByName('PRODUK KREATIF PPLG', $all) ?: self::findFirstByName('PRODUK KREATIF RPL', $all);
             }
             if (str_contains($cond, 'DKV')) {
                 return self::findFirstByName('PRODUK KREATIF DKV', $all);
@@ -175,7 +175,7 @@ class MataPelajaran extends Model
         if (str_contains($cond, 'KK')) {
             $grade = str_contains($cond, '12') ? '12' : '11';
             if (str_contains($cond, 'RPL') || str_contains($cond, 'PPLG')) {
-                return self::findFirstByName("KK-RPL $grade", $all);
+                return self::findFirstByName("KK-PPLG $grade", $all) ?: self::findFirstByName("KK-RPL $grade", $all);
             }
             if (str_contains($cond, 'DKV')) {
                 return self::findFirstByName($grade === '12' ? 'KK DKV 12' : 'KK-DKV 11', $all);
@@ -208,7 +208,7 @@ class MataPelajaran extends Model
             $grade = str_contains($cond, '12') ? '12' : '11';
 
             if (str_contains($cond, 'RPL') || str_contains($cond, 'PPLG')) {
-                return self::findFirstByName("MP-RPL $grade", $all);
+                return self::findFirstByName("MP-PPLG $grade", $all) ?: self::findFirstByName("MP-RPL $grade", $all);
             }
             if (str_contains($cond, 'DKV')) {
                 return self::findFirstByName($grade === '12' ? 'MP-DKV 12' : 'MP-DKV 11', $all);
@@ -250,7 +250,7 @@ class MataPelajaran extends Model
     {
         $kUpper = strtoupper($kelasNama);
         if (str_contains($kUpper, 'RPL') || str_contains($kUpper, 'PPLG')) {
-            return self::findFirstByName("MP-RPL $grade", $all);
+            return self::findFirstByName("MP-PPLG $grade", $all) ?: self::findFirstByName("MP-RPL $grade", $all);
         }
         if (str_contains($kUpper, 'DKV')) {
             return self::findFirstByName($grade === '12' ? 'MP-DKV 12' : 'MP-DKV 11', $all);

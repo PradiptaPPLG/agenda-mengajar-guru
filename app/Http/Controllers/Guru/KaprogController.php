@@ -28,7 +28,15 @@ class KaprogController extends Controller
 
         // Ambil kelas yang sesuai jurusan Kaprog (misal: 10AKL1, 11AKL2, 12AKL3 untuk jurusan AKL)
         if ($jurusan) {
-            $kelasJurusan = Kelas::where('nama', 'like', "%{$jurusan}%")
+            $isPplg = in_array(strtoupper($jurusan), ['PPLG', 'RPL']);
+            $kelasJurusan = Kelas::where(function ($q) use ($jurusan, $isPplg) {
+                if ($isPplg) {
+                    $q->where('nama', 'like', '%PPLG%')
+                        ->orWhere('nama', 'like', '%RPL%');
+                } else {
+                    $q->where('nama', 'like', "%{$jurusan}%");
+                }
+            })
                 ->orderBy('tingkat')
                 ->orderBy('nama')
                 ->get();
