@@ -77,6 +77,10 @@ class PenggunaController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        if ($request->input('role') === 'super_admin' && ! auth()->user()->isSuperAdmin()) {
+            abort(403, 'Hanya Super Admin yang dapat membuat akun Super Admin.');
+        }
+
         $allowedRoles = ['admin', 'kepala_sekolah', 'pengawas', 'guru', 'piket', 'tu'];
         if (auth()->user()->isSuperAdmin()) {
             $allowedRoles[] = 'super_admin';
@@ -159,6 +163,10 @@ class PenggunaController extends Controller
     {
         if ($pengguna->role === 'super_admin' && ! auth()->user()->isSuperAdmin()) {
             abort(403, 'Akun Super Admin tidak dapat diedit dari menu ini.');
+        }
+
+        if ($request->input('role') === 'super_admin' && ! auth()->user()->isSuperAdmin()) {
+            abort(403, 'Hanya Super Admin yang dapat menetapkan role Super Admin.');
         }
 
         $allowedRoles = ['admin', 'kepala_sekolah', 'pengawas', 'guru', 'piket', 'tu'];

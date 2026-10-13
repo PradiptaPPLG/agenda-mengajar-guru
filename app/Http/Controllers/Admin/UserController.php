@@ -226,6 +226,15 @@ class UserController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        if ($request->input('role') === 'super_admin' && ! auth()->user()->isSuperAdmin()) {
+            abort(403, 'Hanya Super Admin yang dapat membuat akun Super Admin.');
+        }
+
+        $allowedRoles = ['guru', 'siswa', 'piket', 'tu', 'kepala_sekolah', 'pengawas', 'admin'];
+        if (auth()->user()->isSuperAdmin()) {
+            $allowedRoles[] = 'super_admin';
+        }
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => [
@@ -241,7 +250,7 @@ class UserController extends Controller
                 'min:8',
                 'confirmed',
             ],
-            'role' => ['required', 'in:guru,siswa,piket,tu,kepala_sekolah,pengawas,admin,super_admin'],
+            'role' => ['required', Rule::in($allowedRoles)],
             'spatie_roles' => ['nullable', 'array'],
             'spatie_roles.*' => ['exists:roles,name'],
             'nip' => [
@@ -325,6 +334,10 @@ class UserController extends Controller
 
     public function edit(User $user): View
     {
+        if ($user->isSuperAdmin() && ! auth()->user()->isSuperAdmin()) {
+            abort(403, 'Anda tidak memiliki hak untuk mengubah akun Super Admin.');
+        }
+
         $user->load(['mapels', 'jadwalPelajarans.kelas']);
         $kelas = Kelas::orderBy('tingkat')->orderBy('nama')->get();
         $roles = Role::orderBy('name')->get();
@@ -353,6 +366,19 @@ class UserController extends Controller
 
     public function update(Request $request, User $user): RedirectResponse
     {
+        if ($user->isSuperAdmin() && ! auth()->user()->isSuperAdmin()) {
+            abort(403, 'Anda tidak memiliki hak untuk mengubah data akun Super Admin.');
+        }
+
+        if ($request->input('role') === 'super_admin' && ! auth()->user()->isSuperAdmin()) {
+            abort(403, 'Hanya Super Admin yang dapat menetapkan role Super Admin.');
+        }
+
+        $allowedRoles = ['guru', 'siswa', 'piket', 'tu', 'kepala_sekolah', 'pengawas', 'admin'];
+        if (auth()->user()->isSuperAdmin()) {
+            $allowedRoles[] = 'super_admin';
+        }
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => [
@@ -362,7 +388,7 @@ class UserController extends Controller
                 Rule::unique('users')->ignore($user->id),
             ],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
-            'role' => ['required', 'in:guru,siswa,piket,tu,kepala_sekolah,pengawas,admin,super_admin'],
+            'role' => ['required', Rule::in($allowedRoles)],
             'spatie_roles' => ['nullable', 'array'],
             'spatie_roles.*' => ['exists:roles,name'],
             'nip' => [
@@ -551,6 +577,10 @@ class UserController extends Controller
             return redirect()->back()->with('error', 'Anda tidak dapat menghapus akun sendiri.');
         }
 
+        if ($user->isSuperAdmin() && ! auth()->user()->isSuperAdmin()) {
+            abort(403, 'Akun Super Admin tidak dapat dihapus oleh Admin.');
+        }
+
         Kelas::where('wali_kelas_id', $user->id)->update(['wali_kelas_id' => null]);
         Kelas::where('bk_id', $user->id)->update(['bk_id' => null]);
 
@@ -592,6 +622,13 @@ class UserController extends Controller
         ]);
 
         $ids = $request->input('ids');
+
+        if (! auth()->user()->isSuperAdmin()) {
+            $hasSuperAdmin = User::whereIn('id', $ids)->where('role', 'super_admin')->exists();
+            if ($hasSuperAdmin) {
+                abort(403, 'Akun Super Admin tidak dapat dihapus oleh Admin.');
+            }
+        }
 
         // Prevent deleting self
         if (in_array(auth()->id(), $ids)) {
@@ -907,6 +944,10 @@ class UserController extends Controller
 
     public function resetPasswordToNip(User $user): RedirectResponse
     {
+        if ($user->isSuperAdmin() && ! auth()->user()->isSuperAdmin()) {
+            abort(403, 'Password akun Super Admin tidak dapat direset oleh Admin.');
+        }
+
         $nip = trim((string) ($user->guruProfile?->nip ?? ''));
         if (! $nip || $nip === '-') {
             return back()->with('error', "Gagal reset password: Guru {$user->name} belum memiliki NIP.");
