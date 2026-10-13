@@ -77,23 +77,46 @@
 
         {{-- Attendance Stats --}}
         <div class="mb-4 bg-white border border-slate-200 rounded-2xl p-4">
-            <h3 class="text-sm font-bold text-slate-800 mb-3">Statistik Kehadiran Saya</h3>
+            <div class="flex items-start justify-between gap-2 mb-3">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h3 class="text-sm font-bold text-slate-800">Statistik Kehadiran Saya</h3>
+                        <span class="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-[10px] font-medium border border-blue-200/60">
+                            Total Akumulatif
+                        </span>
+                    </div>
+                    <p class="text-[11px] text-slate-500 mt-0.5">Ringkasan seluruh riwayat mengajar Anda berdasarkan Jam Pelajaran (JP)</p>
+                </div>
+            </div>
+
             <div class="grid grid-cols-2 gap-3 mb-3">
                 <div class="bg-green-50 rounded-xl p-3 border border-green-100 flex flex-col justify-center">
                     <p class="text-xs text-green-600 font-medium">Hadir & Terlambat</p>
-                    <p class="text-xl font-bold text-green-900">{{ $stats['hadir'] }}</p>
+                    <div class="flex items-baseline gap-1">
+                        <p class="text-xl font-bold text-green-900">{{ $stats['hadir'] }}</p>
+                        <span class="text-[10px] font-semibold text-green-700">JP</span>
+                    </div>
                 </div>
                 <div class="bg-rose-50 rounded-xl p-3 border border-rose-100 flex flex-col justify-center">
                     <p class="text-xs text-rose-600 font-medium">Alpa / Tanpa Ket.</p>
-                    <p class="text-xl font-bold text-rose-900">{{ $stats['alpa'] }}</p>
+                    <div class="flex items-baseline gap-1">
+                        <p class="text-xl font-bold text-rose-900">{{ $stats['alpa'] }}</p>
+                        <span class="text-[10px] font-semibold text-rose-700">JP</span>
+                    </div>
                 </div>
                 <div class="bg-amber-50 rounded-xl p-3 border border-amber-100 flex flex-col justify-center">
                     <p class="text-xs text-amber-600 font-medium">Sakit</p>
-                    <p class="text-xl font-bold text-amber-900">{{ $stats['sakit'] }}</p>
+                    <div class="flex items-baseline gap-1">
+                        <p class="text-xl font-bold text-amber-900">{{ $stats['sakit'] }}</p>
+                        <span class="text-[10px] font-semibold text-amber-700">JP</span>
+                    </div>
                 </div>
                 <div class="bg-purple-50 rounded-xl p-3 border border-purple-100 flex flex-col justify-center">
                     <p class="text-xs text-purple-600 font-medium">Izin</p>
-                    <p class="text-xl font-bold text-purple-900">{{ $stats['izin'] }}</p>
+                    <div class="flex items-baseline gap-1">
+                        <p class="text-xl font-bold text-purple-900">{{ $stats['izin'] }}</p>
+                        <span class="text-[10px] font-semibold text-purple-700">JP</span>
+                    </div>
                 </div>
             </div>
             
@@ -105,7 +128,23 @@
                 <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
                     <div class="h-2.5 rounded-full {{ $stats['persentase'] < 80 ? 'bg-rose-500' : 'bg-green-500' }} transition-all duration-500" style="width: {{ $stats['persentase'] }}%"></div>
                 </div>
-                <p class="text-[11px] text-slate-400 mt-2 text-center">Berdasarkan total {{ $stats['total'] }} jadwal mengajar yang sudah direkap</p>
+                <p class="text-[11px] text-slate-500 mt-2 text-center">
+                    Dihitung dari total <span class="font-semibold text-slate-700">{{ $stats['total'] }} Jam Pelajaran (JP)</span> yang telah direkap selama ini.
+                </p>
+            </div>
+
+            <div class="mt-3 p-3 bg-blue-50/70 border border-blue-100 rounded-xl flex items-start gap-2.5 text-[11px] text-blue-900 leading-relaxed">
+                <div class="w-5 h-5 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 mt-0.5">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <div class="flex-1">
+                    <span class="font-semibold text-blue-950">Sekilas Info:</span>
+                    <span class="text-blue-800">
+                        Statistik di atas merangkum kehadiran Bapak/Ibu dalam satuan <strong>Jam Pelajaran (JP)</strong> secara keseluruhan. Jika ada sesi mengajar yang berdurasi 2 atau 3 JP, pencatatannya otomatis mengikuti jumlah jam pelajaran tersebut. Untuk melihat rekap per bulan atau per kelas, Bapak/Ibu dapat memilih tombol <strong>Buka Rekap</strong> di atas.
+                    </span>
+                </div>
             </div>
         </div>
 
