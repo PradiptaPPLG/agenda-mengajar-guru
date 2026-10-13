@@ -68,7 +68,7 @@ class Pertemuan extends Model
 
     public function jadwal(): BelongsTo
     {
-        return $this->belongsTo(JadwalPelajaran::class, 'jadwal_id');
+        return $this->belongsTo(JadwalPelajaran::class, 'jadwal_id')->withTrashed();
     }
 
     public function kehadiranGuru(): HasOne

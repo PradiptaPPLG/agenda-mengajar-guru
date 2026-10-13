@@ -7,11 +7,7 @@ use App\Models\Kelas;
 use App\Models\MataPelajaran;
 use App\Models\Setting;
 use App\Models\User;
-use Database\Seeders\KelompokBlokMataPelajaranSeeder;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 
@@ -29,162 +25,280 @@ class JadwalImport implements ToCollection, WithHeadingRow
     {
         set_time_limit(300);
 
+        if ($rows->isEmpty()) {
+            throw new \Exception('File Excel tidak memiliki baris data jadwal.');
+        }
+
+        // ─── 1. Validasi Keberadaan Header Wajib ───────────────────────────────
+        $firstRow = $rows->first();
+        $keys = $firstRow ? array_map('strtolower', array_map('trim', array_keys($firstRow->toArray()))) : [];
+
+        $hasKelas = in_array('kelas', $keys, true);
+        $hasGuru = in_array('guru', $keys, true);
+        $hasMapel = in_array('mata_pelajaran', $keys, true) || in_array('mapel', $keys, true);
+        $hasHari = in_array('hari', $keys, true);
+        $hasWaktu = in_array('waktu', $keys, true) || (in_array('jam_mulai', $keys, true) && in_array('jam_selesai', $keys, true));
+
+        if (! ($hasKelas && $hasGuru && $hasMapel && $hasHari && $hasWaktu)) {
+            $missing = [];
+            if (! $hasKelas) {
+                $missing[] = 'kelas';
+            }
+            if (! $hasGuru) {
+                $missing[] = 'guru';
+            }
+            if (! $hasMapel) {
+                $missing[] = 'mata_pelajaran (atau mapel)';
+            }
+            if (! $hasHari) {
+                $missing[] = 'hari';
+            }
+            if (! $hasWaktu) {
+                $missing[] = 'jam_mulai & jam_selesai (atau waktu)';
+            }
+
+            throw new \Exception('Header file Excel tidak lengkap. Kolom wajib yang belum ada: '.implode(', ', $missing).'.');
+        }
+
         // Preload in-memory caches to avoid N+1 queries for each row
         $kelasCache = Kelas::withTrashed()->get()->keyBy(fn ($k) => Kelas::cleanKey($k->nama));
-        $guruCache = User::withTrashed()->where('role', 'guru')->get()->keyBy(fn ($u) => strtolower(trim($u->name)));
+        $allGurus = User::withTrashed()->where('role', 'guru')->get();
+        $guruCache = collect();
+        foreach ($allGurus as $g) {
+            $guruCache->put(strtolower(trim($g->name)), $g);
+        }
         $mapelCache = MataPelajaran::withTrashed()->get()->keyBy(fn ($m) => strtolower(trim($m->nama)));
-
-        // Pre-compute password hash once instead of hashing inside the loop
-        $defaultPassword = Hash::make('password');
 
         $hariMap = [
             'senin' => 1, 'selasa' => 2, 'rabu' => 3, 'kamis' => 4, 'jumat' => 5, 'sabtu' => 6, 'minggu' => 7,
         ];
 
-        DB::transaction(function () use ($rows, &$kelasCache, &$guruCache, &$mapelCache, $defaultPassword, $hariMap) {
-            foreach ($rows as $row) {
-                $kelasName = trim($row->get('kelas', ''));
-                $guruName = trim($row->get('guru', ''));
-                $mapelName = trim($row->get('mata_pelajaran', $row->get('mapel', '')));
+        // ─── 2. PHASE 1: Validasi Seluruh Baris (All-or-Nothing Pre-Validation) ───
+        $errors = [];
+        $validRows = [];
+        $seenSlots = [];
 
-                // Parsing Hari
-                $hariVal = $row->get('hari', '');
-                if (is_numeric($hariVal)) {
-                    $hari = (int) $hariVal;
-                } else {
-                    $hari = $hariMap[strtolower(trim($hariVal))] ?? 1;
-                }
+        foreach ($rows as $index => $row) {
+            $excelRowNum = $index + 2; // Baris 1 adalah heading
 
-                // Parsing Waktu
-                $waktu = trim($row->get('waktu', ''));
-                if ($waktu && strpos($waktu, '-') !== false) {
-                    [$jam_mulai, $jam_selesai] = array_map('trim', explode('-', $waktu));
-                } else {
-                    $jam_mulai = trim($row->get('jam_mulai', ''));
-                    $jam_selesai = trim($row->get('jam_selesai', ''));
-                }
+            $rawKelas = trim((string) $row->get('kelas', ''));
+            $rawGuru = trim((string) $row->get('guru', ''));
+            $rawMapel = trim((string) $row->get('mata_pelajaran', $row->get('mapel', '')));
+            $rawHari = trim((string) $row->get('hari', ''));
+            $rawMulai = trim((string) $row->get('jam_mulai', ''));
+            $rawSelesai = trim((string) $row->get('jam_selesai', ''));
+            $rawWaktu = trim((string) $row->get('waktu', ''));
 
-                // Normalize waktu: 07.30 → 07:30, then ensure HH:MM:SS format for consistent DB storage
-                $jam_mulai = str_replace('.', ':', $jam_mulai);
-                $jam_selesai = str_replace('.', ':', $jam_selesai);
+            // Abaikan baris yang benar-benar kosong di spreadsheet
+            if ($rawKelas === '' && $rawGuru === '' && $rawMapel === '' && $rawHari === '' && $rawMulai === '' && $rawSelesai === '' && $rawWaktu === '') {
+                continue;
+            }
 
-                // Pad to HH:MM:SS so "7:10" and "07:10:00" map to the same DB value
-                if ($jam_mulai && preg_match('/^\d{1,2}:\d{2}$/', $jam_mulai)) {
-                    $jam_mulai .= ':00';
-                }
-                if ($jam_selesai && preg_match('/^\d{1,2}:\d{2}$/', $jam_selesai)) {
-                    $jam_selesai .= ':00';
-                }
-
-                // Zero-pad hour: "7:10:00" → "07:10:00"
-                if ($jam_mulai && preg_match('/^\d:\d{2}:\d{2}$/', $jam_mulai)) {
-                    $jam_mulai = '0'.$jam_mulai;
-                }
-                if ($jam_selesai && preg_match('/^\d:\d{2}:\d{2}$/', $jam_selesai)) {
-                    $jam_selesai = '0'.$jam_selesai;
-                }
-
-                // Find or Create Kelas with flexible name matching (e.g. 11 AK1 matches 11AK1)
-                $kelasKey = Kelas::cleanKey($kelasName);
+            // Validasi Kelas
+            $kelas = null;
+            if ($rawKelas === '') {
+                $errors[] = "Baris {$excelRowNum}: Kolom 'kelas' wajib diisi.";
+            } else {
+                $kelasKey = Kelas::cleanKey($rawKelas);
                 $kelas = $kelasCache->get($kelasKey);
-                if ($kelas && $kelas->trashed()) {
+                if (! $kelas) {
+                    $errors[] = "Baris {$excelRowNum}: Kelas '{$rawKelas}' tidak ditemukan dalam sistem.";
+                } elseif ($kelas->trashed()) {
                     $kelas->restore();
                 }
-                if (! $kelas && $kelasName) {
-                    $tingkat = '10';
-                    if (preg_match('/^12|xii/i', $kelasName)) {
-                        $tingkat = '12';
-                    } elseif (preg_match('/^11|xi/i', $kelasName)) {
-                        $tingkat = '11';
-                    }
-                    $kelas = Kelas::create([
-                        'nama' => $kelasName,
-                        'tingkat' => $tingkat,
-                        'tahun_ajaran' => date('Y').'/'.(date('Y') + 1),
-                    ]);
-                    $kelasCache->put($kelasKey, $kelas);
-                }
+            }
 
-                // Find or Create Guru using smart matching (handles titles Dra./S.Pd./etc. and reuses account with NIP)
-                $guruKey = strtolower(trim($guruName));
+            // Validasi Guru
+            $guru = null;
+            if ($rawGuru === '') {
+                $errors[] = "Baris {$excelRowNum}: Kolom 'guru' wajib diisi.";
+            } else {
+                $guruKey = strtolower($rawGuru);
                 $guru = $guruCache->get($guruKey);
-                if (! $guru && $guruName) {
-                    $guru = User::findMatchingGuru($guruName);
+                if (! $guru) {
+                    $guru = User::findMatchingGuru($rawGuru);
                     if ($guru) {
                         $guruCache->put($guruKey, $guru);
                     }
                 }
-                if ($guru && $guru->trashed()) {
+                if (! $guru) {
+                    $errors[] = "Baris {$excelRowNum}: Guru '{$rawGuru}' tidak ditemukan dalam sistem.";
+                } elseif ($guru->trashed()) {
                     $guru->restore();
                 }
-                if (! $guru && $guruName) {
-                    $guruEmail = Str::slug($guruName).rand(100, 999).'@guru.com';
-                    while (User::withTrashed()->where('email', $guruEmail)->exists()) {
-                        $guruEmail = Str::slug($guruName).rand(1000, 9999).'@guru.com';
-                    }
-                    $guru = User::create([
-                        'name' => $guruName,
-                        'email' => $guruEmail,
-                        'password' => $defaultPassword,
-                        'role' => 'guru',
-                        'is_active' => true,
-                    ]);
-                    $guruCache->put($guruKey, $guru);
-                }
+            }
 
-                // Find or Create Mapel using smart canonical matcher
-                $mapelKey = strtolower(trim($mapelName)).'_'.($kelas?->nama ?? '');
+            // Validasi Mapel
+            $mapel = null;
+            if ($rawMapel === '') {
+                $errors[] = "Baris {$excelRowNum}: Kolom 'mata_pelajaran' wajib diisi.";
+            } else {
+                $mapelKey = strtolower($rawMapel);
                 $mapel = $mapelCache->get($mapelKey);
-                if (! $mapel && $mapelName) {
-                    $mapel = MataPelajaran::findMatchingMapel($mapelName, $kelas?->nama);
+                if (! $mapel) {
+                    $mapel = MataPelajaran::findMatchingMapel($rawMapel, $kelas?->nama);
                     if ($mapel) {
                         $mapelCache->put($mapelKey, $mapel);
                     }
                 }
-                if ($mapel && $mapel->trashed()) {
+                if (! $mapel) {
+                    $errors[] = "Baris {$excelRowNum}: Mata pelajaran '{$rawMapel}' tidak ditemukan dalam sistem.";
+                } elseif ($mapel->trashed()) {
                     $mapel->restore();
                 }
-                if (! $mapel && $mapelName) {
-                    $cleanName = trim(preg_replace('/\s+/', ' ', $mapelName));
-                    $prefix = substr(strtoupper(preg_replace('/[^a-zA-Z]/', '', $cleanName)), 0, 5) ?: 'MPL';
-                    $kelompokBlok = (new KelompokBlokMataPelajaranSeeder)->classify($cleanName, $prefix);
-                    $mapel = MataPelajaran::create([
-                        'nama' => $cleanName,
-                        'kode' => $prefix,
-                        'jenis' => $kelompokBlok === 'kelompok_b' ? 'produktif' : 'umum',
-                        'kelompok_blok' => $kelompokBlok,
-                    ]);
-                    $mapelCache->put($mapelKey, $mapel);
+            }
+
+            // Validasi Hari
+            $hari = null;
+            if ($rawHari === '') {
+                $errors[] = "Baris {$excelRowNum}: Kolom 'hari' wajib diisi.";
+            } else {
+                if (is_numeric($rawHari)) {
+                    $hNum = (int) $rawHari;
+                    if ($hNum >= 1 && $hNum <= 7) {
+                        $hari = $hNum;
+                    }
+                } else {
+                    $hari = $hariMap[strtolower($rawHari)] ?? null;
                 }
 
-                if ($kelas && $guru && $mapel && $jam_mulai && $jam_selesai) {
-                    $targetKelompokBlok = ($kelas->is_sistem_blok) ? ($mapel->kelompok_blok ?? 'reguler') : 'reguler';
-                    JadwalPelajaran::updateOrCreate(
-                        [
-                            'kelas_id' => $kelas->id,
-                            'hari' => $hari,
-                            'jam_mulai' => $jam_mulai,
-                            'jam_selesai' => $jam_selesai,
-                            'kelompok_blok' => $targetKelompokBlok,
-                            'tahun_ajaran' => $this->tahunAjaran,
-                            'semester' => $this->semester,
-                        ],
-                        [
-                            'guru_id' => $guru->id,
-                            'mata_pelajaran_id' => $mapel->id,
-                        ]
-                    );
-                } else {
-                    \Log::warning('JadwalImport skipped row', [
-                        'row' => $row->toArray(),
-                        'kelas_found' => (bool) $kelas,
-                        'guru_found' => (bool) $guru,
-                        'mapel_found' => (bool) $mapel,
-                        'jam_mulai_parsed' => $jam_mulai,
-                        'jam_selesai_parsed' => $jam_selesai,
-                    ]);
+                if (! $hari) {
+                    $errors[] = "Baris {$excelRowNum}: Nilai hari '{$rawHari}' tidak valid (gunakan 1-7 atau nama hari Senin-Minggu).";
                 }
             }
-        });
+
+            // Validasi Jam Mulai & Jam Selesai
+            $jamMulai = '';
+            $jamSelesai = '';
+            if ($rawWaktu !== '' && strpos($rawWaktu, '-') !== false) {
+                [$rawMulai, $rawSelesai] = array_map('trim', explode('-', $rawWaktu));
+            }
+
+            if ($rawMulai === '' || $rawSelesai === '') {
+                $errors[] = "Baris {$excelRowNum}: Jam mulai dan jam selesai wajib diisi.";
+            } else {
+                $jamMulai = str_replace('.', ':', $rawMulai);
+                $jamSelesai = str_replace('.', ':', $rawSelesai);
+
+                // Pad 7:00 -> 07:00:00
+                if (preg_match('/^\d{1,2}:\d{2}$/', $jamMulai)) {
+                    $jamMulai .= ':00';
+                }
+                if (preg_match('/^\d{1,2}:\d{2}$/', $jamSelesai)) {
+                    $jamSelesai .= ':00';
+                }
+                if (preg_match('/^\d:\d{2}:\d{2}$/', $jamMulai)) {
+                    $jamMulai = '0'.$jamMulai;
+                }
+                if (preg_match('/^\d:\d{2}:\d{2}$/', $jamSelesai)) {
+                    $jamSelesai = '0'.$jamSelesai;
+                }
+
+                $validTimeFormat = preg_match('/^([01]\d|2[0-3]):[0-5]\d:[0-5]\d$/', $jamMulai) &&
+                                   preg_match('/^([01]\d|2[0-3]):[0-5]\d:[0-5]\d$/', $jamSelesai);
+
+                if (! $validTimeFormat) {
+                    $errors[] = "Baris {$excelRowNum}: Format jam tidak valid ('{$rawMulai}' - '{$rawSelesai}'). Gunakan format HH:MM.";
+                } elseif ($jamSelesai <= $jamMulai) {
+                    $errors[] = "Baris {$excelRowNum}: Jam selesai ('{$rawSelesai}') harus lebih besar dari jam mulai ('{$rawMulai}').";
+                }
+            }
+
+            // Jika baris ini valid sejauh ini, periksa collision dalam file yang sama
+            if ($kelas && $guru && $mapel && $hari && $jamMulai && $jamSelesai && empty($errors)) {
+                $targetKelompokBlok = ($kelas->is_sistem_blok) ? ($mapel->kelompok_blok ?? 'reguler') : 'reguler';
+                $slotKey = "{$kelas->id}_{$hari}_{$jamMulai}_{$jamSelesai}_{$targetKelompokBlok}";
+
+                if (isset($seenSlots[$slotKey])) {
+                    $errors[] = "Baris {$excelRowNum}: Duplikasi slot jadwal dengan baris {$seenSlots[$slotKey]} di dalam file Excel yang sama.";
+                } else {
+                    $seenSlots[$slotKey] = $excelRowNum;
+                    $validRows[] = [
+                        'excel_row' => $excelRowNum,
+                        'kelas_id' => $kelas->id,
+                        'guru_id' => $guru->id,
+                        'mata_pelajaran_id' => $mapel->id,
+                        'hari' => $hari,
+                        'jam_mulai' => $jamMulai,
+                        'jam_selesai' => $jamSelesai,
+                        'kelompok_blok' => $targetKelompokBlok,
+                    ];
+                }
+            }
+        }
+
+        // Jika tidak ada satu pun baris data yang ditemukan
+        if (empty($validRows) && empty($errors)) {
+            throw new \Exception('File Excel tidak memiliki baris data jadwal yang dapat diproses.');
+        }
+
+        // JIKA ADA KESALAHAN PADA BARIS MANA PUN: BATALKAN TOTAL (ALL-OR-NOTHING)
+        if (! empty($errors)) {
+            $count = count($errors);
+            $sample = array_slice($errors, 0, 5);
+            $msg = "Ditemukan {$count} kesalahan dalam file Excel:\n• ".implode("\n• ", $sample);
+            if ($count > 5) {
+                $msg .= "\n...dan ".($count - 5).' kesalahan lainnya.';
+            }
+
+            throw new \Exception($msg);
+        }
+
+        // ─── 3. PHASE 2: Eksekusi Database dengan Proteksi Integritas Histori ────
+        foreach ($validRows as $item) {
+            $slot = [
+                'kelas_id' => $item['kelas_id'],
+                'hari' => $item['hari'],
+                'jam_mulai' => $item['jam_mulai'],
+                'jam_selesai' => $item['jam_selesai'],
+                'kelompok_blok' => $item['kelompok_blok'],
+                'tahun_ajaran' => $this->tahunAjaran,
+                'semester' => $this->semester,
+            ];
+
+            $activeJadwal = JadwalPelajaran::where($slot)->first();
+
+            if ($activeJadwal) {
+                // Apakah jadwal aktif ini memiliki histori pertemuan?
+                if ($activeJadwal->pertemuans()->exists()) {
+                    // JIKA GURU DAN MAPEL SAMA: pertahankan identitas sepenuhnya
+                    if ($activeJadwal->guru_id === $item['guru_id'] && $activeJadwal->mata_pelajaran_id === $item['mata_pelajaran_id']) {
+                        continue;
+                    }
+
+                    // JIKA GURU ATAU MAPEL BERBEDA:
+                    // INVARIANT: JANGAN MENGUBAH IDENTITAS GURU & MAPEL DARI JADWAL BERHISTORI!
+                    // Arsipkan jadwal lama (soft delete) agar pertemuan masa lalu tetap merujuk data lama yang valid.
+                    $activeJadwal->delete();
+
+                    // Buat / aktifkan jadwal baru untuk guru & mapel baru pada slot ini
+                    JadwalPelajaran::create(array_merge($slot, [
+                        'guru_id' => $item['guru_id'],
+                        'mata_pelajaran_id' => $item['mata_pelajaran_id'],
+                    ]));
+                } else {
+                    // Tidak ada histori pertemuan: aman diperbarui in-place
+                    $activeJadwal->update([
+                        'guru_id' => $item['guru_id'],
+                        'mata_pelajaran_id' => $item['mata_pelajaran_id'],
+                    ]);
+                }
+            } else {
+                // Cek apakah ada jadwal di tong sampah (soft-deleted) yang cocok dengan guru & mapel ini
+                $matchingTrashed = JadwalPelajaran::onlyTrashed()->where($slot)
+                    ->where('guru_id', $item['guru_id'])
+                    ->where('mata_pelajaran_id', $item['mata_pelajaran_id'])
+                    ->first();
+
+                if ($matchingTrashed) {
+                    $matchingTrashed->restore();
+                } else {
+                    JadwalPelajaran::create(array_merge($slot, [
+                        'guru_id' => $item['guru_id'],
+                        'mata_pelajaran_id' => $item['mata_pelajaran_id'],
+                    ]));
+                }
+            }
+        }
     }
 }

@@ -183,7 +183,7 @@
                                 </div>
                                 <div>
                                     <span class="text-xs font-semibold text-slate-700 group-hover:text-slate-900 transition-colors">Hapus jadwal semester target sebelum import</span>
-                                    <p class="text-[11px] text-slate-500 mt-0.5">Hanya menghapus jadwal pada semester & tahun ajaran target di atas, tanpa mengganggu semester lain.</p>
+                                    <p class="text-[11px] text-slate-500 mt-0.5">Membersihkan jadwal pada semester target yang belum memiliki riwayat kegiatan/pertemuan. Jadwal dengan riwayat presensi akan dipertahankan dengan aman.</p>
                                 </div>
                             </label>
                         </div>

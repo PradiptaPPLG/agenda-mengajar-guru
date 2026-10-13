@@ -297,26 +297,41 @@ class JadwalController extends Controller
         ini_set('memory_limit', '512M');
 
         try {
-            // Hapus jadwal untuk semester & tahun ajaran target jika diminta
-            if ($request->boolean('clear_before_import')) {
-                DB::table('jadwal_pelajarans')
-                    ->where('tahun_ajaran', $tahunAjaran)
-                    ->where('semester', $semester)
-                    ->delete();
-            }
+            DB::transaction(function () use ($request, $tahunAjaran, $semester) {
+                // Hapus jadwal untuk semester & tahun ajaran target jika diminta,
+                // NAMUN HANYA jadwal yang belum memiliki riwayat kegiatan/pertemuan
+                // guna mencegah terhapusnya histori presensi, jurnal, dan bukti foto secara kaskade.
+                if ($request->boolean('clear_before_import')) {
+                    JadwalPelajaran::where('tahun_ajaran', $tahunAjaran)
+                        ->where('semester', $semester)
+                        ->whereDoesntHave('pertemuans')
+                        ->delete();
+                }
 
-            Excel::import(new JadwalImport($tahunAjaran, $semester), $request->file('file'));
+                Excel::import(new JadwalImport($tahunAjaran, $semester), $request->file('file'));
+            });
 
             $semLabel = Setting::getSemesterLabel($semester);
-            $message = $request->boolean('clear_before_import')
-                ? "Jadwal lama {$semLabel} {$tahunAjaran} berhasil dihapus dan jadwal baru berhasil diimport."
-                : "Jadwal untuk {$semLabel} {$tahunAjaran} berhasil diimport.";
+            $hasRetainedHistory = JadwalPelajaran::where('tahun_ajaran', $tahunAjaran)
+                ->where('semester', $semester)
+                ->whereHas('pertemuans')
+                ->exists();
+
+            if ($request->boolean('clear_before_import') && $hasRetainedHistory) {
+                $message = "Jadwal lama {$semLabel} {$tahunAjaran} yang belum memiliki riwayat kegiatan berhasil dibersihkan (jadwal dengan riwayat pertemuan dipertahankan) dan jadwal baru berhasil diimport.";
+            } elseif ($request->boolean('clear_before_import')) {
+                $message = "Jadwal lama {$semLabel} {$tahunAjaran} berhasil dihapus dan jadwal baru berhasil diimport.";
+            } else {
+                $message = "Jadwal untuk {$semLabel} {$tahunAjaran} berhasil diimport.";
+            }
 
             return redirect()->route('admin.jadwal.index', [
                 'tahun_ajaran' => $tahunAjaran,
                 'semester' => $semester,
             ])->with('success', $message);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+            \Log::error('Import jadwal gagal: '.$e->getMessage(), ['trace' => $e->getTraceAsString()]);
+
             return redirect()->back()->with('error', 'Gagal import: '.$e->getMessage());
         }
     }
@@ -353,34 +368,73 @@ class JadwalController extends Controller
             if (! empty($validated['hapus_tujuan_dulu'])) {
                 JadwalPelajaran::where('tahun_ajaran', $validated['tujuan_tahun_ajaran'])
                     ->where('semester', $validated['tujuan_semester'])
+                    ->whereDoesntHave('pertemuans')
                     ->delete();
             }
 
             foreach ($sumberJadwals as $sj) {
-                JadwalPelajaran::updateOrCreate(
-                    [
-                        'kelas_id' => $sj->kelas_id,
-                        'hari' => $sj->hari,
-                        'jam_mulai' => $sj->jam_mulai,
-                        'jam_selesai' => $sj->jam_selesai,
-                        'kelompok_blok' => $sj->kelompok_blok,
-                        'tahun_ajaran' => $validated['tujuan_tahun_ajaran'],
-                        'semester' => $validated['tujuan_semester'],
-                    ],
-                    [
-                        'guru_id' => $sj->guru_id,
-                        'mata_pelajaran_id' => $sj->mata_pelajaran_id,
-                    ]
-                );
+                $slot = [
+                    'kelas_id' => $sj->kelas_id,
+                    'hari' => $sj->hari,
+                    'jam_mulai' => $sj->jam_mulai,
+                    'jam_selesai' => $sj->jam_selesai,
+                    'kelompok_blok' => $sj->kelompok_blok,
+                    'tahun_ajaran' => $validated['tujuan_tahun_ajaran'],
+                    'semester' => $validated['tujuan_semester'],
+                ];
+
+                $activeJadwal = JadwalPelajaran::where($slot)->first();
+
+                if ($activeJadwal) {
+                    if ($activeJadwal->pertemuans()->exists()) {
+                        if ($activeJadwal->guru_id === $sj->guru_id && $activeJadwal->mata_pelajaran_id === $sj->mata_pelajaran_id) {
+                            continue;
+                        }
+
+                        // Jika guru atau mapel berbeda, arsipkan jadwal lama agar histori masa lalu tetap valid
+                        $activeJadwal->delete();
+                        JadwalPelajaran::create(array_merge($slot, [
+                            'guru_id' => $sj->guru_id,
+                            'mata_pelajaran_id' => $sj->mata_pelajaran_id,
+                        ]));
+                    } else {
+                        $activeJadwal->update([
+                            'guru_id' => $sj->guru_id,
+                            'mata_pelajaran_id' => $sj->mata_pelajaran_id,
+                        ]);
+                    }
+                } else {
+                    $matchingTrashed = JadwalPelajaran::onlyTrashed()->where($slot)
+                        ->where('guru_id', $sj->guru_id)
+                        ->where('mata_pelajaran_id', $sj->mata_pelajaran_id)
+                        ->first();
+
+                    if ($matchingTrashed) {
+                        $matchingTrashed->restore();
+                    } else {
+                        JadwalPelajaran::create(array_merge($slot, [
+                            'guru_id' => $sj->guru_id,
+                            'mata_pelajaran_id' => $sj->mata_pelajaran_id,
+                        ]));
+                    }
+                }
             }
         });
 
         $tujuanLabel = Setting::getSemesterLabel($validated['tujuan_semester']).' '.$validated['tujuan_tahun_ajaran'];
+        $hasRetainedHistory = JadwalPelajaran::where('tahun_ajaran', $validated['tujuan_tahun_ajaran'])
+            ->where('semester', $validated['tujuan_semester'])
+            ->whereHas('pertemuans')
+            ->exists();
+
+        $message = ! empty($validated['hapus_tujuan_dulu']) && $hasRetainedHistory
+            ? "Berhasil menyalin {$sumberJadwals->count()} jadwal ke {$tujuanLabel}. Jadwal tujuan yang telah memiliki riwayat pertemuan tetap dipertahankan."
+            : "Berhasil menyalin {$sumberJadwals->count()} jadwal ke {$tujuanLabel}.";
 
         return redirect()->route('admin.jadwal.index', [
             'tahun_ajaran' => $validated['tujuan_tahun_ajaran'],
             'semester' => $validated['tujuan_semester'],
-        ])->with('success', "Berhasil menyalin {$sumberJadwals->count()} jadwal ke {$tujuanLabel}.");
+        ])->with('success', $message);
     }
 
     public function bulkDestroy(Request $request): RedirectResponse
