@@ -138,4 +138,26 @@ class KepalaSekolahReportSiswaTest extends TestCase
         $response->assertStatus(200);
         $response->assertSee('10PPLG');
     }
+
+    public function test_kepsek_can_download_laporan_kehadiran_siswa_pdf(): void
+    {
+        $response = $this->actingAs($this->kepsek)->get(route('kepala-sekolah.pdf.siswa', [
+            'tingkat' => '10',
+            'jurusan' => 'PPLG',
+        ]));
+
+        $response->assertStatus(200);
+        $this->assertEquals('application/pdf', $response->headers->get('content-type'));
+    }
+
+    public function test_invalid_date_inputs_handled_gracefully(): void
+    {
+        $response = $this->actingAs($this->kepsek)->get(route('kepala-sekolah.report.siswa', [
+            'filter_mode' => 'custom',
+            'start_date' => 'invalid-date',
+            'end_date' => 'not-a-real-date',
+        ]));
+
+        $response->assertStatus(200);
+    }
 }

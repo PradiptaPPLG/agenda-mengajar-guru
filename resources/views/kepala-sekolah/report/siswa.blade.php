@@ -338,7 +338,7 @@
                         @forelse($summary as $item)
                         <tr class="hover:bg-slate-50 transition">
                             <td class="px-4 py-3 font-semibold text-slate-900">
-                                {{ $item['siswa']->name ?? 'Siswa #'.$item['siswa']->id }}
+                                {{ $item['siswa']?->name ?? ('Siswa #'.($item['siswa_id'] ?? '-')) }}
                             </td>
                             <td class="px-4 py-3 text-xs text-slate-600">
                                 <span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-semibold border border-slate-200">

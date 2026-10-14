@@ -239,7 +239,7 @@
         @endphp
         <tr>
             <td style="color:#64748b;">{{ $i + 1 }}</td>
-            <td class="td-left" style="font-weight:600; color:#0f172a;">{{ $item['siswa']->name }}</td>
+            <td class="td-left" style="font-weight:600; color:#0f172a;">{{ $item['siswa']?->name ?? ('Siswa #'.($item['siswa_id'] ?? '-')) }}</td>
             <td style="color:#166534; font-weight:600;">{{ $item['hadir'] }}</td>
             <td style="color:#854d0e; font-weight:600;">{{ $item['sakit'] }}</td>
             <td style="color:#0369a1; font-weight:600;">{{ $item['izin'] }}</td>

@@ -301,13 +301,18 @@ class ReportController extends Controller
             $startDate = $range['start'];
             $endDate = $range['end'];
         } else {
-            $startDate = $request->filled('start_date')
-                ? Carbon::parse($request->input('start_date'))->startOfDay()
-                : Carbon::now()->startOfMonth();
+            try {
+                $startDate = $request->filled('start_date')
+                    ? Carbon::parse($request->input('start_date'))->startOfDay()
+                    : Carbon::now()->startOfMonth();
 
-            $endDate = $request->filled('end_date')
-                ? Carbon::parse($request->input('end_date'))->endOfDay()
-                : Carbon::now()->endOfMonth();
+                $endDate = $request->filled('end_date')
+                    ? Carbon::parse($request->input('end_date'))->endOfDay()
+                    : Carbon::now()->endOfMonth();
+            } catch (\Throwable) {
+                $startDate = Carbon::now()->startOfMonth();
+                $endDate = Carbon::now()->endOfMonth();
+            }
         }
 
         // Filter Angkatan (Tingkat), Jurusan, Kelas, dan Siswa
@@ -369,11 +374,13 @@ class ReportController extends Controller
         $matchingKelasList = (clone $kelasQuery)->orderBy('tingkat')->orderBy('nama')->get();
         $matchingKelasIds = $matchingKelasList->pluck('id');
 
-        // Jika user memilih spesifik kelas_id
+        // Jika user memilih spesifik kelas_id atau filter tingkat/jurusan
         if ($selectedKelasId) {
             $targetKelasIds = collect([$selectedKelasId]);
-        } else {
+        } elseif ($selectedTingkat !== 'all' || $selectedJurusan !== 'all') {
             $targetKelasIds = $matchingKelasIds;
+        } else {
+            $targetKelasIds = null;
         }
 
         // Query pertemuan yang sesuai rentang tanggal & kelas yang terfilter (subquery)
@@ -484,7 +491,7 @@ class ReportController extends Controller
         $paginatedSiswaStats = (clone $baseKehadiranQuery)
             ->selectRaw("siswa_id,
                 count(*) as total,
-                SUM(CASE WHEN status = 'hadir' THEN 1 ELSE 0 END) as hadir,
+                SUM(CASE WHEN status IN ('hadir', 'terlambat') THEN 1 ELSE 0 END) as hadir,
                 SUM(CASE WHEN status = 'sakit' THEN 1 ELSE 0 END) as sakit,
                 SUM(CASE WHEN status = 'izin' THEN 1 ELSE 0 END) as izin,
                 SUM(CASE WHEN status = 'alpa' THEN 1 ELSE 0 END) as alpa,
@@ -502,6 +509,7 @@ class ReportController extends Controller
 
             return [
                 'siswa' => $siswa,
+                'siswa_id' => $stat->siswa_id,
                 'kelas_nama' => $siswa?->siswaProfile?->kelas?->nama ?? '-',
                 'hadir' => (int) $stat->hadir,
                 'sakit' => (int) $stat->sakit,
