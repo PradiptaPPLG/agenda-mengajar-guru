@@ -28,14 +28,19 @@ class KaprogController extends Controller
 
         // Ambil kelas yang sesuai jurusan Kaprog (misal: 10AKL1, 11AKL2, 12AKL3 untuk jurusan AKL)
         if ($jurusan) {
-            $isPplg = in_array(strtoupper($jurusan), ['PPLG', 'RPL']);
-            $kelasJurusan = Kelas::where(function ($q) use ($jurusan, $isPplg) {
-                if ($isPplg) {
-                    $q->where('nama', 'like', '%PPLG%')
-                        ->orWhere('nama', 'like', '%RPL%');
-                } else {
-                    $q->where('nama', 'like', "%{$jurusan}%");
-                }
+            $j = strtoupper(trim($jurusan));
+            $kelasJurusan = Kelas::where(function ($q) use ($j) {
+                match ($j) {
+                    'PPLG', 'RPL' => $q->where('nama', 'like', '%PPLG%')->orWhere('nama', 'like', '%RPL%'),
+                    'AKL', 'AK', 'AKUNTANSI' => $q->where('nama', 'like', '%AKL%')->orWhere('nama', 'like', '%AK%'),
+                    'MPLB', 'MP', 'MANAJEMEN PERKANTORAN' => $q->where('nama', 'like', '%MPLB%')->orWhere('nama', 'like', '%MP%'),
+                    'PM', 'PBR', 'PBD', 'PEMASARAN' => $q->where('nama', 'like', '%PM%')->orWhere('nama', 'like', '%PBR%')->orWhere('nama', 'like', '%PBD%'),
+                    'DKV', 'DESAIN KOMUNIKASI VISUAL' => $q->where('nama', 'like', '%DKV%'),
+                    'KLN', 'KULINER', 'TATA BOGA' => $q->where('nama', 'like', '%KLN%')->orWhere('nama', 'like', '%KULINER%'),
+                    'HTL', 'HOTEL', 'PERHOTELAN' => $q->where('nama', 'like', '%HTL%')->orWhere('nama', 'like', '%HOTEL%'),
+                    'PBS', 'PERBANKAN SYARIAH' => $q->where('nama', 'like', '%PBS%'),
+                    default => $q->where('nama', 'like', "%{$j}%"),
+                };
             })
                 ->orderBy('tingkat')
                 ->orderBy('nama')

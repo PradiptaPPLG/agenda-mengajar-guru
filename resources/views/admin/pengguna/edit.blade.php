@@ -86,7 +86,47 @@
                         <input type="text" name="keterangan_jabatan" value="{{ old('keterangan_jabatan', $user->guruProfile?->kaprog_jurusan) }}"
                                placeholder="Contoh: Pengawas Pembina/Cabang Dinas Pendidikan Wilayah XIII"
                                class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                        <p class="text-[11px] text-slate-400 mt-1">Keterangan instansi pembina atau jabatan dinas lainnya.</p>
                         @error('keterangan_jabatan')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                    </div>
+
+                    {{-- Penugasan Jurusan Kaprog --}}
+                    @php
+                        $hasKaprog = $user->hasRole('Kaprog') || !empty($user->guruProfile?->kaprog_jurusan);
+                    @endphp
+                    <div id="kaprog-jurusan-box" class="md:col-span-2 p-4 border border-indigo-200 bg-indigo-50/70 rounded-xl space-y-3 {{ $hasKaprog ? '' : 'hidden' }}">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-indigo-600"></span>
+                                <label class="block text-sm font-bold text-indigo-950">Program Keahlian / Jurusan Kaprog</label>
+                            </div>
+                            <span class="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-indigo-100 text-indigo-700 border border-indigo-200">Kepala Program</span>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Pilih Jurusan Resmi</label>
+                                <select id="kaprog-jurusan-select" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                                    <option value="">-- Pilih Jurusan --</option>
+                                    @foreach($daftarJurusan as $j)
+                                        <option value="{{ $j }}" {{ old('kaprog_jurusan', $user->guruProfile?->kaprog_jurusan) === $j ? 'selected' : '' }}>
+                                            {{ $j }}
+                                        </option>
+                                    @endforeach
+                                    <option value="__custom__" {{ (!empty($user->guruProfile?->kaprog_jurusan) && !in_array($user->guruProfile?->kaprog_jurusan, $daftarJurusan)) ? 'selected' : '' }}>
+                                        Lainnya (Ketik Manual)
+                                    </option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Jurusan Tersimpan</label>
+                                <input type="text" name="kaprog_jurusan" id="kaprog-jurusan-input"
+                                       value="{{ old('kaprog_jurusan', $user->guruProfile?->kaprog_jurusan) }}"
+                                       placeholder="Contoh: Kuliner, PPLG, DKV, dll"
+                                       class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                            </div>
+                        </div>
+                        <p class="text-[11px] text-indigo-700">Jurusan ini otomatis tampil sebagai badge identitas Kaprog dan menentukan kelas yang dipantau pada Jurnal & Presensi KBM.</p>
+                        @error('kaprog_jurusan')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                     </div>
 
                     {{-- Status Akun --}}
@@ -164,4 +204,59 @@
             </div>
         </form>
     </div>
+
+    @push('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const kaprogSelect = document.getElementById('kaprog-jurusan-select');
+            const kaprogInput = document.getElementById('kaprog-jurusan-input');
+            const kaprogBox = document.getElementById('kaprog-jurusan-box');
+            
+            const roleCheckboxes = document.querySelectorAll('input[name="spatie_roles[]"]');
+            let kaprogCheckbox = null;
+            roleCheckboxes.forEach(cb => {
+                if (cb.value.toLowerCase().includes('kaprog')) {
+                    kaprogCheckbox = cb;
+                }
+            });
+
+            if (kaprogSelect && kaprogInput) {
+                kaprogSelect.addEventListener('change', function() {
+                    if (this.value && this.value !== '__custom__') {
+                        kaprogInput.value = this.value;
+                    } else if (this.value === '__custom__') {
+                        kaprogInput.focus();
+                    }
+                });
+
+                kaprogInput.addEventListener('input', function() {
+                    const val = this.value.trim();
+                    let matched = false;
+                    for (let i = 0; i < kaprogSelect.options.length; i++) {
+                        if (kaprogSelect.options[i].value.toLowerCase() === val.toLowerCase()) {
+                            kaprogSelect.selectedIndex = i;
+                            matched = true;
+                            break;
+                        }
+                    }
+                    if (!matched && val !== '') {
+                        kaprogSelect.value = '__custom__';
+                    }
+                });
+            }
+
+            if (kaprogCheckbox && kaprogBox) {
+                kaprogCheckbox.addEventListener('change', function() {
+                    if (this.checked) {
+                        kaprogBox.classList.remove('hidden');
+                    } else {
+                        if (!kaprogInput.value) {
+                            kaprogBox.classList.add('hidden');
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+    @endpush
 </x-layouts.admin>

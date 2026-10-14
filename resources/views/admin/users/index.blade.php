@@ -251,6 +251,16 @@
                                             </button>
                                         </form>
                                     @endif
+
+                                    @if(auth()->user()->isSuperAdmin() && $user->id !== auth()->id())
+                                        <form action="{{ route('super-admin.impersonate', $user) }}" method="POST" class="border-t border-slate-100 mt-1 pt-1">
+                                            @csrf
+                                            <button type="submit" class="group flex w-full items-center px-4 py-2 text-sm text-amber-700 hover:bg-amber-50 cursor-pointer" role="menuitem">
+                                                <svg class="mr-3 h-4 w-4 text-amber-500 group-hover:text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14"/></svg>
+                                                Masuk Sebagai
+                                            </button>
+                                        </form>
+                                    @endif
                                 </x-action-dropdown>
                             </div>
                         </td>

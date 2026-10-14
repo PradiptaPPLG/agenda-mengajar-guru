@@ -32,7 +32,10 @@ class PenggunaController extends Controller
                 if ($j === 'kaprog') {
                     $q->where(function ($sub) {
                         $sub->whereHas('roles', fn ($r) => $r->where('name', 'like', '%kaprog%'))
-                            ->orWhereHas('guruProfile', fn ($gp) => $gp->whereNotNull('kaprog_jurusan'));
+                            ->orWhere(function ($gpSub) {
+                                $gpSub->where('role', 'guru')
+                                    ->whereHas('guruProfile', fn ($gp) => $gp->whereNotNull('kaprog_jurusan'));
+                            });
                     });
                 } elseif ($j === 'bk') {
                     $q->where(function ($sub) {
@@ -71,8 +74,9 @@ class PenggunaController extends Controller
     public function create(): View
     {
         $roles = Role::orderBy('name')->get();
+        $daftarJurusan = ['Kuliner', 'PPLG', 'DKV', 'AKL', 'MPLB', 'Pemasaran', 'Perhotelan', 'PBS'];
 
-        return view('admin.pengguna.create', compact('roles'));
+        return view('admin.pengguna.create', compact('roles', 'daftarJurusan'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -101,6 +105,7 @@ class PenggunaController extends Controller
             'spatie_roles' => ['nullable', 'array'],
             'spatie_roles.*' => ['exists:roles,name'],
             'is_active' => ['nullable', 'boolean'],
+            'kaprog_jurusan' => ['nullable', 'string', 'max:100'],
             'keterangan_jabatan' => ['nullable', 'string', 'max:150'],
         ]);
 
@@ -131,10 +136,17 @@ class PenggunaController extends Controller
             'is_active' => $request->boolean('is_active', true),
         ]);
 
-        if (! empty($validated['nip']) || ! empty($validated['keterangan_jabatan']) || in_array($validated['role'], ['guru', 'kepala_sekolah', 'pengawas'])) {
+        $kaprogJurusan = null;
+        if ($request->filled('kaprog_jurusan')) {
+            $kaprogJurusan = trim($request->input('kaprog_jurusan'));
+        } elseif (! empty($validated['keterangan_jabatan'])) {
+            $kaprogJurusan = trim($validated['keterangan_jabatan']);
+        }
+
+        if (! empty($validated['nip']) || ! empty($kaprogJurusan) || in_array($validated['role'], ['guru', 'kepala_sekolah', 'pengawas'])) {
             $user->guruProfile()->create([
                 'nip' => $validated['nip'] ?? null,
-                'kaprog_jurusan' => $validated['keterangan_jabatan'] ?? null,
+                'kaprog_jurusan' => $kaprogJurusan,
             ]);
         }
 
@@ -152,10 +164,12 @@ class PenggunaController extends Controller
         }
 
         $roles = Role::orderBy('name')->get();
+        $daftarJurusan = ['Kuliner', 'PPLG', 'DKV', 'AKL', 'MPLB', 'Pemasaran', 'Perhotelan', 'PBS'];
 
         return view('admin.pengguna.edit', [
             'user' => $pengguna->load(['guruProfile', 'roles']),
             'roles' => $roles,
+            'daftarJurusan' => $daftarJurusan,
         ]);
     }
 
@@ -193,6 +207,7 @@ class PenggunaController extends Controller
             'spatie_roles' => ['nullable', 'array'],
             'spatie_roles.*' => ['exists:roles,name'],
             'is_active' => ['nullable', 'boolean'],
+            'kaprog_jurusan' => ['nullable', 'string', 'max:100'],
             'keterangan_jabatan' => ['nullable', 'string', 'max:150'],
             'redirect_to' => ['nullable', 'string'],
         ]);
@@ -213,12 +228,23 @@ class PenggunaController extends Controller
 
         $pengguna->update($updateData);
 
-        if (! empty($validated['nip']) || ! empty($validated['keterangan_jabatan']) || in_array($validated['role'], ['guru', 'kepala_sekolah', 'pengawas'])) {
+        $hasKaprogRole = collect($validated['spatie_roles'] ?? [])->contains(fn ($r) => str_contains(strtolower($r), 'kaprog'));
+
+        $kaprogJurusan = null;
+        if ($request->filled('kaprog_jurusan')) {
+            $kaprogJurusan = trim($request->input('kaprog_jurusan'));
+        } elseif ($request->filled('keterangan_jabatan')) {
+            $kaprogJurusan = trim($request->input('keterangan_jabatan'));
+        } elseif ($hasKaprogRole && ! empty($pengguna->guruProfile?->kaprog_jurusan)) {
+            $kaprogJurusan = $pengguna->guruProfile->kaprog_jurusan;
+        }
+
+        if (! empty($validated['nip']) || ! empty($kaprogJurusan) || in_array($validated['role'], ['guru', 'kepala_sekolah', 'pengawas'])) {
             $pengguna->guruProfile()->updateOrCreate(
                 ['user_id' => $pengguna->id],
                 [
                     'nip' => $validated['nip'] ?? null,
-                    'kaprog_jurusan' => $validated['keterangan_jabatan'] ?? $pengguna->guruProfile?->kaprog_jurusan,
+                    'kaprog_jurusan' => $kaprogJurusan,
                 ]
             );
         }

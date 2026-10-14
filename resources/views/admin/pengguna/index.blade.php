@@ -96,10 +96,18 @@
                                             {{ substr($user->name, 0, 1) }}
                                         </div>
                                         <div>
-                                            <p class="font-medium text-slate-900">{{ $user->name }}</p>
+                                            <div class="flex items-center gap-2 flex-wrap">
+                                                <p class="font-medium text-slate-900">{{ $user->name }}</p>
+                                                @if($user->guruProfile?->kaprog_jurusan && ($user->roles->contains(fn($r) => str_contains(strtolower($r->name), 'kaprog')) || $user->role === 'guru'))
+                                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                                        Kaprog {{ $user->guruProfile->kaprog_jurusan }}
+                                                    </span>
+                                                @endif
+                                            </div>
                                             @if($user->guruProfile?->nip)
                                                 <p class="text-xs text-slate-500 font-mono">NIP: {{ $user->guruProfile->nip }}</p>
-                                            @elseif($user->guruProfile?->kaprog_jurusan)
+                                            @endif
+                                            @if($user->guruProfile?->kaprog_jurusan && !($user->roles->contains(fn($r) => str_contains(strtolower($r->name), 'kaprog')) || $user->role === 'guru'))
                                                 <p class="text-xs text-slate-500">{{ $user->guruProfile->kaprog_jurusan }}</p>
                                             @endif
                                         </div>
@@ -125,11 +133,25 @@
                                 <td class="px-4 py-3">
                                     <div class="flex flex-wrap gap-1">
                                         @forelse($user->roles as $spatieRole)
-                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                                                {{ $spatieRole->name }}
-                                            </span>
+                                            @if(str_contains(strtolower($spatieRole->name), 'kaprog'))
+                                                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                                    <svg class="w-3 h-3 text-indigo-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                                                    Kaprog{{ $user->guruProfile?->kaprog_jurusan ? ' ' . $user->guruProfile->kaprog_jurusan : '' }}
+                                                </span>
+                                            @else
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                                                    {{ $spatieRole->name }}
+                                                </span>
+                                            @endif
                                         @empty
-                                            <span class="text-xs text-slate-400 italic">Tidak ada</span>
+                                            @if($user->guruProfile?->kaprog_jurusan && $user->role === 'guru')
+                                                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                                    <svg class="w-3 h-3 text-indigo-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                                                    Kaprog {{ $user->guruProfile->kaprog_jurusan }}
+                                                </span>
+                                            @else
+                                                <span class="text-xs text-slate-400 italic">Tidak ada</span>
+                                            @endif
                                         @endforelse
                                     </div>
                                 </td>
@@ -151,7 +173,17 @@
                                             :editUrl="route('admin.pengguna.edit', [$user, 'redirect_to' => request()->fullUrl()])" 
                                             :deleteUrl="($user->id !== auth()->id() && ($user->role !== 'super_admin' || auth()->user()->isSuperAdmin())) ? route('admin.pengguna.destroy', $user) : null"
                                             deleteMessage="Apakah Anda yakin ingin menghapus akun {{ $user->name }}?"
-                                        />
+                                        >
+                                            @if(auth()->user()->isSuperAdmin() && $user->id !== auth()->id())
+                                            <form action="{{ route('super-admin.impersonate', $user) }}" method="POST" class="border-t border-slate-100 mt-1 pt-1">
+                                                @csrf
+                                                <button type="submit" class="group flex w-full items-center px-4 py-2 text-sm text-amber-700 hover:bg-amber-50 cursor-pointer" role="menuitem">
+                                                    <svg class="mr-3 h-4 w-4 text-amber-500 group-hover:text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14"/></svg>
+                                                    Masuk Sebagai
+                                                </button>
+                                            </form>
+                                            @endif
+                                        </x-action-dropdown>
                                         @endif
                                     </div>
                                 </td>
@@ -178,7 +210,14 @@
                                 {{ substr($user->name, 0, 1) }}
                             </div>
                             <div>
-                                <p class="text-sm font-semibold text-slate-900">{{ $user->name }}</p>
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    <p class="text-sm font-semibold text-slate-900">{{ $user->name }}</p>
+                                    @if($user->guruProfile?->kaprog_jurusan && ($user->roles->contains(fn($r) => str_contains(strtolower($r->name), 'kaprog')) || $user->role === 'guru'))
+                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                            Kaprog {{ $user->guruProfile->kaprog_jurusan }}
+                                        </span>
+                                    @endif
+                                </div>
                                 @if($user->guruProfile?->nip)
                                     <p class="text-xs text-slate-500 font-mono">NIP: {{ $user->guruProfile->nip }}</p>
                                 @endif
@@ -203,22 +242,44 @@
                             <span class="text-slate-500 block mb-1">Akses Tambahan:</span>
                             <div class="flex flex-wrap gap-1">
                                 @forelse($user->roles as $spatieRole)
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                                        {{ $spatieRole->name }}
-                                    </span>
+                                    @if(str_contains(strtolower($spatieRole->name), 'kaprog'))
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                            Kaprog{{ $user->guruProfile?->kaprog_jurusan ? ' ' . $user->guruProfile->kaprog_jurusan : '' }}
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                                            {{ $spatieRole->name }}
+                                        </span>
+                                    @endif
                                 @empty
-                                    <span class="text-xs text-slate-400 italic">Tidak ada</span>
+                                    @if($user->guruProfile?->kaprog_jurusan && $user->role === 'guru')
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                            Kaprog {{ $user->guruProfile->kaprog_jurusan }}
+                                        </span>
+                                    @else
+                                        <span class="text-xs text-slate-400 italic">Tidak ada</span>
+                                    @endif
                                 @endforelse
                             </div>
                         </div>
                     </div>
 
-                    <div class="flex gap-2 pt-3 border-t border-slate-100">
+                    <div class="flex flex-wrap gap-2 pt-3 border-t border-slate-100">
                         @if($user->role !== 'super_admin' || auth()->user()->isSuperAdmin())
                         <a href="{{ route('admin.pengguna.edit', [$user, 'redirect_to' => request()->fullUrl()]) }}" class="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-sm font-semibold transition-colors">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
-                            Edit Pengguna
+                            Edit
                         </a>
+                        @endif
+
+                        @if(auth()->user()->isSuperAdmin() && $user->id !== auth()->id())
+                        <form action="{{ route('super-admin.impersonate', $user) }}" method="POST" class="flex-1">
+                            @csrf
+                            <button type="submit" class="w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-lg text-sm font-semibold border border-amber-200 transition-colors">
+                                <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14"/></svg>
+                                Masuk Sebagai
+                            </button>
+                        </form>
                         @endif
                     </div>
                 </div>
