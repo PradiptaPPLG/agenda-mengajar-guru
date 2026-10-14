@@ -156,7 +156,7 @@
                                     Mapel: {{ $anomali->jadwal?->mataPelajaran?->nama ?? '-' }}
                                 </p>
                                 <p class="text-[11px] text-rose-700 font-medium">
-                                    Jadwal: {{ \Carbon\Carbon::parse($anomali->jadwal?->jam_mulai)->format('H:i') }} - {{ \Carbon\Carbon::parse($anomali->jadwal?->jam_selesai)->format('H:i') }} (Waktu KBM telah selesai)
+                                    Jadwal: {{ $anomali->jadwal?->jam_mulai ? \Carbon\Carbon::parse($anomali->jadwal->jam_mulai)->format('H:i') : '--:--' }} - {{ $anomali->jadwal?->jam_selesai ? \Carbon\Carbon::parse($anomali->jadwal->jam_selesai)->format('H:i') : '--:--' }} (Waktu KBM telah selesai)
                                 </p>
                             </div>
                             <span class="text-[10px] text-slate-400 shrink-0">Hari ini</span>
@@ -213,7 +213,7 @@
                                         {{ $act->user_name ?? 'Sistem' }}
                                         <span class="text-[10px] font-normal text-slate-500">({{ ucfirst($act->role ?? 'system') }})</span>
                                     </p>
-                                    <span class="text-[10px] text-slate-400 shrink-0">{{ $act->created_at->diffForHumans() }}</span>
+                                    <span class="text-[10px] text-slate-400 shrink-0">{{ $act->created_at?->diffForHumans() ?? '-' }}</span>
                                 </div>
                                 <p class="text-xs text-slate-600 mt-0.5 line-clamp-1">{{ $act->description }}</p>
                                 <div class="flex items-center gap-1.5 mt-1.5">
@@ -297,7 +297,7 @@
                                 #{{ $index + 1 }}
                             </td>
                             <td class="px-4 py-3">
-                                <div class="font-medium text-slate-900">{{ $tg->guru->name ?? 'User Dihapus' }}</div>
+                                <div class="font-medium text-slate-900">{{ $tg->guru?->name ?? 'User Dihapus' }}</div>
                             </td>
                             <td class="px-4 py-3 text-center">{{ $tg->total_sesi }}</td>
                             <td class="px-4 py-3 text-center text-emerald-600 font-medium">{{ $tg->total_hadir }}</td>
