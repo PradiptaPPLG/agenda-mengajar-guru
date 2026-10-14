@@ -62,10 +62,7 @@
                         || $u->roles->contains(fn($r) => str_contains(strtolower($r->name), 'wali'))
                         || \App\Models\Kelas::where('wali_kelas_id', $u->id)->exists();
 
-                    $isBk = $u->hasAnyRole(['Guru BK', 'BK', 'guru_bk', 'guru-bk'])
-                        || $u->can('bk.view_rekap')
-                        || $u->roles->contains(fn($r) => str_contains(strtolower($r->name), 'bk'))
-                        || \App\Models\Kelas::where('bk_id', $u->id)->exists();
+                    $isBk = $u->isGuruBk();
 
                     $isKaprog = $u->hasAnyRole(['Kaprog', 'kaprog', 'Kepala Program'])
                         || $u->can('kaprog.view_rekap')

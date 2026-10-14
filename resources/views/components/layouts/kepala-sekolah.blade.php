@@ -3,21 +3,26 @@
 
     <div x-data="{ sidebarOpen: false }" class="flex h-screen overflow-hidden bg-slate-50">
         {{-- Mobile Backdrop Overlay --}}
-        <div x-show="sidebarOpen" 
-             x-transition:enter="transition ease-out duration-300"
+        <div x-cloak
+             x-show="sidebarOpen" 
+             x-transition:enter="transition-opacity ease-out duration-300"
              x-transition:enter-start="opacity-0"
              x-transition:enter-end="opacity-100"
-             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave="transition-opacity ease-in duration-200"
              x-transition:leave-start="opacity-100"
              x-transition:leave-end="opacity-0"
-             @click="sidebarOpen = false" 
+             @click="sidebarOpen = false"
+             @touchstart.passive="sidebarOpen = false" 
              style="display: none;"
-             class="fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-xs lg:hidden">
+             class="fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-xs lg:hidden cursor-pointer"
+             aria-hidden="true">
         </div>
 
         {{-- Sidebar --}}
-        <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
-               class="fixed inset-y-0 left-0 z-50 flex flex-col w-64 bg-white border-r border-slate-200 shrink-0 transition-transform duration-300 ease-in-out lg:static lg:z-auto">
+        <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
+               @click.outside="if (sidebarOpen) sidebarOpen = false"
+               @keydown.escape.window="sidebarOpen = false"
+               class="fixed inset-y-0 left-0 z-50 flex flex-col w-64 bg-white border-r border-slate-200 shrink-0 transition-transform duration-300 ease-in-out -translate-x-full lg:translate-x-0 lg:static lg:z-auto">
             
             {{-- Header Logo & Mobile Close Button --}}
             <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
@@ -32,12 +37,17 @@
                 </div>
 
                 {{-- Mobile Close Button --}}
-                <button @click="sidebarOpen = false" class="lg:hidden p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors" title="Tutup Menu">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                <button type="button"
+                        @click="sidebarOpen = false"
+                        @touchend.prevent="sidebarOpen = false"
+                        class="lg:hidden -mr-2 w-10 h-10 flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 active:bg-slate-200 transition-colors cursor-pointer"
+                        title="Tutup Menu"
+                        aria-label="Tutup Menu">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
 
-            <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+            <nav @click="if (window.innerWidth < 1024) sidebarOpen = false" class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
                 <x-admin-nav-link href="{{ route('kepala-sekolah.dashboard') }}" :active="request()->routeIs('kepala-sekolah.dashboard')">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
                     Dashboard
@@ -88,7 +98,11 @@
         <div class="flex flex-col flex-1 overflow-hidden min-w-0">
             {{-- Mobile topbar --}}
             <header class="lg:hidden flex items-center justify-between px-3 h-14 bg-white border-b border-slate-200 shrink-0 sticky top-0 z-30">
-                <button @click="sidebarOpen = true" class="p-2 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors" title="Buka Menu Navigasi">
+                <button type="button" 
+                        @click="sidebarOpen = true" 
+                        class="w-10 h-10 flex items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 active:bg-slate-200 hover:text-slate-900 transition-colors cursor-pointer" 
+                        title="Buka Menu Navigasi"
+                        aria-label="Buka Menu Navigasi">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                 </button>
                 <div class="flex items-center gap-2 min-w-0 px-2 flex-1 justify-center">

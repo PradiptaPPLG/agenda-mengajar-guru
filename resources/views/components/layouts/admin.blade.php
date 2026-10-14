@@ -3,21 +3,26 @@
 
     <div x-data="{ sidebarOpen: false }" class="flex h-screen overflow-hidden bg-slate-50">
         {{-- Mobile Backdrop Overlay --}}
-        <div x-show="sidebarOpen" 
-             x-transition:enter="transition ease-out duration-300"
+        <div x-cloak
+             x-show="sidebarOpen" 
+             x-transition:enter="transition-opacity ease-out duration-300"
              x-transition:enter-start="opacity-0"
              x-transition:enter-end="opacity-100"
-             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave="transition-opacity ease-in duration-200"
              x-transition:leave-start="opacity-100"
              x-transition:leave-end="opacity-0"
-             @click="sidebarOpen = false" 
+             @click="sidebarOpen = false"
+             @touchstart.passive="sidebarOpen = false" 
              style="display: none;"
-             class="fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-xs lg:hidden">
+             class="fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-xs lg:hidden cursor-pointer"
+             aria-hidden="true">
         </div>
 
         {{-- Sidebar --}}
-        <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
-               class="fixed inset-y-0 left-0 z-50 flex flex-col w-64 bg-white border-r border-slate-200 shrink-0 transition-transform duration-300 ease-in-out lg:static lg:z-auto">
+        <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
+               @click.outside="if (sidebarOpen) sidebarOpen = false"
+               @keydown.escape.window="sidebarOpen = false"
+               class="fixed inset-y-0 left-0 z-50 flex flex-col w-64 bg-white border-r border-slate-200 shrink-0 transition-transform duration-300 ease-in-out -translate-x-full lg:translate-x-0 lg:static lg:z-auto">
             {{-- Logo & Mobile Close Button --}}
             <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
                 <div class="flex items-center gap-3">
@@ -31,13 +36,18 @@
                 </div>
 
                 {{-- Mobile Close Button --}}
-                <button @click="sidebarOpen = false" class="lg:hidden p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors" title="Tutup Menu">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                <button type="button"
+                        @click="sidebarOpen = false"
+                        @touchend.prevent="sidebarOpen = false"
+                        class="lg:hidden -mr-2 w-10 h-10 flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 active:bg-slate-200 transition-colors cursor-pointer"
+                        title="Tutup Menu"
+                        aria-label="Tutup Menu">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
 
             {{-- Navigation --}}
-            <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+            <nav @click="if (window.innerWidth < 1024) sidebarOpen = false" class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
                 @php $isAdmin = in_array(auth()->user()->role, ['admin', 'super_admin']); @endphp
                 
                 @if(auth()->user()->role === 'tu')
@@ -156,6 +166,26 @@
                 <div class="pt-2 pb-1">
                     <p class="px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Super Admin</p>
                 </div>
+                <x-admin-nav-link href="{{ route('super-admin.dashboard') }}" :active="request()->routeIs('super-admin.dashboard')">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                    Dashboard Super Admin
+                </x-admin-nav-link>
+
+                <x-admin-nav-link href="{{ route('super-admin.activity-logs.index') }}" :active="request()->routeIs('super-admin.activity-logs.*')">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    Audit Trail / Log
+                </x-admin-nav-link>
+
+                <x-admin-nav-link href="{{ route('super-admin.academic-years.index') }}" :active="request()->routeIs('super-admin.academic-years.*')">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14v4m-2-2h4"/></svg>
+                    Tahun Ajaran & Cut-Off
+                </x-admin-nav-link>
+
+                <x-admin-nav-link href="{{ route('super-admin.trash.index') }}" :active="request()->routeIs('super-admin.trash.*')">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    Pemulihan Data (Trash)
+                </x-admin-nav-link>
+
                 <div x-data="{ open: {{ request()->routeIs('kepala-sekolah.report.*') ? 'true' : 'false' }} }">
                     <button @click="open = !open" 
                             class="flex w-full items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('kepala-sekolah.report.*') ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
@@ -214,7 +244,11 @@
         <div class="flex flex-col flex-1 overflow-hidden min-w-0">
             {{-- Mobile topbar --}}
             <header class="lg:hidden flex items-center justify-between px-3 h-14 bg-white border-b border-slate-200 shrink-0 sticky top-0 z-30">
-                <button @click="sidebarOpen = true" class="p-2 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors" title="Buka Menu Navigasi">
+                <button type="button" 
+                        @click="sidebarOpen = true" 
+                        class="w-10 h-10 flex items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 active:bg-slate-200 hover:text-slate-900 transition-colors cursor-pointer" 
+                        title="Buka Menu Navigasi"
+                        aria-label="Buka Menu Navigasi">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                 </button>
                 <div class="flex items-center gap-2 min-w-0 px-2 flex-1 justify-center">

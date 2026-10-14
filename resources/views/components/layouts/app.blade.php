@@ -25,9 +25,36 @@
     <meta name="apple-mobile-web-app-title" content="Agenda Guru">
     <link rel="apple-touch-icon" href="/images/logo_new.png">
 
+    <style>
+        [x-cloak] { display: none !important; }
+    </style>
+
     @stack('head')
 </head>
 <body class="h-full bg-slate-50 text-slate-900 antialiased" x-data="{ showGlobalLogoutModal: false, logoutForm: null }" @open-logout-modal.window="showGlobalLogoutModal = true; logoutForm = $event.detail.form">
+    @if(session()->has('impersonator_id') && auth()->check())
+    <div class="sticky top-0 z-[100] bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white px-4 py-2.5 shadow-md border-b border-amber-600/40">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
+            <div class="flex items-center gap-2 font-medium">
+                <span class="p-1 bg-white/20 rounded-md shrink-0">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                </span>
+                <span>
+                    <strong>Mode Penyamaran Aktif:</strong> Anda sedang masuk sebagai akun <strong>{{ auth()->user()->name }}</strong> ({{ auth()->user()->role_label }}).
+                </span>
+            </div>
+            <form action="{{ route('super-admin.impersonate.leave') }}" method="POST" class="shrink-0">
+                @csrf
+                <button type="submit" 
+                        class="px-3.5 py-1 bg-white text-amber-800 hover:bg-amber-50 font-bold rounded-lg shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer">
+                    <svg class="w-3.5 h-3.5 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                    Kembali ke Akun Super Admin
+                </button>
+            </form>
+        </div>
+    </div>
+    @endif
+
     {{ $slot }}
 
     <!-- Global Logout Modal -->
