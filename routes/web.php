@@ -33,8 +33,12 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicDashboardController;
 use App\Http\Controllers\Siswa\CaptureController as SiswaCaptureController;
 use App\Http\Controllers\Siswa\DashboardController as SiswaDashboardController;
+use App\Http\Controllers\SuperAdmin\AcademicYearController;
+use App\Http\Controllers\SuperAdmin\ActivityLogController;
 use App\Http\Controllers\SuperAdmin\DashboardController as SaDashboardController;
+use App\Http\Controllers\SuperAdmin\ImpersonateController;
 use App\Http\Controllers\SuperAdmin\SettingsController as SaSettingsController;
+use App\Http\Controllers\SuperAdmin\TrashController;
 use Illuminate\Support\Facades\Route;
 
 // Root landing public
@@ -49,6 +53,7 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
     Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
+    Route::post('/profile/bk-kelas', [ProfileController::class, 'updateBkKelas'])->name('profile.bk-kelas.update');
 
     Route::get('/panduan', function () {
         return view('panduan');
@@ -63,6 +68,7 @@ Route::middleware(['auth', 'role:guru'])->prefix('guru')->name('guru.')->group(f
     Route::get('/jadwal/{jadwal}/pertemuan/{tanggal}', [GuruPertemuanController::class, 'show'])
         ->name('pertemuan.show');
     Route::patch('/pertemuan/{pertemuan}/save-all', [GuruPertemuanController::class, 'saveAll'])
+        ->middleware('academic_lock')
         ->name('pertemuan.save-all');
     Route::get('/foto-bukti/{fotoBukti}/download', [GuruPertemuanController::class, 'downloadFoto'])
         ->name('foto-bukti.download');
@@ -134,6 +140,7 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
     // Siswa Management
     Route::post('siswa/bulk-destroy', [SiswaController::class, 'bulkDestroy'])->name('siswa.bulk-destroy');
     Route::get('siswa', [SiswaController::class, 'index'])->name('siswa.index');
+    Route::post('siswa', [SiswaController::class, 'store'])->name('siswa.store');
     Route::get('siswa/template', [SiswaController::class, 'downloadTemplate'])->name('siswa.template');
     Route::post('siswa/import', [SiswaController::class, 'import'])->name('siswa.import');
     Route::post('siswa/deactivate-all', [SiswaController::class, 'deactivateAll'])->name('siswa.deactivate-all');
@@ -224,6 +231,23 @@ Route::middleware(['auth', 'role:kepala_sekolah,super_admin,pengawas'])
 // ─── Super Admin ─────────────────────────────────────────────────────────────
 Route::middleware(['auth', 'role:super_admin'])->prefix('super-admin')->name('super-admin.')->group(function () {
     Route::get('/dashboard', [SaDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs.index');
+    Route::post('/impersonate/{user}', [ImpersonateController::class, 'impersonate'])->name('impersonate');
+    Route::match(['post', 'patch'], '/academic-years/{academicYear}/activate', [AcademicYearController::class, 'activate'])->name('academic-years.activate');
+    Route::match(['post', 'patch'], '/academic-years/{academicYear}/toggle-lock', [AcademicYearController::class, 'toggleLock'])->name('academic-years.toggle-lock');
+    Route::resource('academic-years', AcademicYearController::class)->only(['index', 'store', 'destroy']);
+
+    // Trash / Soft Deletes Manager
+    Route::get('/trash', [TrashController::class, 'index'])->name('trash.index');
+    Route::post('/trash/{type}/restore-all', [TrashController::class, 'restoreAll'])->name('trash.restore-all');
+    Route::delete('/trash/{type}/empty', [TrashController::class, 'empty'])->name('trash.empty');
+    Route::post('/trash/{type}/{id}/restore', [TrashController::class, 'restore'])->name('trash.restore');
+    Route::delete('/trash/{type}/{id}/force-delete', [TrashController::class, 'forceDelete'])->name('trash.force-delete');
+
     Route::get('/settings', [SaSettingsController::class, 'index'])->name('settings');
     Route::post('/settings', [SaSettingsController::class, 'update'])->name('settings.update');
 });
+
+Route::post('/super-admin/impersonate-leave', [ImpersonateController::class, 'leave'])
+    ->middleware('auth')
+    ->name('super-admin.impersonate.leave');

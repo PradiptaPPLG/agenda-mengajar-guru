@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Setting;
 use App\Models\User;
+use App\Services\ActivityLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -47,8 +49,25 @@ class AuthController extends Controller
                 ])->onlyInput('identifier');
             }
 
+            // Jika sistem sedang mode pemeliharaan, hanya admin & super_admin yang dapat login
+            $isMaintenance = (string) Setting::get('maintenance_mode', '0') === '1';
+            $isAdmin = $user->isSuperAdmin() || $user->role === 'admin' || (method_exists($user, 'hasRole') && $user->hasRole('admin'));
+            if ($isMaintenance && ! $isAdmin) {
+                $maintenanceMsg = Setting::get('maintenance_message', 'Sistem sedang dalam masa pemeliharaan. Akses sementara ditutup.');
+
+                return back()->withErrors([
+                    'identifier' => $maintenanceMsg,
+                ])->onlyInput('identifier');
+            }
+
             Auth::login($user, $request->boolean('remember'));
             $request->session()->regenerate();
+
+            ActivityLogger::log(
+                'LOGIN',
+                'Auth',
+                "Pengguna {$user->name} ({$user->role_label}) berhasil masuk ke sistem."
+            );
 
             return $this->redirectByRole($user->role);
         }

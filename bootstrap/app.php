@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Middleware\CheckAcademicPeriodLock;
+use App\Http\Middleware\CheckMaintenanceMode;
 use App\Http\Middleware\RoleMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -13,8 +15,12 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->web(append: [
+            CheckMaintenanceMode::class,
+        ]);
         $middleware->alias([
             'role' => RoleMiddleware::class,
+            'academic_lock' => CheckAcademicPeriodLock::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
