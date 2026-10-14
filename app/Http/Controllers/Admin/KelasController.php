@@ -15,12 +15,61 @@ use Illuminate\View\View;
 
 class KelasController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
-        $kelas = Kelas::with(['waliKelas', 'guruBk'])->withCount('siswaProfiles')->orderBy('nama')->paginate(15)->withQueryString();
+        $query = Kelas::with(['waliKelas', 'guruBk'])->withCount('siswaProfiles');
+
+        if ($request->filled('search')) {
+            $search = trim($request->search);
+            $query->where('nama', 'like', "%{$search}%");
+        }
+
+        if ($request->filled('tingkat')) {
+            $tingkat = $request->tingkat;
+            $query->where(function ($q) use ($tingkat) {
+                $q->where('tingkat', $tingkat);
+                if ($tingkat === '10') {
+                    $q->orWhere('tingkat', 'X');
+                } elseif ($tingkat === '11') {
+                    $q->orWhere('tingkat', 'XI');
+                } elseif ($tingkat === '12') {
+                    $q->orWhere('tingkat', 'XII');
+                }
+            });
+        }
+
+        if ($request->filled('jurusan')) {
+            $jurusan = strtoupper(trim($request->jurusan));
+            $query->where(function ($q) use ($jurusan) {
+                match ($jurusan) {
+                    'PPLG' => $q->where('nama', 'like', '%PPLG%')->orWhere('nama', 'like', '%RPL%'),
+                    'AKL' => $q->where('nama', 'like', '%AKL%')->orWhere('nama', 'like', '%AK%'),
+                    'MPLB' => $q->where('nama', 'like', '%MPLB%')->orWhere('nama', 'like', '%MP%'),
+                    'PM' => $q->where('nama', 'like', '%PM%')->orWhere('nama', 'like', '%PBR%')->orWhere('nama', 'like', '%PBD%'),
+                    'DKV' => $q->where('nama', 'like', '%DKV%'),
+                    'KLN' => $q->where('nama', 'like', '%KLN%'),
+                    'HTL' => $q->where('nama', 'like', '%HTL%'),
+                    'PBS' => $q->where('nama', 'like', '%PBS%'),
+                    default => $q->where('nama', 'like', "%{$jurusan}%"),
+                };
+            });
+        }
+
+        $kelas = $query->orderBy('nama')->paginate(15)->withQueryString();
         $hasKalender = KalenderBlokMinggu::exists();
 
-        return view('admin.kelas.index', compact('kelas', 'hasKalender'));
+        $daftarJurusan = [
+            'PPLG' => 'PPLG (Pengembangan Perangkat Lunak & Gim)',
+            'AKL' => 'AKL (Akuntansi & Keuangan Lembaga)',
+            'MPLB' => 'MPLB (Manajemen Perkantoran & Layanan Bisnis)',
+            'PM' => 'PM (Pemasaran / Bisnis Retail)',
+            'DKV' => 'DKV (Desain Komunikasi Visual)',
+            'KLN' => 'KLN (Kuliner)',
+            'HTL' => 'HTL (Perhotelan)',
+            'PBS' => 'PBS (Perbankan Syariah)',
+        ];
+
+        return view('admin.kelas.index', compact('kelas', 'hasKalender', 'daftarJurusan'));
     }
 
     public function show(Kelas $kelas): View
@@ -143,7 +192,42 @@ class KelasController extends Controller
     {
         if ($request->boolean('delete_all')) {
             $query = Kelas::query();
-            // Handle any filters here if added in the future (none currently for kelas index)
+
+            if ($request->filled('search')) {
+                $query->where('nama', 'like', "%{$request->search}%");
+            }
+
+            if ($request->filled('tingkat')) {
+                $tingkat = $request->tingkat;
+                $query->where(function ($q) use ($tingkat) {
+                    $q->where('tingkat', $tingkat);
+                    if ($tingkat === '10') {
+                        $q->orWhere('tingkat', 'X');
+                    } elseif ($tingkat === '11') {
+                        $q->orWhere('tingkat', 'XI');
+                    } elseif ($tingkat === '12') {
+                        $q->orWhere('tingkat', 'XII');
+                    }
+                });
+            }
+
+            if ($request->filled('jurusan')) {
+                $jurusan = strtoupper(trim($request->jurusan));
+                $query->where(function ($q) use ($jurusan) {
+                    match ($jurusan) {
+                        'PPLG' => $q->where('nama', 'like', '%PPLG%')->orWhere('nama', 'like', '%RPL%'),
+                        'AKL' => $q->where('nama', 'like', '%AKL%')->orWhere('nama', 'like', '%AK%'),
+                        'MPLB' => $q->where('nama', 'like', '%MPLB%')->orWhere('nama', 'like', '%MP%'),
+                        'PM' => $q->where('nama', 'like', '%PM%')->orWhere('nama', 'like', '%PBR%')->orWhere('nama', 'like', '%PBD%'),
+                        'DKV' => $q->where('nama', 'like', '%DKV%'),
+                        'KLN' => $q->where('nama', 'like', '%KLN%'),
+                        'HTL' => $q->where('nama', 'like', '%HTL%'),
+                        'PBS' => $q->where('nama', 'like', '%PBS%'),
+                        default => $q->where('nama', 'like', "%{$jurusan}%"),
+                    };
+                });
+            }
+
             $count = $query->count();
             $query->delete();
 

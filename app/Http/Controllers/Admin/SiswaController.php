@@ -112,6 +112,60 @@ class SiswaController extends Controller
         return view('admin.siswa.index', compact('siswa', 'kelasList'));
     }
 
+    public function store(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'nama' => ['required', 'string', 'max:255'],
+            'nis' => ['nullable', 'string', 'max:30'],
+            'kelas_id' => ['nullable', 'exists:kelas,id'],
+            'kelompok_blok' => ['nullable', 'in:kelompok_a,kelompok_b,reguler'],
+            'password' => ['nullable', 'string', 'min:6'],
+            'is_active' => ['nullable'],
+        ]);
+
+        $nis = ! empty($validated['nis']) ? trim($validated['nis']) : null;
+        $nama = trim($validated['nama']);
+        $kelasId = $validated['kelas_id'] ?? null;
+        $kelompokBlok = $validated['kelompok_blok'] ?? null;
+
+        if ($nis) {
+            $existing = SiswaProfile::where('nis', $nis)->first();
+            if ($existing) {
+                return back()->withErrors(['nis' => "NIS {$nis} sudah terdaftar atas nama: {$existing->user?->name}."])->withInput();
+            }
+        }
+
+        DB::transaction(function () use ($nama, $nis, $kelasId, $kelompokBlok, $validated) {
+            $cleanNis = $nis ? preg_replace('/\s+/', '', (string) $nis) : null;
+            $password = ! empty($validated['password'])
+                ? Hash::make($validated['password'])
+                : Hash::make($cleanNis ?: 'password123');
+
+            $isActive = isset($validated['is_active'])
+                ? filter_var($validated['is_active'], FILTER_VALIDATE_BOOLEAN)
+                : Setting::isDefaultSiswaActive();
+
+            $user = User::create([
+                'name' => $nama,
+                'email' => null,
+                'password' => $password,
+                'role' => 'siswa',
+                'is_active' => $isActive,
+            ]);
+
+            SiswaProfile::create([
+                'user_id' => $user->id,
+                'nis' => $nis,
+                'kelas_id' => $kelasId,
+                'kelompok_blok' => $kelompokBlok,
+            ]);
+        });
+
+        $kelasNama = $kelasId ? (Kelas::find($kelasId)?->nama ?? 'kelas') : 'tanpa kelas';
+
+        return redirect()->route('admin.siswa.index')->with('success', "Siswa {$nama} berhasil ditambahkan ke {$kelasNama}.");
+    }
+
     public function import(Request $request)
     {
         $request->validate([

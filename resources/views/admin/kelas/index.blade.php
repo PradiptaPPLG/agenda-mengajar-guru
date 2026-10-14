@@ -41,11 +41,61 @@
         </div>
     @endif
 
+    <!-- Filter Card: Jurusan, Tingkat, & Pencarian -->
+    <div class="bg-white rounded-2xl border border-slate-200 p-4 mb-5 shadow-2xs">
+        <form action="{{ route('admin.kelas.index') }}" method="GET" class="flex flex-wrap items-center gap-3" id="kelas-filter-form">
+            <!-- Search -->
+            <div class="relative flex-1 min-w-[200px]">
+                <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama kelas..."
+                       class="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+            </div>
+
+            <!-- Filter Tingkat -->
+            <div class="w-full sm:w-auto">
+                <select name="tingkat" class="w-full sm:w-auto px-3.5 py-2 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white cursor-pointer"
+                        onchange="document.getElementById('kelas-filter-form').submit()">
+                    <option value="">Semua Tingkat</option>
+                    <option value="10" {{ request('tingkat') == '10' ? 'selected' : '' }}>Kelas 10 (X)</option>
+                    <option value="11" {{ request('tingkat') == '11' ? 'selected' : '' }}>Kelas 11 (XI)</option>
+                    <option value="12" {{ request('tingkat') == '12' ? 'selected' : '' }}>Kelas 12 (XII)</option>
+                </select>
+            </div>
+
+            <!-- Filter Jurusan -->
+            <div class="w-full sm:w-auto">
+                <select name="jurusan" class="w-full sm:w-auto px-3.5 py-2 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white cursor-pointer"
+                        onchange="document.getElementById('kelas-filter-form').submit()">
+                    <option value="">Semua Jurusan</option>
+                    @foreach($daftarJurusan as $kode => $namaJurusan)
+                        <option value="{{ $kode }}" {{ request('jurusan') == $kode ? 'selected' : '' }}>
+                            {{ $namaJurusan }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <button type="submit" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium rounded-xl transition-colors cursor-pointer">
+                Filter
+            </button>
+
+            @if(request()->hasAny(['search', 'tingkat', 'jurusan']))
+                <a href="{{ route('admin.kelas.index') }}" class="px-3.5 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">
+                    Reset
+                </a>
+            @endif
+        </form>
+    </div>
+
     <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
         <form action="{{ route('admin.kelas.bulk-destroy') }}" method="POST" id="bulk-delete-form">
             @csrf
             <input type="hidden" name="delete_all" id="delete-all-input" value="0">
             <input type="hidden" name="search" value="{{ request('search') }}">
+            <input type="hidden" name="tingkat" value="{{ request('tingkat') }}">
+            <input type="hidden" name="jurusan" value="{{ request('jurusan') }}">
         </form>
         <div class="overflow-x-auto">
             <table class="w-full text-sm min-w-[700px]">
