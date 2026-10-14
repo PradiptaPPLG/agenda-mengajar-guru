@@ -322,6 +322,11 @@
                                 <div class="text-[9px] text-slate-400 pt-0.5 border-t border-slate-50 font-mono text-right" title="Formula pembagian data">
                                     Rumus: (Log ÷ {{ number_format($siswaPieTotalReal, 0, ',', '.') }}) × 100%
                                 </div>
+                                <div class="pt-0.5 text-right">
+                                    <a href="{{ route('kepala-sekolah.report.siswa') }}" class="text-[10px] text-sky-600 hover:text-sky-800 font-semibold inline-flex items-center gap-0.5">
+                                        Analisis Alasan Per Angkatan &rarr;
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </div>

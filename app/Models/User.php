@@ -79,6 +79,35 @@ class User extends Authenticatable
         return $this->role === 'piket';
     }
 
+    public function isGuruBk(): bool
+    {
+        if ($this->can('bk.view_rekap')
+            || $this->hasAnyRole(['Guru BK', 'BK', 'guru_bk', 'guru-bk'])
+            || $this->roles->contains(fn ($r) => str_contains(strtolower($r->name), 'bk'))
+            || in_array($this->role, ['admin', 'super_admin'])
+        ) {
+            return true;
+        }
+
+        if (Kelas::where('bk_id', $this->id)->exists()) {
+            return true;
+        }
+
+        if ($this->relationLoaded('mapels')) {
+            return $this->mapels->contains(fn ($m) => str_contains(strtoupper($m->nama), 'BK') || strtoupper($m->kode ?? '') === 'BP');
+        }
+
+        return $this->mapels()->where(function ($q) {
+            $q->where('nama', 'like', '%BK%')
+                ->orWhere('kode', 'BP');
+        })->exists();
+    }
+
+    public function kelasBinaanBk(): HasMany
+    {
+        return $this->hasMany(Kelas::class, 'bk_id');
+    }
+
     public function guruProfile(): HasOne
     {
         return $this->hasOne(GuruProfile::class);

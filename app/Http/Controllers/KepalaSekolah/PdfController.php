@@ -38,13 +38,53 @@ class PdfController extends Controller
 
         $selectedGuruId = $request->input('guru_id');
         $selectedKelasId = $request->input('kelas_id');
+        $selectedTingkat = $request->input('tingkat', 'all');
+        $selectedJurusan = $request->input('jurusan', 'all');
+
+        $kelasQuery = Kelas::query();
+        if ($selectedTingkat !== 'all') {
+            $kelasQuery->where(function ($q) use ($selectedTingkat) {
+                if ($selectedTingkat === '10') {
+                    $q->whereIn('tingkat', ['10', 'X'])->orWhere('nama', 'like', '10%')->orWhere('nama', 'like', 'X %');
+                } elseif ($selectedTingkat === '11') {
+                    $q->whereIn('tingkat', ['11', 'XI'])->orWhere('nama', 'like', '11%')->orWhere('nama', 'like', 'XI %');
+                } elseif ($selectedTingkat === '12') {
+                    $q->whereIn('tingkat', ['12', 'XII'])->orWhere('nama', 'like', '12%')->orWhere('nama', 'like', 'XII %');
+                }
+            });
+        }
+
+        if ($selectedJurusan !== 'all') {
+            $jUpper = strtoupper(trim($selectedJurusan));
+            $kelasQuery->where(function ($q) use ($jUpper) {
+                match ($jUpper) {
+                    'PPLG' => $q->where('nama', 'like', '%PPLG%')->orWhere('nama', 'like', '%RPL%'),
+                    'AKL' => $q->where('nama', 'like', '%AKL%')->orWhere('nama', 'like', '%AK%'),
+                    'MPLB' => $q->where('nama', 'like', '%MPLB%')->orWhere('nama', 'like', '%MP%'),
+                    'PM' => $q->where('nama', 'like', '%PM%')->orWhere('nama', 'like', '%PBR%')->orWhere('nama', 'like', '%PBD%'),
+                    'DKV' => $q->where('nama', 'like', '%DKV%'),
+                    'KLN' => $q->where('nama', 'like', '%KLN%')->orWhere('nama', 'like', '%KULINER%'),
+                    'HTL' => $q->where('nama', 'like', '%HTL%')->orWhere('nama', 'like', '%HOTEL%'),
+                    'PBS' => $q->where('nama', 'like', '%PBS%'),
+                    default => $q->where('nama', 'like', "%{$jUpper}%"),
+                };
+            });
+        }
+
+        if ($selectedKelasId) {
+            $targetKelasIds = collect([$selectedKelasId]);
+        } elseif ($selectedTingkat !== 'all' || $selectedJurusan !== 'all') {
+            $targetKelasIds = $kelasQuery->pluck('id');
+        } else {
+            $targetKelasIds = null;
+        }
 
         $query = KehadiranGuru::with([
             'guru',
             'pertemuan.jadwal.kelas',
             'pertemuan.jadwal.mataPelajaran',
         ])
-            ->whereHas('pertemuan', function ($q) use ($startDate, $endDate, $selectedKelasId, $selectedTahunAjaran, $selectedSemester, $filterMode) {
+            ->whereHas('pertemuan', function ($q) use ($startDate, $endDate, $targetKelasIds, $selectedTahunAjaran, $selectedSemester, $filterMode) {
                 $q->whereBetween('tanggal', [$startDate->toDateString(), $endDate->toDateString()]);
 
                 if ($filterMode === 'semester') {
@@ -56,8 +96,8 @@ class PdfController extends Controller
                     }
                 }
 
-                if ($selectedKelasId) {
-                    $q->whereHas('jadwal', fn ($j) => $j->where('kelas_id', $selectedKelasId));
+                if ($targetKelasIds !== null) {
+                    $q->whereHas('jadwal', fn ($j) => $j->whereIn('kelas_id', $targetKelasIds));
                 }
             });
 
@@ -120,6 +160,44 @@ class PdfController extends Controller
         }
 
         $selectedKelasId = $request->input('kelas_id');
+        $selectedTingkat = $request->input('tingkat', 'all');
+        $selectedJurusan = $request->input('jurusan', 'all');
+
+        $kelasQuery = Kelas::query();
+        if ($selectedTingkat !== 'all') {
+            $kelasQuery->where(function ($q) use ($selectedTingkat) {
+                if ($selectedTingkat === '10') {
+                    $q->whereIn('tingkat', ['10', 'X'])->orWhere('nama', 'like', '10%')->orWhere('nama', 'like', 'X %');
+                } elseif ($selectedTingkat === '11') {
+                    $q->whereIn('tingkat', ['11', 'XI'])->orWhere('nama', 'like', '11%')->orWhere('nama', 'like', 'XI %');
+                } elseif ($selectedTingkat === '12') {
+                    $q->whereIn('tingkat', ['12', 'XII'])->orWhere('nama', 'like', '12%')->orWhere('nama', 'like', 'XII %');
+                }
+            });
+        }
+
+        if ($selectedJurusan !== 'all') {
+            $jUpper = strtoupper(trim($selectedJurusan));
+            $kelasQuery->where(function ($q) use ($jUpper) {
+                match ($jUpper) {
+                    'PPLG' => $q->where('nama', 'like', '%PPLG%')->orWhere('nama', 'like', '%RPL%'),
+                    'AKL' => $q->where('nama', 'like', '%AKL%')->orWhere('nama', 'like', '%AK%'),
+                    'MPLB' => $q->where('nama', 'like', '%MPLB%')->orWhere('nama', 'like', '%MP%'),
+                    'PM' => $q->where('nama', 'like', '%PM%')->orWhere('nama', 'like', '%PBR%')->orWhere('nama', 'like', '%PBD%'),
+                    'DKV' => $q->where('nama', 'like', '%DKV%'),
+                    'KLN' => $q->where('nama', 'like', '%KLN%')->orWhere('nama', 'like', '%KULINER%'),
+                    'HTL' => $q->where('nama', 'like', '%HTL%')->orWhere('nama', 'like', '%HOTEL%'),
+                    'PBS' => $q->where('nama', 'like', '%PBS%'),
+                    default => $q->where('nama', 'like', "%{$jUpper}%"),
+                };
+            });
+        }
+
+        if ($selectedKelasId) {
+            $kelasQuery->where('id', $selectedKelasId);
+        }
+
+        $targetKelasIds = $kelasQuery->pluck('id');
 
         $pertemuanQuery = Pertemuan::whereBetween('tanggal', [$startDate->toDateString(), $endDate->toDateString()]);
 
@@ -132,10 +210,7 @@ class PdfController extends Controller
             }
         }
 
-        if ($selectedKelasId) {
-            $pertemuanQuery->whereHas('jadwal', fn ($j) => $j->where('kelas_id', $selectedKelasId));
-        }
-
+        $pertemuanQuery->whereHas('jadwal', fn ($j) => $j->whereIn('kelas_id', $targetKelasIds));
         $pertemuanIds = $pertemuanQuery->pluck('id');
 
         $kehadiranData = KehadiranSiswa::with(['siswa', 'pertemuan.jadwal.mataPelajaran'])

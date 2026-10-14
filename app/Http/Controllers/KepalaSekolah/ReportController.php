@@ -39,9 +39,72 @@ class ReportController extends Controller
                 : Carbon::now()->endOfMonth();
         }
 
+        // Filter Angkatan (Tingkat), Jurusan, Guru, dan Kelas
+        $selectedTingkat = $request->input('tingkat', 'all');
+        $selectedJurusan = $request->input('jurusan', 'all');
         $selectedGuruId = $request->input('guru_id');
         $selectedKelasId = $request->input('kelas_id');
         $onlyDiscrepancy = $request->boolean('only_discrepancy');
+
+        $daftarJurusan = [
+            'PPLG' => 'PPLG (Pengembangan Perangkat Lunak & Gim)',
+            'AKL' => 'AKL (Akuntansi & Keuangan Lembaga)',
+            'MPLB' => 'MPLB (Manajemen Perkantoran & Layanan Bisnis)',
+            'PM' => 'PM (Pemasaran / Bisnis Retail)',
+            'DKV' => 'DKV (Desain Komunikasi Visual)',
+            'KLN' => 'KLN (Kuliner)',
+            'HTL' => 'HTL (Perhotelan)',
+            'PBS' => 'PBS (Perbankan Syariah)',
+        ];
+
+        $daftarTingkat = [
+            'all' => 'Semua Angkatan',
+            '10' => 'Kelas 10 (Fase E)',
+            '11' => 'Kelas 11 (Fase F)',
+            '12' => 'Kelas 12 (Fase F Lanjutan)',
+        ];
+
+        // Query kelas yang memenuhi filter tingkat & jurusan
+        $kelasQuery = Kelas::query();
+        if ($selectedTingkat !== 'all') {
+            $kelasQuery->where(function ($q) use ($selectedTingkat) {
+                if ($selectedTingkat === '10') {
+                    $q->whereIn('tingkat', ['10', 'X'])->orWhere('nama', 'like', '10%')->orWhere('nama', 'like', 'X %');
+                } elseif ($selectedTingkat === '11') {
+                    $q->whereIn('tingkat', ['11', 'XI'])->orWhere('nama', 'like', '11%')->orWhere('nama', 'like', 'XI %');
+                } elseif ($selectedTingkat === '12') {
+                    $q->whereIn('tingkat', ['12', 'XII'])->orWhere('nama', 'like', '12%')->orWhere('nama', 'like', 'XII %');
+                }
+            });
+        }
+
+        if ($selectedJurusan !== 'all') {
+            $jUpper = strtoupper(trim($selectedJurusan));
+            $kelasQuery->where(function ($q) use ($jUpper) {
+                match ($jUpper) {
+                    'PPLG' => $q->where('nama', 'like', '%PPLG%')->orWhere('nama', 'like', '%RPL%'),
+                    'AKL' => $q->where('nama', 'like', '%AKL%')->orWhere('nama', 'like', '%AK%'),
+                    'MPLB' => $q->where('nama', 'like', '%MPLB%')->orWhere('nama', 'like', '%MP%'),
+                    'PM' => $q->where('nama', 'like', '%PM%')->orWhere('nama', 'like', '%PBR%')->orWhere('nama', 'like', '%PBD%'),
+                    'DKV' => $q->where('nama', 'like', '%DKV%'),
+                    'KLN' => $q->where('nama', 'like', '%KLN%')->orWhere('nama', 'like', '%KULINER%'),
+                    'HTL' => $q->where('nama', 'like', '%HTL%')->orWhere('nama', 'like', '%HOTEL%'),
+                    'PBS' => $q->where('nama', 'like', '%PBS%'),
+                    default => $q->where('nama', 'like', "%{$jUpper}%"),
+                };
+            });
+        }
+
+        $matchingKelasList = (clone $kelasQuery)->orderBy('tingkat')->orderBy('nama')->get();
+        $matchingKelasIds = $matchingKelasList->pluck('id');
+
+        if ($selectedKelasId) {
+            $targetKelasIds = collect([$selectedKelasId]);
+        } elseif ($selectedTingkat !== 'all' || $selectedJurusan !== 'all') {
+            $targetKelasIds = $matchingKelasIds;
+        } else {
+            $targetKelasIds = null;
+        }
 
         $query = KehadiranGuru::with([
             'guru',
@@ -49,7 +112,7 @@ class ReportController extends Controller
             'pertemuan.jadwal.mataPelajaran',
             'pertemuan.fotoBuktis',
         ])
-            ->whereHas('pertemuan', function ($q) use ($startDate, $endDate, $selectedKelasId, $selectedTahunAjaran, $selectedSemester, $filterMode) {
+            ->whereHas('pertemuan', function ($q) use ($startDate, $endDate, $targetKelasIds, $selectedTahunAjaran, $selectedSemester, $filterMode) {
                 $q->whereBetween('tanggal', [$startDate->toDateString(), $endDate->toDateString()]);
 
                 if ($filterMode === 'semester') {
@@ -61,8 +124,8 @@ class ReportController extends Controller
                     }
                 }
 
-                if ($selectedKelasId) {
-                    $q->whereHas('jadwal', fn ($j) => $j->where('kelas_id', $selectedKelasId));
+                if ($targetKelasIds !== null) {
+                    $q->whereHas('jadwal', fn ($j) => $j->whereIn('kelas_id', $targetKelasIds));
                 }
             });
 
@@ -71,7 +134,91 @@ class ReportController extends Controller
         }
 
         $allKehadiran = $query->orderBy('created_at', 'desc')->get();
+        $totalKehadiranRecords = $allKehadiran->count();
         $discrepancyCount = $allKehadiran->filter(fn ($kh) => $kh->has_discrepancy)->count();
+
+        // ── Agregasi Alasan & Persentase Kehadiran Guru (Pivot Style) ──
+        $breakdownGroups = [];
+        foreach ($allKehadiran as $row) {
+            $isHadir = $row->isHadirCategory();
+            $rawKet = trim($row->keterangan ?? '');
+
+            if ($isHadir) {
+                // Sesuai pivot: status hadir bernilai '-' jika keterangan kosong
+                $label = ($rawKet === '' || $rawKet === '-') ? '-' : $rawKet;
+                $category = 'hadir';
+            } else {
+                if ($rawKet !== '' && $rawKet !== '-') {
+                    $label = ucfirst($rawKet);
+                } elseif ($row->alasan_tidak_hadir_label) {
+                    $label = $row->alasan_tidak_hadir_label;
+                } else {
+                    $label = $row->status_label;
+                }
+                $category = strtolower($row->status ?? 'tidak_hadir');
+            }
+
+            if (! isset($breakdownGroups[$label])) {
+                $breakdownGroups[$label] = [
+                    'label' => $label,
+                    'category' => $category,
+                    'count' => 0,
+                    'percentage' => 0,
+                ];
+            }
+            $breakdownGroups[$label]['count']++;
+        }
+
+        // Hitung persentase desimal presisi 2 digit
+        $alasanBreakdown = collect($breakdownGroups)->map(function ($item) use ($totalKehadiranRecords) {
+            $item['percentage'] = $totalKehadiranRecords > 0
+                ? round(($item['count'] / $totalKehadiranRecords) * 100, 2)
+                : 0;
+
+            return $item;
+        })->sortByDesc('count')->values();
+
+        $grandTotalCount = $totalKehadiranRecords;
+        $grandTotalPercentage = $totalKehadiranRecords > 0 ? 100.00 : 0.00;
+
+        // Siapkan warna dan dataset untuk Pie / Donut Chart
+        $colorPalette = [
+            '#2563EB', // Blue (Hadir '-')
+            '#EF4444', // Red
+            '#F59E0B', // Amber
+            '#10B981', // Emerald
+            '#8B5CF6', // Purple
+            '#EC4899', // Pink
+            '#06B6D4', // Cyan
+            '#F97316', // Orange
+            '#6366F1', // Indigo
+            '#14B8A6', // Teal
+            '#84CC16', // Lime
+            '#A855F7', // Violet
+            '#E11D48', // Rose
+            '#64748B', // Slate
+            '#D97706', // Amber dark
+            '#0284C7', // Sky
+            '#7C3AED', // Violet dark
+            '#DB2777', // Pink dark
+        ];
+
+        $pieLabels = [];
+        $piePercentages = [];
+        $pieCounts = [];
+        $pieColors = [];
+
+        foreach ($alasanBreakdown as $idx => $item) {
+            $pieLabels[] = $item['label'];
+            $piePercentages[] = $item['percentage'];
+            $pieCounts[] = $item['count'];
+
+            if ($item['label'] === '-' || strtolower($item['label']) === 'hadir') {
+                $pieColors[] = '#2563EB'; // Royal Blue khas pivot excel
+            } else {
+                $pieColors[] = $colorPalette[$idx % count($colorPalette)];
+            }
+        }
 
         $kehadiranCollection = $onlyDiscrepancy
             ? $allKehadiran->filter(fn ($kh) => $kh->has_discrepancy)->values()
@@ -113,17 +260,38 @@ class ReportController extends Controller
         $daftarSemester = Setting::getDaftarSemester();
 
         return view('kepala-sekolah.report.guru', compact(
-            'kehadiran', 'summary', 'guruList', 'kelasList',
-            'startDate', 'endDate', 'selectedGuruId', 'selectedKelasId',
-            'onlyDiscrepancy', 'discrepancyCount',
-            'selectedTahunAjaran', 'selectedSemester', 'daftarTahunAjaran', 'daftarSemester', 'filterMode'
+            'kehadiran',
+            'summary',
+            'guruList',
+            'kelasList',
+            'matchingKelasList',
+            'startDate',
+            'endDate',
+            'selectedGuruId',
+            'selectedKelasId',
+            'selectedTingkat',
+            'selectedJurusan',
+            'daftarJurusan',
+            'daftarTingkat',
+            'onlyDiscrepancy',
+            'discrepancyCount',
+            'selectedTahunAjaran',
+            'selectedSemester',
+            'daftarTahunAjaran',
+            'daftarSemester',
+            'filterMode',
+            'alasanBreakdown',
+            'grandTotalCount',
+            'grandTotalPercentage',
+            'pieLabels',
+            'piePercentages',
+            'pieCounts',
+            'pieColors'
         ));
     }
 
     public function siswa(Request $request): View
     {
-        $kelasList = Kelas::orderBy('nama')->get();
-
         $selectedTahunAjaran = $request->input('tahun_ajaran', Setting::getTahunAjaranAktif());
         $selectedSemester = $request->input('semester', Setting::getSemesterAktif());
         $filterMode = $request->input('filter_mode', 'semester');
@@ -142,9 +310,73 @@ class ReportController extends Controller
                 : Carbon::now()->endOfMonth();
         }
 
+        // Filter Angkatan (Tingkat), Jurusan, Kelas, dan Siswa
+        $selectedTingkat = $request->input('tingkat', 'all');
+        $selectedJurusan = $request->input('jurusan', 'all');
         $selectedKelasId = $request->input('kelas_id');
+        $selectedSiswaId = $request->input('siswa_id');
 
-        // Get pertemuan in range
+        $daftarJurusan = [
+            'PPLG' => 'PPLG (Pengembangan Perangkat Lunak & Gim)',
+            'AKL' => 'AKL (Akuntansi & Keuangan Lembaga)',
+            'MPLB' => 'MPLB (Manajemen Perkantoran & Layanan Bisnis)',
+            'PM' => 'PM (Pemasaran / Bisnis Retail)',
+            'DKV' => 'DKV (Desain Komunikasi Visual)',
+            'KLN' => 'KLN (Kuliner)',
+            'HTL' => 'HTL (Perhotelan)',
+            'PBS' => 'PBS (Perbankan Syariah)',
+        ];
+
+        $daftarTingkat = [
+            'all' => 'Semua Angkatan',
+            '10' => 'Kelas 10 (Fase E)',
+            '11' => 'Kelas 11 (Fase F)',
+            '12' => 'Kelas 12 (Fase F Lanjutan)',
+        ];
+
+        // Query kelas yang memenuhi filter tingkat & jurusan
+        $kelasQuery = Kelas::query();
+        if ($selectedTingkat !== 'all') {
+            $kelasQuery->where(function ($q) use ($selectedTingkat) {
+                if ($selectedTingkat === '10') {
+                    $q->whereIn('tingkat', ['10', 'X'])->orWhere('nama', 'like', '10%')->orWhere('nama', 'like', 'X %');
+                } elseif ($selectedTingkat === '11') {
+                    $q->whereIn('tingkat', ['11', 'XI'])->orWhere('nama', 'like', '11%')->orWhere('nama', 'like', 'XI %');
+                } elseif ($selectedTingkat === '12') {
+                    $q->whereIn('tingkat', ['12', 'XII'])->orWhere('nama', 'like', '12%')->orWhere('nama', 'like', 'XII %');
+                }
+            });
+        }
+
+        if ($selectedJurusan !== 'all') {
+            $jUpper = strtoupper(trim($selectedJurusan));
+            $kelasQuery->where(function ($q) use ($jUpper) {
+                match ($jUpper) {
+                    'PPLG' => $q->where('nama', 'like', '%PPLG%')->orWhere('nama', 'like', '%RPL%'),
+                    'AKL' => $q->where('nama', 'like', '%AKL%')->orWhere('nama', 'like', '%AK%'),
+                    'MPLB' => $q->where('nama', 'like', '%MPLB%')->orWhere('nama', 'like', '%MP%'),
+                    'PM' => $q->where('nama', 'like', '%PM%')->orWhere('nama', 'like', '%PBR%')->orWhere('nama', 'like', '%PBD%'),
+                    'DKV' => $q->where('nama', 'like', '%DKV%'),
+                    'KLN' => $q->where('nama', 'like', '%KLN%')->orWhere('nama', 'like', '%KULINER%'),
+                    'HTL' => $q->where('nama', 'like', '%HTL%')->orWhere('nama', 'like', '%HOTEL%'),
+                    'PBS' => $q->where('nama', 'like', '%PBS%'),
+                    default => $q->where('nama', 'like', "%{$jUpper}%"),
+                };
+            });
+        }
+
+        // Kelas untuk dropdown filter
+        $matchingKelasList = (clone $kelasQuery)->orderBy('tingkat')->orderBy('nama')->get();
+        $matchingKelasIds = $matchingKelasList->pluck('id');
+
+        // Jika user memilih spesifik kelas_id
+        if ($selectedKelasId) {
+            $targetKelasIds = collect([$selectedKelasId]);
+        } else {
+            $targetKelasIds = $matchingKelasIds;
+        }
+
+        // Query pertemuan yang sesuai rentang tanggal & kelas yang terfilter
         $pertemuanQuery = Pertemuan::whereBetween('tanggal', [$startDate->toDateString(), $endDate->toDateString()]);
 
         if ($filterMode === 'semester') {
@@ -156,20 +388,118 @@ class ReportController extends Controller
             }
         }
 
-        if ($selectedKelasId) {
-            $pertemuanQuery->whereHas('jadwal', fn ($j) => $j->where('kelas_id', $selectedKelasId));
-        }
-
+        $pertemuanQuery->whereHas('jadwal', fn ($j) => $j->whereIn('kelas_id', $targetKelasIds));
         $pertemuanIds = $pertemuanQuery->pluck('id');
 
-        $kehadiranSiswaData = KehadiranSiswa::with(['siswa', 'pertemuan.jadwal.mataPelajaran'])
-            ->whereIn('pertemuan_id', $pertemuanIds)
-            ->get();
+        // Query data presensi siswa
+        $kehadiranQuery = KehadiranSiswa::with([
+            'siswa.siswaProfile.kelas',
+            'pertemuan.jadwal.kelas',
+            'pertemuan.jadwal.mataPelajaran',
+        ])->whereIn('pertemuan_id', $pertemuanIds);
+
+        if ($selectedSiswaId && $selectedSiswaId !== 'all') {
+            $kehadiranQuery->where('siswa_id', $selectedSiswaId);
+        }
+
+        $kehadiranSiswaData = $kehadiranQuery->get();
+        $totalKehadiranRecords = $kehadiranSiswaData->count();
+
+        // ── Agregasi Alasan & Persentase Kehadiran Siswa (Pivot Style) ──
+        $breakdownGroups = [];
+        foreach ($kehadiranSiswaData as $row) {
+            $status = strtolower($row->status ?? 'hadir');
+            $rawKet = trim($row->keterangan ?? '');
+
+            if ($status === 'hadir') {
+                // Sesuai pivot di Excel: status hadir bernilai '-' jika keterangan kosong
+                $label = ($rawKet === '' || $rawKet === '-') ? '-' : $rawKet;
+                $category = 'hadir';
+            } else {
+                if ($rawKet !== '' && $rawKet !== '-') {
+                    $label = ucfirst($rawKet);
+                } else {
+                    $label = match ($status) {
+                        'sakit' => 'Sakit',
+                        'izin' => 'Izin',
+                        'alpa' => 'Alpa',
+                        'dispensasi' => 'Dispensasi',
+                        'terlambat' => 'Terlambat',
+                        default => ucfirst($status),
+                    };
+                }
+                $category = $status;
+            }
+
+            if (! isset($breakdownGroups[$label])) {
+                $breakdownGroups[$label] = [
+                    'label' => $label,
+                    'category' => $category,
+                    'count' => 0,
+                    'percentage' => 0,
+                ];
+            }
+            $breakdownGroups[$label]['count']++;
+        }
+
+        // Hitung persentase desimal presisi 2 digit
+        $alasanBreakdown = collect($breakdownGroups)->map(function ($item) use ($totalKehadiranRecords) {
+            $item['percentage'] = $totalKehadiranRecords > 0
+                ? round(($item['count'] / $totalKehadiranRecords) * 100, 2)
+                : 0;
+
+            return $item;
+        })->sortByDesc('count')->values();
+
+        $grandTotalCount = $totalKehadiranRecords;
+        $grandTotalPercentage = $totalKehadiranRecords > 0 ? 100.00 : 0.00;
+
+        // Siapkan warna dan dataset untuk Pie / Donut Chart
+        $colorPalette = [
+            '#2563EB', // Blue (Hadir '-')
+            '#EF4444', // Red
+            '#F59E0B', // Amber
+            '#10B981', // Emerald
+            '#8B5CF6', // Purple
+            '#EC4899', // Pink
+            '#06B6D4', // Cyan
+            '#F97316', // Orange
+            '#6366F1', // Indigo
+            '#14B8A6', // Teal
+            '#84CC16', // Lime
+            '#A855F7', // Violet
+            '#E11D48', // Rose
+            '#64748B', // Slate
+            '#D97706', // Amber dark
+            '#0284C7', // Sky
+            '#7C3AED', // Violet dark
+            '#DB2777', // Pink dark
+        ];
+
+        $pieLabels = [];
+        $piePercentages = [];
+        $pieCounts = [];
+        $pieColors = [];
+
+        foreach ($alasanBreakdown as $idx => $item) {
+            $pieLabels[] = $item['label'];
+            $piePercentages[] = $item['percentage'];
+            $pieCounts[] = $item['count'];
+
+            if ($item['label'] === '-' || strtolower($item['label']) === 'hadir') {
+                $pieColors[] = '#2563EB'; // Royal Blue khas pivot excel
+            } else {
+                $pieColors[] = $colorPalette[$idx % count($colorPalette)];
+            }
+        }
 
         // Summary per siswa (10 per page)
         $summaryCollection = $kehadiranSiswaData->groupBy('siswa_id')->map(function ($items) {
+            $first = $items->first();
+
             return [
-                'siswa' => $items->first()->siswa,
+                'siswa' => $first->siswa,
+                'kelas_nama' => $first->siswa?->siswaProfile?->kelas?->nama ?? $first->pertemuan?->jadwal?->kelas?->nama ?? '-',
                 'hadir' => $items->where('status', 'hadir')->count(),
                 'sakit' => $items->where('status', 'sakit')->count(),
                 'izin' => $items->where('status', 'izin')->count(),
@@ -191,10 +521,38 @@ class ReportController extends Controller
 
         $daftarTahunAjaran = Setting::getDaftarTahunAjaran();
         $daftarSemester = Setting::getDaftarSemester();
+        $allKelasList = Kelas::orderBy('nama')->get();
+
+        // Daftar siswa untuk filter opsional
+        $siswaFilterList = $selectedKelasId
+            ? User::where('role', 'siswa')->whereHas('siswaProfile', fn ($sp) => $sp->where('kelas_id', $selectedKelasId))->orderBy('name')->get()
+            : collect();
 
         return view('kepala-sekolah.report.siswa', compact(
-            'summary', 'kelasList', 'startDate', 'endDate', 'selectedKelasId',
-            'selectedTahunAjaran', 'selectedSemester', 'daftarTahunAjaran', 'daftarSemester', 'filterMode'
+            'summary',
+            'matchingKelasList',
+            'allKelasList',
+            'startDate',
+            'endDate',
+            'selectedKelasId',
+            'selectedTingkat',
+            'selectedJurusan',
+            'selectedSiswaId',
+            'selectedTahunAjaran',
+            'selectedSemester',
+            'daftarTahunAjaran',
+            'daftarSemester',
+            'daftarJurusan',
+            'daftarTingkat',
+            'filterMode',
+            'alasanBreakdown',
+            'grandTotalCount',
+            'grandTotalPercentage',
+            'pieLabels',
+            'piePercentages',
+            'pieCounts',
+            'pieColors',
+            'siswaFilterList'
         ));
     }
 }
