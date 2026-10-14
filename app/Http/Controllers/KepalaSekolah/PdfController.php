@@ -199,35 +199,48 @@ class PdfController extends Controller
 
         $targetKelasIds = $kelasQuery->pluck('id');
 
-        $pertemuanQuery = Pertemuan::whereBetween('tanggal', [$startDate->toDateString(), $endDate->toDateString()]);
+        $pertemuanSubQuery = Pertemuan::whereBetween('tanggal', [$startDate->toDateString(), $endDate->toDateString()]);
 
         if ($filterMode === 'semester') {
             if ($selectedTahunAjaran !== 'all') {
-                $pertemuanQuery->where(fn ($sub) => $sub->where('tahun_ajaran', $selectedTahunAjaran)->orWhereNull('tahun_ajaran'));
+                $pertemuanSubQuery->where(fn ($sub) => $sub->where('tahun_ajaran', $selectedTahunAjaran)->orWhereNull('tahun_ajaran'));
             }
             if ($selectedSemester !== 'all') {
-                $pertemuanQuery->where(fn ($sub) => $sub->where('semester', $selectedSemester)->orWhereNull('semester'));
+                $pertemuanSubQuery->where(fn ($sub) => $sub->where('semester', $selectedSemester)->orWhereNull('semester'));
             }
         }
 
-        $pertemuanQuery->whereHas('jadwal', fn ($j) => $j->whereIn('kelas_id', $targetKelasIds));
-        $pertemuanIds = $pertemuanQuery->pluck('id');
+        $pertemuanSubQuery->whereHas('jadwal', fn ($j) => $j->whereIn('kelas_id', $targetKelasIds));
 
-        $kehadiranData = KehadiranSiswa::with(['siswa', 'pertemuan.jadwal.mataPelajaran'])
-            ->whereIn('pertemuan_id', $pertemuanIds)
+        $siswaStats = KehadiranSiswa::whereIn('pertemuan_id', $pertemuanSubQuery->select('id'))
+            ->selectRaw("siswa_id,
+                count(*) as total,
+                SUM(CASE WHEN status = 'hadir' THEN 1 ELSE 0 END) as hadir,
+                SUM(CASE WHEN status = 'sakit' THEN 1 ELSE 0 END) as sakit,
+                SUM(CASE WHEN status = 'izin' THEN 1 ELSE 0 END) as izin,
+                SUM(CASE WHEN status = 'alpa' THEN 1 ELSE 0 END) as alpa,
+                SUM(CASE WHEN status = 'dispensasi' THEN 1 ELSE 0 END) as dispensasi
+            ")
+            ->groupBy('siswa_id')
             ->get();
 
-        $summary = $kehadiranData->groupBy('siswa_id')->map(function ($items) {
+        $siswaIds = $siswaStats->pluck('siswa_id');
+        $siswaModels = User::with('siswaProfile.kelas')->whereIn('id', $siswaIds)->get()->keyBy('id');
+
+        $summary = $siswaStats->map(function ($stat) use ($siswaModels) {
+            $siswa = $siswaModels->get($stat->siswa_id);
+
             return [
-                'siswa' => $items->first()->siswa,
-                'hadir' => $items->where('status', 'hadir')->count(),
-                'sakit' => $items->where('status', 'sakit')->count(),
-                'izin' => $items->where('status', 'izin')->count(),
-                'alpa' => $items->where('status', 'alpa')->count(),
-                'dispensasi' => $items->where('status', 'dispensasi')->count(),
-                'total' => $items->count(),
+                'siswa' => $siswa,
+                'kelas_nama' => $siswa?->siswaProfile?->kelas?->nama ?? '-',
+                'hadir' => (int) $stat->hadir,
+                'sakit' => (int) $stat->sakit,
+                'izin' => (int) $stat->izin,
+                'alpa' => (int) $stat->alpa,
+                'dispensasi' => (int) $stat->dispensasi,
+                'total' => (int) $stat->total,
             ];
-        })->values();
+        })->sortBy(fn ($item) => $item['siswa']?->name ?? '')->values();
 
         $schoolName = Setting::get('school_name', 'Nama Sekolah');
         $selectedKelas = $selectedKelasId ? Kelas::find($selectedKelasId) : null;

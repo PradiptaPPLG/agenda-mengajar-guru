@@ -376,40 +376,41 @@ class ReportController extends Controller
             $targetKelasIds = $matchingKelasIds;
         }
 
-        // Query pertemuan yang sesuai rentang tanggal & kelas yang terfilter
-        $pertemuanQuery = Pertemuan::whereBetween('tanggal', [$startDate->toDateString(), $endDate->toDateString()]);
+        // Query pertemuan yang sesuai rentang tanggal & kelas yang terfilter (subquery)
+        $pertemuanSubQuery = Pertemuan::whereBetween('tanggal', [$startDate->toDateString(), $endDate->toDateString()]);
 
         if ($filterMode === 'semester') {
             if ($selectedTahunAjaran !== 'all') {
-                $pertemuanQuery->where(fn ($sub) => $sub->where('tahun_ajaran', $selectedTahunAjaran)->orWhereNull('tahun_ajaran'));
+                $pertemuanSubQuery->where(fn ($sub) => $sub->where('tahun_ajaran', $selectedTahunAjaran)->orWhereNull('tahun_ajaran'));
             }
             if ($selectedSemester !== 'all') {
-                $pertemuanQuery->where(fn ($sub) => $sub->where('semester', $selectedSemester)->orWhereNull('semester'));
+                $pertemuanSubQuery->where(fn ($sub) => $sub->where('semester', $selectedSemester)->orWhereNull('semester'));
             }
         }
 
-        $pertemuanQuery->whereHas('jadwal', fn ($j) => $j->whereIn('kelas_id', $targetKelasIds));
-        $pertemuanIds = $pertemuanQuery->pluck('id');
-
-        // Query data presensi siswa
-        $kehadiranQuery = KehadiranSiswa::with([
-            'siswa.siswaProfile.kelas',
-            'pertemuan.jadwal.kelas',
-            'pertemuan.jadwal.mataPelajaran',
-        ])->whereIn('pertemuan_id', $pertemuanIds);
-
-        if ($selectedSiswaId && $selectedSiswaId !== 'all') {
-            $kehadiranQuery->where('siswa_id', $selectedSiswaId);
+        if ($targetKelasIds !== null) {
+            $pertemuanSubQuery->whereHas('jadwal', fn ($j) => $j->whereIn('kelas_id', $targetKelasIds));
         }
 
-        $kehadiranSiswaData = $kehadiranQuery->get();
-        $totalKehadiranRecords = $kehadiranSiswaData->count();
+        // Query dasar presensi siswa (menggunakan subquery efisien)
+        $baseKehadiranQuery = KehadiranSiswa::whereIn('pertemuan_id', $pertemuanSubQuery->select('id'));
 
-        // ── Agregasi Alasan & Persentase Kehadiran Siswa (Pivot Style) ──
+        if ($selectedSiswaId && $selectedSiswaId !== 'all') {
+            $baseKehadiranQuery->where('siswa_id', $selectedSiswaId);
+        }
+
+        $totalKehadiranRecords = (clone $baseKehadiranQuery)->count();
+
+        // ── Agregasi Alasan & Persentase Kehadiran Siswa (Database Level GROUP BY) ──
+        $rawBreakdown = (clone $baseKehadiranQuery)
+            ->selectRaw("status, COALESCE(TRIM(keterangan), '') as ket, count(*) as count")
+            ->groupBy('status', 'ket')
+            ->get();
+
         $breakdownGroups = [];
-        foreach ($kehadiranSiswaData as $row) {
+        foreach ($rawBreakdown as $row) {
             $status = strtolower($row->status ?? 'hadir');
-            $rawKet = trim($row->keterangan ?? '');
+            $rawKet = trim($row->ket ?? '');
 
             if ($status === 'hadir') {
                 // Sesuai pivot di Excel: status hadir bernilai '-' jika keterangan kosong
@@ -439,7 +440,7 @@ class ReportController extends Controller
                     'percentage' => 0,
                 ];
             }
-            $breakdownGroups[$label]['count']++;
+            $breakdownGroups[$label]['count'] += (int) $row->count;
         }
 
         // Hitung persentase desimal presisi 2 digit
@@ -456,24 +457,10 @@ class ReportController extends Controller
 
         // Siapkan warna dan dataset untuk Pie / Donut Chart
         $colorPalette = [
-            '#2563EB', // Blue (Hadir '-')
-            '#EF4444', // Red
-            '#F59E0B', // Amber
-            '#10B981', // Emerald
-            '#8B5CF6', // Purple
-            '#EC4899', // Pink
-            '#06B6D4', // Cyan
-            '#F97316', // Orange
-            '#6366F1', // Indigo
-            '#14B8A6', // Teal
-            '#84CC16', // Lime
-            '#A855F7', // Violet
-            '#E11D48', // Rose
-            '#64748B', // Slate
-            '#D97706', // Amber dark
-            '#0284C7', // Sky
-            '#7C3AED', // Violet dark
-            '#DB2777', // Pink dark
+            '#2563EB', '#EF4444', '#F59E0B', '#10B981', '#8B5CF6',
+            '#EC4899', '#06B6D4', '#F97316', '#6366F1', '#14B8A6',
+            '#84CC16', '#A855F7', '#E11D48', '#64748B', '#D97706',
+            '#0284C7', '#7C3AED', '#DB2777',
         ];
 
         $pieLabels = [];
@@ -493,31 +480,37 @@ class ReportController extends Controller
             }
         }
 
-        // Summary per siswa (10 per page)
-        $summaryCollection = $kehadiranSiswaData->groupBy('siswa_id')->map(function ($items) {
-            $first = $items->first();
+        // Summary per siswa (10 per page, langsung diagregasi di database)
+        $paginatedSiswaStats = (clone $baseKehadiranQuery)
+            ->selectRaw("siswa_id,
+                count(*) as total,
+                SUM(CASE WHEN status = 'hadir' THEN 1 ELSE 0 END) as hadir,
+                SUM(CASE WHEN status = 'sakit' THEN 1 ELSE 0 END) as sakit,
+                SUM(CASE WHEN status = 'izin' THEN 1 ELSE 0 END) as izin,
+                SUM(CASE WHEN status = 'alpa' THEN 1 ELSE 0 END) as alpa,
+                SUM(CASE WHEN status = 'dispensasi' THEN 1 ELSE 0 END) as dispensasi
+            ")
+            ->groupBy('siswa_id')
+            ->paginate(10)
+            ->appends($request->query());
+
+        $siswaIdsOnPage = $paginatedSiswaStats->pluck('siswa_id');
+        $siswaModels = User::with('siswaProfile.kelas')->whereIn('id', $siswaIdsOnPage)->get()->keyBy('id');
+
+        $summary = $paginatedSiswaStats->through(function ($stat) use ($siswaModels) {
+            $siswa = $siswaModels->get($stat->siswa_id);
 
             return [
-                'siswa' => $first->siswa,
-                'kelas_nama' => $first->siswa?->siswaProfile?->kelas?->nama ?? $first->pertemuan?->jadwal?->kelas?->nama ?? '-',
-                'hadir' => $items->where('status', 'hadir')->count(),
-                'sakit' => $items->where('status', 'sakit')->count(),
-                'izin' => $items->where('status', 'izin')->count(),
-                'alpa' => $items->where('status', 'alpa')->count(),
-                'dispensasi' => $items->where('status', 'dispensasi')->count(),
-                'total' => $items->count(),
+                'siswa' => $siswa,
+                'kelas_nama' => $siswa?->siswaProfile?->kelas?->nama ?? '-',
+                'hadir' => (int) $stat->hadir,
+                'sakit' => (int) $stat->sakit,
+                'izin' => (int) $stat->izin,
+                'alpa' => (int) $stat->alpa,
+                'dispensasi' => (int) $stat->dispensasi,
+                'total' => (int) $stat->total,
             ];
-        })->values();
-
-        $page = LengthAwarePaginator::resolveCurrentPage('page');
-        $perPage = 10;
-        $summary = new LengthAwarePaginator(
-            $summaryCollection->slice(($page - 1) * $perPage, $perPage)->values(),
-            $summaryCollection->count(),
-            $perPage,
-            $page,
-            ['path' => LengthAwarePaginator::resolveCurrentPath(), 'pageName' => 'page', 'query' => $request->query()]
-        );
+        });
 
         $daftarTahunAjaran = Setting::getDaftarTahunAjaran();
         $daftarSemester = Setting::getDaftarSemester();

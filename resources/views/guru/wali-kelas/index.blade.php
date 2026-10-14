@@ -216,9 +216,9 @@
                 <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                     {{-- Sisi Kiri: Angka Utama Tingkat Kehadiran Kelas --}}
                     <div class="flex items-center gap-4">
-                        <div class="w-14 h-14 rounded-2xl bg-blue-600 text-white flex flex-col items-center justify-center shrink-0 shadow-sm shadow-blue-500/20">
-                            <span class="text-[10px] font-semibold uppercase tracking-wider opacity-85 leading-none">Rerata</span>
-                            <span class="text-xl font-black tracking-tight leading-tight mt-0.5">{{ $rekapBulanan['rataRataKehadiranKelas'] }}%</span>
+                        <div class="min-w-[5.25rem] px-3.5 py-2.5 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex flex-col items-center justify-center shrink-0 shadow-sm shadow-blue-500/25">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-blue-100/90 leading-none">Rerata</span>
+                            <span class="text-xl font-black tracking-tight leading-none mt-1.5">{{ $rekapBulanan['rataRataKehadiranKelas'] }}%</span>
                         </div>
                         <div>
                             <div class="flex items-center gap-2 flex-wrap">
