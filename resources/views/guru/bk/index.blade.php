@@ -51,7 +51,13 @@
                 </div>
             </div>
 
-            <div class="flex items-center gap-2">
+                <a href="{{ route('monitoring.jadwal-terlewat') }}"
+                   class="px-3.5 py-2.5 bg-rose-500 hover:bg-rose-600 text-white active:scale-95 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5" title="Pantau KBM yang Belum Diisi Guru">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Jadwal Terlewat
+                </a>
                 <button type="button" @click="showModalKelas = true"
                         class="px-4 py-2.5 bg-white text-blue-700 hover:bg-blue-50 active:scale-95 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-2">
                     <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

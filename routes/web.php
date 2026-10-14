@@ -27,6 +27,7 @@ use App\Http\Controllers\Guru\WaliKelasController;
 use App\Http\Controllers\KepalaSekolah\DashboardController as KsDashboardController;
 use App\Http\Controllers\KepalaSekolah\PdfController as KsPdfController;
 use App\Http\Controllers\KepalaSekolah\ReportController as KsReportController;
+use App\Http\Controllers\Monitoring\JadwalTerlewatController;
 use App\Http\Controllers\Piket\DashboardController;
 use App\Http\Controllers\Piket\TeguranController;
 use App\Http\Controllers\ProfileController;
@@ -226,6 +227,15 @@ Route::middleware(['auth', 'role:kepala_sekolah,super_admin,pengawas'])
 
         Route::get('/pdf/guru', [KsPdfController::class, 'guru'])->name('pdf.guru');
         Route::get('/pdf/siswa', [KsPdfController::class, 'siswa'])->name('pdf.siswa');
+    });
+
+// ─── Monitoring Jadwal KBM Terlewat (Kepsek, Admin, Super Admin, Piket, Kesiswaan/BK) ───
+Route::middleware(['auth', 'role:super_admin,admin,kepala_sekolah,pengawas,piket,guru'])
+    ->prefix('monitoring')
+    ->name('monitoring.')
+    ->group(function () {
+        Route::get('/jadwal-terlewat', [JadwalTerlewatController::class, 'index'])->name('jadwal-terlewat');
+        Route::get('/jadwal-terlewat/export-pdf', [JadwalTerlewatController::class, 'exportPdf'])->name('jadwal-terlewat.export-pdf');
     });
 
 // ─── Super Admin ─────────────────────────────────────────────────────────────
