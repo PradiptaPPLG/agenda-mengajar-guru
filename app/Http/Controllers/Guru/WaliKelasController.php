@@ -368,6 +368,32 @@ class WaliKelasController extends Controller
         // Sort by student name
         usort($rekapSiswa, fn ($a, $b) => strcmp($a['siswa']->name, $b['siswa']->name));
 
+        $totalSiswa = count($rekapSiswa);
+        $totalCatatanPresensi = $totalHadirSemua + $totalTerlambatSemua + $totalSakitSemua + $totalIzinSemua + $totalAlpaSemua + $totalDispensasiSemua;
+
+        // Rata-rata persentase kehadiran kelas
+        $rataRataKehadiranKelas = $totalCatatanPresensi > 0
+            ? round((($totalHadirSemua + $totalTerlambatSemua + $totalDispensasiSemua) / $totalCatatanPresensi) * 100, 1)
+            : 0;
+
+        // Rata-rata sesi pertemuan hadir per siswa
+        $rataRataHadirPerSiswa = $totalSiswa > 0 ? round($totalHadirSemua / $totalSiswa, 1) : 0;
+
+        // Jumlah pertemuan unik yang terlaksana (memiliki catatan presensi siswa)
+        $pertemuanTerlaksana = $kehadiranData->pluck('pertemuan_id')->unique()->count();
+        if ($pertemuanTerlaksana === 0 && $totalCatatanPresensi > 0) {
+            $pertemuanTerlaksana = $pertemuanIds->count();
+        }
+
+        // Siswa hadir penuh 100%
+        $siswaHadirPenuh = collect($rekapSiswa)->where('persentase', '>=', 100)->count();
+
+        // Siswa yang pernah izin / sakit / alpa
+        $siswaTidakHadir = collect($rekapSiswa)->filter(fn ($s) => ($s['sakit'] + $s['izin'] + $s['alpa']) > 0)->count();
+
+        // Siswa yang memiliki catatan alpa
+        $siswaPunyaAlpa = collect($rekapSiswa)->where('alpa', '>', 0)->count();
+
         return [
             'kelas' => $kelas,
             'periodeType' => $periodeType,
@@ -377,6 +403,7 @@ class WaliKelasController extends Controller
             'startDate' => $startDate,
             'endDate' => $endDate,
             'totalPertemuanKelas' => $pertemuanIds->count(),
+            'pertemuanTerlaksana' => $pertemuanTerlaksana,
             'rekapSiswa' => $rekapSiswa,
             'totalHadir' => $totalHadirSemua,
             'totalTerlambat' => $totalTerlambatSemua,
@@ -384,6 +411,13 @@ class WaliKelasController extends Controller
             'totalIzin' => $totalIzinSemua,
             'totalAlpa' => $totalAlpaSemua,
             'totalDispensasi' => $totalDispensasiSemua,
+            'totalSiswa' => $totalSiswa,
+            'totalCatatanPresensi' => $totalCatatanPresensi,
+            'rataRataKehadiranKelas' => $rataRataKehadiranKelas,
+            'rataRataHadirPerSiswa' => $rataRataHadirPerSiswa,
+            'siswaHadirPenuh' => $siswaHadirPenuh,
+            'siswaTidakHadir' => $siswaTidakHadir,
+            'siswaPunyaAlpa' => $siswaPunyaAlpa,
         ];
     }
 

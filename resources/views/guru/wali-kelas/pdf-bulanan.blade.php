@@ -237,6 +237,25 @@
         </tr>
         @endforelse
     </tbody>
+    @if(count($rekapSiswa) > 0)
+    <tfoot style="background-color: #f1f5f9; font-weight: bold; border-top: 2px solid #cbd5e1;">
+        <tr>
+            <td colspan="3" style="text-align: right; padding: 6px; font-size: 8.5px; text-transform: uppercase;">Total Akumulasi Kelas:</td>
+            <td style="font-weight: bold; color: #166534;">{{ number_format($totalHadir) }}</td>
+            <td style="font-weight: bold; color: #b45309;">{{ number_format($totalTerlambat) }}</td>
+            <td style="font-weight: bold; color: #9a3412;">{{ number_format($totalSakit) }}</td>
+            <td style="font-weight: bold; color: #075985;">{{ number_format($totalIzin) }}</td>
+            <td style="font-weight: bold; color: #6b21a8;">{{ number_format($totalDispensasi) }}</td>
+            <td style="font-weight: bold; color: #991b1b;">{{ number_format($totalAlpa) }}</td>
+            <td style="font-weight: bold;">{{ number_format($totalCatatanPresensi ?? ($totalHadir + $totalTerlambat + $totalSakit + $totalIzin + $totalDispensasi + $totalAlpa)) }}</td>
+            <td>
+                <span class="pct-badge pct-good">
+                    {{ $rataRataKehadiranKelas ?? round((($totalHadir + $totalTerlambat + $totalDispensasi) / max(1, ($totalHadir + $totalTerlambat + $totalSakit + $totalIzin + $totalDispensasi + $totalAlpa))) * 100, 1) }}%
+                </span>
+            </td>
+        </tr>
+    </tfoot>
+    @endif
 </table>
 
 <!-- Signatures -->

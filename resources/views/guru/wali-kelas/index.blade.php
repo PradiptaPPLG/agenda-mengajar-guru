@@ -211,47 +211,124 @@
             </div>
 
             @if($rekapBulanan)
+            {{-- Overview Card Tingkat Kehadiran Kelas --}}
+            <div class="bg-gradient-to-r from-blue-50/90 via-indigo-50/40 to-white rounded-2xl border border-blue-100 p-4 sm:p-5 shadow-2xs">
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    {{-- Sisi Kiri: Angka Utama Tingkat Kehadiran Kelas --}}
+                    <div class="flex items-center gap-4">
+                        <div class="w-14 h-14 rounded-2xl bg-blue-600 text-white flex flex-col items-center justify-center shrink-0 shadow-sm shadow-blue-500/20">
+                            <span class="text-[10px] font-semibold uppercase tracking-wider opacity-85 leading-none">Rerata</span>
+                            <span class="text-xl font-black tracking-tight leading-tight mt-0.5">{{ $rekapBulanan['rataRataKehadiranKelas'] }}%</span>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h4 class="font-bold text-slate-900 text-base">Tingkat Kehadiran Kelas {{ $rekapBulanan['kelas']->nama }}</h4>
+                                @if($rekapBulanan['rataRataKehadiranKelas'] >= 90)
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                        Sangat Baik
+                                    </span>
+                                @elseif($rekapBulanan['rataRataKehadiranKelas'] >= 75)
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                                        Cukup Baik
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                                        Perlu Perhatian
+                                    </span>
+                                @endif
+                            </div>
+                            <p class="text-xs text-slate-600 mt-1">
+                                Akumulasi presensi dari <strong>{{ $rekapBulanan['totalSiswa'] }} siswa</strong> pada <strong>{{ $rekapBulanan['pertemuanTerlaksana'] }} pertemuan terlaksana</strong> (total <strong>{{ number_format($rekapBulanan['totalCatatanPresensi']) }}</strong> catatan sesi).
+                            </p>
+                        </div>
+                    </div>
+
+                    {{-- Sisi Kanan: Quick Stat Badges (Lega, Rapi, Informatif) --}}
+                    <div class="flex items-center flex-wrap gap-2 text-xs lg:justify-end">
+                        <div class="px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-700 font-medium flex items-center gap-1.5 shadow-2xs">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                            <span>Rata-rata hadir: <strong class="text-slate-900 font-bold">{{ $rekapBulanan['rataRataHadirPerSiswa'] }}</strong> sesi/siswa</span>
+                        </div>
+                        <div class="px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-700 font-medium flex items-center gap-1.5 shadow-2xs">
+                            <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                            <span><strong class="text-slate-900 font-bold">{{ $rekapBulanan['siswaHadirPenuh'] }}</strong> dari {{ $rekapBulanan['totalSiswa'] }} siswa hadir 100%</span>
+                        </div>
+                        @if($rekapBulanan['siswaPunyaAlpa'] > 0)
+                            <div class="px-3 py-1.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 font-medium flex items-center gap-1.5 shadow-2xs">
+                                <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+                                <span><strong class="text-rose-900 font-bold">{{ $rekapBulanan['siswaPunyaAlpa'] }}</strong> siswa memiliki alpa</span>
+                            </div>
+                        @else
+                            <div class="px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 font-medium flex items-center gap-1.5 shadow-2xs">
+                                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                <span>Alpa nihil (0 siswa)</span>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            </div>
+
             {{-- KPI Summary --}}
             <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
                 <div class="bg-white rounded-xl p-3 border border-slate-200 shadow-2xs text-center">
-                    <p class="text-[10px] font-bold text-slate-500 uppercase">Total Siswa</p>
-                    <p class="text-lg font-black text-slate-900 mt-0.5">{{ count($rekapBulanan['rekapSiswa']) }}</p>
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Siswa</p>
+                    <p class="text-xl font-black text-slate-900 mt-0.5">{{ $rekapBulanan['totalSiswa'] }}</p>
+                    <p class="text-[10px] text-slate-400 mt-0.5 font-medium">Siswa Terdaftar</p>
                 </div>
-                <div class="bg-emerald-50 rounded-xl p-3 border border-emerald-200 shadow-2xs text-center">
-                    <p class="text-[10px] font-bold text-emerald-600 uppercase">Hadir</p>
-                    <p class="text-lg font-black text-emerald-700 mt-0.5">{{ number_format($rekapBulanan['totalHadir']) }}</p>
+                <div class="bg-emerald-50/70 rounded-xl p-3 border border-emerald-200 shadow-2xs text-center">
+                    <p class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Total Hadir</p>
+                    <p class="text-xl font-black text-emerald-700 mt-0.5">{{ number_format($rekapBulanan['totalHadir']) }}</p>
+                    <p class="text-[10px] text-emerald-600 font-semibold mt-0.5">
+                        {{ $rekapBulanan['totalCatatanPresensi'] > 0 ? round(($rekapBulanan['totalHadir'] / $rekapBulanan['totalCatatanPresensi']) * 100, 1) : 0 }}% &bull; log sesi
+                    </p>
                 </div>
-                <div class="bg-amber-50 rounded-xl p-3 border border-amber-200 shadow-2xs text-center">
-                    <p class="text-[10px] font-bold text-amber-600 uppercase">Terlambat</p>
-                    <p class="text-lg font-black text-amber-700 mt-0.5">{{ number_format($rekapBulanan['totalTerlambat']) }}</p>
+                <div class="bg-amber-50/70 rounded-xl p-3 border border-amber-200 shadow-2xs text-center">
+                    <p class="text-[10px] font-bold text-amber-700 uppercase tracking-wider">Terlambat</p>
+                    <p class="text-xl font-black text-amber-700 mt-0.5">{{ number_format($rekapBulanan['totalTerlambat']) }}</p>
+                    <p class="text-[10px] text-amber-600 font-semibold mt-0.5">
+                        {{ $rekapBulanan['totalTerlambat'] > 0 ? round(($rekapBulanan['totalTerlambat'] / $rekapBulanan['totalCatatanPresensi']) * 100, 1) . '% sesi' : 'Nihil' }}
+                    </p>
                 </div>
-                <div class="bg-orange-50 rounded-xl p-3 border border-orange-200 shadow-2xs text-center">
-                    <p class="text-[10px] font-bold text-orange-600 uppercase">Sakit</p>
-                    <p class="text-lg font-black text-orange-700 mt-0.5">{{ number_format($rekapBulanan['totalSakit']) }}</p>
+                <div class="bg-orange-50/70 rounded-xl p-3 border border-orange-200 shadow-2xs text-center">
+                    <p class="text-[10px] font-bold text-orange-700 uppercase tracking-wider">Sakit</p>
+                    <p class="text-xl font-black text-orange-700 mt-0.5">{{ number_format($rekapBulanan['totalSakit']) }}</p>
+                    <p class="text-[10px] text-orange-600 font-semibold mt-0.5">
+                        {{ $rekapBulanan['totalSakit'] > 0 ? round(($rekapBulanan['totalSakit'] / $rekapBulanan['totalCatatanPresensi']) * 100, 1) . '% sesi' : 'Nihil' }}
+                    </p>
                 </div>
-                <div class="bg-blue-50 rounded-xl p-3 border border-blue-200 shadow-2xs text-center">
-                    <p class="text-[10px] font-bold text-blue-600 uppercase">Izin</p>
-                    <p class="text-lg font-black text-blue-700 mt-0.5">{{ number_format($rekapBulanan['totalIzin']) }}</p>
+                <div class="bg-blue-50/70 rounded-xl p-3 border border-blue-200 shadow-2xs text-center">
+                    <p class="text-[10px] font-bold text-blue-700 uppercase tracking-wider">Izin</p>
+                    <p class="text-xl font-black text-blue-700 mt-0.5">{{ number_format($rekapBulanan['totalIzin']) }}</p>
+                    <p class="text-[10px] text-blue-600 font-semibold mt-0.5">
+                        {{ $rekapBulanan['totalIzin'] > 0 ? round(($rekapBulanan['totalIzin'] / $rekapBulanan['totalCatatanPresensi']) * 100, 1) . '% sesi' : 'Nihil' }}
+                    </p>
                 </div>
-                <div class="bg-purple-50 rounded-xl p-3 border border-purple-200 shadow-2xs text-center">
-                    <p class="text-[10px] font-bold text-purple-600 uppercase">Dispensasi</p>
-                    <p class="text-lg font-black text-purple-700 mt-0.5">{{ number_format($rekapBulanan['totalDispensasi']) }}</p>
+                <div class="bg-purple-50/70 rounded-xl p-3 border border-purple-200 shadow-2xs text-center">
+                    <p class="text-[10px] font-bold text-purple-700 uppercase tracking-wider">Dispensasi</p>
+                    <p class="text-xl font-black text-purple-700 mt-0.5">{{ number_format($rekapBulanan['totalDispensasi']) }}</p>
+                    <p class="text-[10px] text-purple-600 font-semibold mt-0.5">
+                        {{ $rekapBulanan['totalDispensasi'] > 0 ? round(($rekapBulanan['totalDispensasi'] / $rekapBulanan['totalCatatanPresensi']) * 100, 1) . '% sesi' : 'Nihil' }}
+                    </p>
                 </div>
-                <div class="bg-rose-50 rounded-xl p-3 border border-rose-200 shadow-2xs text-center">
-                    <p class="text-[10px] font-bold text-rose-600 uppercase">Alpa</p>
-                    <p class="text-lg font-black text-rose-700 mt-0.5">{{ number_format($rekapBulanan['totalAlpa']) }}</p>
+                <div class="bg-rose-50/70 rounded-xl p-3 border border-rose-200 shadow-2xs text-center">
+                    <p class="text-[10px] font-bold text-rose-700 uppercase tracking-wider">Alpa</p>
+                    <p class="text-xl font-black text-rose-700 mt-0.5">{{ number_format($rekapBulanan['totalAlpa']) }}</p>
+                    <p class="text-[10px] text-rose-600 font-semibold mt-0.5">
+                        {{ $rekapBulanan['totalAlpa'] > 0 ? round(($rekapBulanan['totalAlpa'] / $rekapBulanan['totalCatatanPresensi']) * 100, 1) . '% sesi' : 'Nihil' }}
+                    </p>
                 </div>
             </div>
 
             {{-- Tabel Siswa --}}
             <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-                <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+                <div class="px-4 py-3 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div>
                         <h3 class="font-bold text-slate-900 text-sm">
                             Daftar Kehadiran Siswa Kelas {{ $rekapBulanan['kelas']->nama }}
                         </h3>
                         <p class="text-xs text-slate-500 mt-0.5">
-                            Periode: {{ $periodeType === 'bulanan' ? \Carbon\Carbon::parse($bulan.'-01')->translatedFormat('F Y') : \App\Models\Setting::getSemesterLabel($semester).' TA '.$tahunAjaran }} &bull; Total {{ $rekapBulanan['totalPertemuanKelas'] }} Pertemuan
+                            Periode: {{ $periodeType === 'bulanan' ? \Carbon\Carbon::parse($bulan.'-01')->translatedFormat('F Y') : \App\Models\Setting::getSemesterLabel($semester).' TA '.$tahunAjaran }} &bull; 
+                            <strong>{{ $rekapBulanan['pertemuanTerlaksana'] }} Pertemuan Terlaksana</strong> (dari {{ $rekapBulanan['totalPertemuanKelas'] }} terjadwal) &bull; Rerata {{ $rekapBulanan['rataRataHadirPerSiswa'] }} hadir/siswa
                         </p>
                     </div>
                     <span class="text-xs text-slate-500 font-medium">{{ count($rekapBulanan['rekapSiswa']) }} siswa terdaftar</span>
@@ -305,6 +382,27 @@
                             </tr>
                             @endforelse
                         </tbody>
+                        @if(count($rekapBulanan['rekapSiswa']) > 0)
+                        <tfoot class="bg-slate-50 font-bold border-t-2 border-slate-200 text-xs text-slate-800">
+                            <tr>
+                                <td colspan="3" class="px-4 py-3 text-right uppercase tracking-wider text-slate-600">
+                                    Total Akumulasi Kelas:
+                                </td>
+                                <td class="px-3 py-3 text-center text-emerald-800 font-extrabold">{{ number_format($rekapBulanan['totalHadir']) }}</td>
+                                <td class="px-3 py-3 text-center text-amber-800 font-extrabold">{{ number_format($rekapBulanan['totalTerlambat']) }}</td>
+                                <td class="px-3 py-3 text-center text-orange-800 font-extrabold">{{ number_format($rekapBulanan['totalSakit']) }}</td>
+                                <td class="px-3 py-3 text-center text-blue-800 font-extrabold">{{ number_format($rekapBulanan['totalIzin']) }}</td>
+                                <td class="px-3 py-3 text-center text-purple-800 font-extrabold">{{ number_format($rekapBulanan['totalDispensasi']) }}</td>
+                                <td class="px-3 py-3 text-center text-rose-800 font-extrabold">{{ number_format($rekapBulanan['totalAlpa']) }}</td>
+                                <td class="px-3 py-3 text-center text-slate-900 font-black">{{ number_format($rekapBulanan['totalCatatanPresensi']) }}</td>
+                                <td class="px-4 py-3 text-center">
+                                    <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-black bg-blue-100 text-blue-900">
+                                        {{ $rekapBulanan['rataRataKehadiranKelas'] }}%
+                                    </span>
+                                </td>
+                            </tr>
+                        </tfoot>
+                        @endif
                     </table>
                 </div>
             </div>
