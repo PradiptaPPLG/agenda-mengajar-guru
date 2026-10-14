@@ -18,14 +18,15 @@ class BkController extends Controller
         // Ambil kelas binaan spesifik jika ada
         $kelasBinaan = Kelas::where('bk_id', $userId)->get();
 
-        $hasBkAccess = $user->can('bk.view_rekap')
-            || $user->hasAnyRole(['Guru BK', 'BK', 'guru_bk', 'guru-bk'])
-            || $user->roles->contains(fn ($r) => str_contains(strtolower($r->name), 'bk'))
-            || in_array($user->role, ['admin', 'super_admin']);
+        $hasBkAccess = $user->isGuruBk();
+
+        $allKelas = Kelas::with('guruBk')->orderBy('tingkat')->orderBy('nama')->get();
+        $assignedBkKelasIds = Kelas::where('bk_id', $userId)->pluck('id')->toArray();
+        $isCustomAssigned = count($assignedBkKelasIds) > 0;
 
         if ($kelasBinaan->isEmpty()) {
             if ($hasBkAccess) {
-                $kelasBinaan = Kelas::orderBy('tingkat')->orderBy('nama')->get();
+                $kelasBinaan = $allKelas;
             } else {
                 return redirect()->route('guru.dashboard')->with('error', 'Anda belum ditugaskan sebagai Guru BK.');
             }
@@ -63,6 +64,6 @@ class BkController extends Controller
             ];
         }
 
-        return view('guru.bk.index', compact('kelasBinaan', 'rekapKelas', 'tanggal', 'date', 'kehadiran'));
+        return view('guru.bk.index', compact('kelasBinaan', 'rekapKelas', 'tanggal', 'date', 'kehadiran', 'allKelas', 'assignedBkKelasIds', 'isCustomAssigned'));
     }
 }
