@@ -226,6 +226,69 @@ class GuruDashboardStatsTest extends TestCase
         $this->assertCount(0, $detailedAttendance['izin']);
     }
 
+    public function test_guru_dashboard_preserves_hadir_from_past_reassigned_schedules(): void
+    {
+        $elwin = User::create([
+            'name' => 'Elwin Test 2, S.Pd.',
+            'email' => 'elwin2.test@guru.com',
+            'password' => Hash::make('password'),
+            'role' => 'guru',
+            'is_active' => true,
+        ]);
+
+        $kelasAkl = Kelas::create([
+            'nama' => '10 AKL 1',
+            'tingkat' => 10,
+            'jurusan' => 'AKL',
+            'tahun_ajaran' => '2026/2027',
+        ]);
+
+        $jadwalAkl = JadwalPelajaran::create([
+            'guru_id' => $this->guru->id,
+            'kelas_id' => $kelasAkl->id,
+            'mata_pelajaran_id' => $this->mapel->id,
+            'hari' => 4,
+            'jam_mulai' => '07:50:00',
+            'jam_selesai' => '08:30:00',
+            'tahun_ajaran' => '2026/2027',
+            'semester' => 'ganjil',
+        ]);
+
+        // Endah actually attended 2 sessions in the past
+        for ($i = 0; $i < 2; $i++) {
+            $p = Pertemuan::create([
+                'jadwal_id' => $jadwalAkl->id,
+                'tanggal' => Carbon::now()->subDays($i + 1),
+                'materi_ajar' => "Materi $i",
+                'status' => 'selesai',
+                'tahun_ajaran' => '2026/2027',
+                'semester' => 'ganjil',
+            ]);
+            KehadiranGuru::create([
+                'pertemuan_id' => $p->id,
+                'guru_id' => $this->guru->id,
+                'status' => 'hadir',
+                'waktu_hadir' => now(),
+            ]);
+        }
+
+        // Later, schedule was reassigned to Elwin
+        $jadwalAkl->update(['guru_id' => $elwin->id]);
+
+        $response = $this->actingAs($this->guru)->get(route('guru.dashboard'));
+
+        $response->assertOk();
+        /** @var array $stats */
+        $stats = $response->viewData('stats');
+        /** @var array $detailedAttendance */
+        $detailedAttendance = $response->viewData('detailedAttendance');
+
+        // Hadir should be preserved!
+        $this->assertEquals(2, $stats['total']);
+        $this->assertEquals(2, $stats['hadir']);
+        $this->assertCount(2, $detailedAttendance['hadir']);
+    }
+
     public function test_admin_kelas_show_filters_schedules_by_academic_year_and_semester(): void
     {
         $admin = User::create([

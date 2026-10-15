@@ -79,25 +79,17 @@ class DashboardController extends Controller
         $activeSem = Setting::getSemesterAktif();
 
         // Attendance statistics for the logged-in teacher:
-        // Hanya menghitung sesi pada jadwal aktif yang memang diampu oleh guru ini pada tahun ajaran & semester aktif.
-        // Jadwal yang sudah dialihkan ke guru lain atau dihapus otomatis dikecualikan.
+        // - Seluruh jam hadir (hadir / terlambat) yang sudah dilaksanakan oleh guru tetap diakui penuh (30 JP),
+        //   meskipun jadwal di kemudian hari dialihkan/diubah ke guru lain.
+        // - Ketidakhadiran (izin / sakit / alpa) pada jadwal yang sudah dialihkan ke guru lain tidak dibebankan ke guru ini.
         $kehadiranList = KehadiranGuru::where('guru_id', $user->id)
-            ->whereHas('pertemuan', function ($q) use ($user, $activeTa, $activeSem) {
+            ->whereHas('pertemuan', function ($q) use ($activeTa, $activeSem) {
                 if ($activeTa) {
                     $q->where(fn ($sq) => $sq->where('tahun_ajaran', $activeTa)->orWhereNull('tahun_ajaran'));
                 }
                 if ($activeSem) {
                     $q->where(fn ($sq) => $sq->where('semester', $activeSem)->orWhereNull('semester'));
                 }
-                $q->whereHas('jadwal', function ($jq) use ($user, $activeTa, $activeSem) {
-                    $jq->where('guru_id', $user->id);
-                    if ($activeTa) {
-                        $jq->where(fn ($sq) => $sq->where('tahun_ajaran', $activeTa)->orWhereNull('tahun_ajaran'));
-                    }
-                    if ($activeSem) {
-                        $jq->where(fn ($sq) => $sq->where('semester', $activeSem)->orWhereNull('semester'));
-                    }
-                });
             })
             ->whereDoesntHave('pertemuan.jadwal.kelas.pkls', function ($q) {
                 $q->where('is_aktif', true)
@@ -118,22 +110,30 @@ class DashboardController extends Controller
         ];
 
         foreach ($kehadiranList as $k) {
+            $jadwalGuruId = $k->pertemuan?->jadwal?->guru_id;
+            // Jadwal dianggap milik guru ini jika jadwal belum dialihkan ke guru lain
+            $isOwnSchedule = is_null($jadwalGuruId) || $jadwalGuruId === $user->id;
+
             if ($k->isHadirCategory()) {
+                // Seluruh riwayat hadir/terlambat yang telah dilaksanakan guru tetap diakui penuh
                 $recordsByCat['hadir']->push($k);
-            } elseif ($k->isSakitCategory()) {
-                $recordsByCat['sakit']->push($k);
-            } elseif ($k->isDispensasiCategory()) {
-                $recordsByCat['izin']->push($k);
-            } else {
-                $recordsByCat['alpa']->push($k);
+            } elseif ($isOwnSchedule) {
+                // Ketidakhadiran (izin/sakit/alpa) hanya dihitung jika jadwal memang masih diampu oleh guru ini
+                if ($k->isSakitCategory()) {
+                    $recordsByCat['sakit']->push($k);
+                } elseif ($k->isDispensasiCategory()) {
+                    $recordsByCat['izin']->push($k);
+                } else {
+                    $recordsByCat['alpa']->push($k);
+                }
             }
         }
 
-        $totalKehadiran = $kehadiranList->count();
         $totalHadir = $recordsByCat['hadir']->count();
         $totalSakit = $recordsByCat['sakit']->count();
         $totalIzin = $recordsByCat['izin']->count();
         $totalAlpa = $recordsByCat['alpa']->count();
+        $totalKehadiran = $totalHadir + $totalSakit + $totalIzin + $totalAlpa;
 
         $persentaseHadir = $totalKehadiran > 0
             ? round(($totalHadir / $totalKehadiran) * 100, 1)
