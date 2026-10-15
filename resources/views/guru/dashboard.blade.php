@@ -90,29 +90,65 @@
             </div>
 
             <div class="grid grid-cols-2 gap-3 mb-3">
-                <div class="bg-green-50 rounded-xl p-3 border border-green-100 flex flex-col justify-center">
-                    <p class="text-xs text-green-600 font-medium">Hadir & Terlambat</p>
+                <div class="bg-green-50 rounded-xl p-3 border border-green-100 flex flex-col justify-between">
+                    <div class="flex items-start justify-between gap-1 mb-1.5">
+                        <p class="text-xs text-green-700 font-medium">Hadir & Terlambat</p>
+                        <button type="button" 
+                                onclick="openDetailModal('hadir')" 
+                                class="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-semibold text-green-700 bg-green-100/80 hover:bg-green-200/90 rounded-md transition-colors border border-green-200/80 cursor-pointer shadow-2xs"
+                                title="Lihat Rincian Jam Pelajaran Hadir">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                            <span>Rincian</span>
+                        </button>
+                    </div>
                     <div class="flex items-baseline gap-1">
                         <p class="text-xl font-bold text-green-900">{{ $stats['hadir'] }}</p>
                         <span class="text-[10px] font-semibold text-green-700">JP</span>
                     </div>
                 </div>
-                <div class="bg-rose-50 rounded-xl p-3 border border-rose-100 flex flex-col justify-center">
-                    <p class="text-xs text-rose-600 font-medium">Alpa / Tanpa Ket.</p>
+                <div class="bg-rose-50 rounded-xl p-3 border border-rose-100 flex flex-col justify-between">
+                    <div class="flex items-start justify-between gap-1 mb-1.5">
+                        <p class="text-xs text-rose-700 font-medium">Alpa / Tanpa Ket.</p>
+                        <button type="button" 
+                                onclick="openDetailModal('alpa')" 
+                                class="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-semibold text-rose-700 bg-rose-100/80 hover:bg-rose-200/90 rounded-md transition-colors border border-rose-200/80 cursor-pointer shadow-2xs"
+                                title="Lihat Rincian Jam Pelajaran Alpa">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                            <span>Rincian</span>
+                        </button>
+                    </div>
                     <div class="flex items-baseline gap-1">
                         <p class="text-xl font-bold text-rose-900">{{ $stats['alpa'] }}</p>
                         <span class="text-[10px] font-semibold text-rose-700">JP</span>
                     </div>
                 </div>
-                <div class="bg-amber-50 rounded-xl p-3 border border-amber-100 flex flex-col justify-center">
-                    <p class="text-xs text-amber-600 font-medium">Sakit</p>
+                <div class="bg-amber-50 rounded-xl p-3 border border-amber-100 flex flex-col justify-between">
+                    <div class="flex items-start justify-between gap-1 mb-1.5">
+                        <p class="text-xs text-amber-700 font-medium">Sakit</p>
+                        <button type="button" 
+                                onclick="openDetailModal('sakit')" 
+                                class="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 bg-amber-100/80 hover:bg-amber-200/90 rounded-md transition-colors border border-amber-200/80 cursor-pointer shadow-2xs"
+                                title="Lihat Rincian Jam Pelajaran Sakit">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                            <span>Rincian</span>
+                        </button>
+                    </div>
                     <div class="flex items-baseline gap-1">
                         <p class="text-xl font-bold text-amber-900">{{ $stats['sakit'] }}</p>
                         <span class="text-[10px] font-semibold text-amber-700">JP</span>
                     </div>
                 </div>
-                <div class="bg-purple-50 rounded-xl p-3 border border-purple-100 flex flex-col justify-center">
-                    <p class="text-xs text-purple-600 font-medium">Izin</p>
+                <div class="bg-purple-50 rounded-xl p-3 border border-purple-100 flex flex-col justify-between">
+                    <div class="flex items-start justify-between gap-1 mb-1.5">
+                        <p class="text-xs text-purple-700 font-medium">Izin</p>
+                        <button type="button" 
+                                onclick="openDetailModal('izin')" 
+                                class="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-semibold text-purple-700 bg-purple-100/80 hover:bg-purple-200/90 rounded-md transition-colors border border-purple-200/80 cursor-pointer shadow-2xs"
+                                title="Lihat Rincian Jam Pelajaran Izin">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                            <span>Rincian</span>
+                        </button>
+                    </div>
                     <div class="flex items-baseline gap-1">
                         <p class="text-xl font-bold text-purple-900">{{ $stats['izin'] }}</p>
                         <span class="text-[10px] font-semibold text-purple-700">JP</span>
@@ -259,4 +295,217 @@
         </div>
         @endforelse
     </div>
+
+    {{-- Modal Rincian Kehadiran Guru --}}
+    <div id="modal-rincian-kehadiran" class="hidden fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs" onclick="closeDetailModalOnBackdrop(event)">
+        <div class="relative bg-white w-full max-w-2xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[88vh] animate-in fade-in zoom-in-95 duration-200" onclick="event.stopPropagation()">
+            {{-- Modal Header --}}
+            <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/80">
+                <div class="flex items-center gap-3">
+                    <div id="modal-category-icon" class="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-white shadow-2xs shrink-0">
+                        {{-- Icon loaded dynamically --}}
+                    </div>
+                    <div>
+                        <h3 id="modal-category-title" class="text-sm font-bold text-slate-800">Rincian Jam Pelajaran</h3>
+                        <p id="modal-category-subtitle" class="text-[11px] text-slate-500 mt-0.5">Daftar riwayat jam pelajaran mengajar Anda</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeDetailModal()" class="w-8 h-8 flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer" title="Tutup (Esc)">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            {{-- Category Navigation Tabs --}}
+            <div class="px-5 pt-3 pb-2 border-b border-slate-100 bg-white flex items-center gap-1.5 overflow-x-auto text-xs font-semibold">
+                <button type="button" onclick="switchDetailTab('alpa')" id="tab-btn-alpa" class="px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 border cursor-pointer shrink-0">
+                    <span>Alpa / Tanpa Ket.</span>
+                    <span class="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800">{{ $stats['alpa'] }} JP</span>
+                </button>
+                <button type="button" onclick="switchDetailTab('izin')" id="tab-btn-izin" class="px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 border cursor-pointer shrink-0">
+                    <span>Izin</span>
+                    <span class="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800">{{ $stats['izin'] }} JP</span>
+                </button>
+                <button type="button" onclick="switchDetailTab('sakit')" id="tab-btn-sakit" class="px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 border cursor-pointer shrink-0">
+                    <span>Sakit</span>
+                    <span class="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">{{ $stats['sakit'] }} JP</span>
+                </button>
+                <button type="button" onclick="switchDetailTab('hadir')" id="tab-btn-hadir" class="px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 border cursor-pointer shrink-0">
+                    <span>Hadir</span>
+                    <span class="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-green-100 text-green-800">{{ $stats['hadir'] }} JP</span>
+                </button>
+            </div>
+
+            {{-- Modal Body (Scrollable List) --}}
+            <div class="p-4 sm:p-5 overflow-y-auto space-y-3 flex-1 bg-slate-50/50">
+                @foreach(['alpa', 'izin', 'sakit', 'hadir'] as $cat)
+                    <div id="tab-content-{{ $cat }}" class="detail-tab-content hidden space-y-3">
+                        @forelse($detailedAttendance[$cat] ?? [] as $item)
+                            <div class="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-2xs hover:border-slate-300 transition-colors">
+                                <div class="flex flex-wrap items-start justify-between gap-2 mb-2.5">
+                                    <div class="flex items-center gap-2">
+                                        <span class="px-2.5 py-1 rounded-lg text-xs font-bold 
+                                            @if($cat === 'alpa') bg-rose-100 text-rose-800 border border-rose-200
+                                            @elseif($cat === 'izin') bg-purple-100 text-purple-800 border border-purple-200
+                                            @elseif($cat === 'sakit') bg-amber-100 text-amber-800 border border-amber-200
+                                            @else bg-green-100 text-green-800 border border-green-200
+                                            @endif">
+                                            {{ $item['total_jp'] }} Jam Pelajaran (JP)
+                                        </span>
+                                        <span class="text-xs font-semibold text-slate-800 flex items-center gap-1">
+                                            <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                            {{ $item['jam_mulai'] }} &ndash; {{ $item['jam_selesai'] }} WIB
+                                        </span>
+                                    </div>
+                                    <span class="text-xs font-medium text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-md">
+                                        {{ $item['tanggal'] }}
+                                    </span>
+                                </div>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs pt-2 border-t border-slate-100">
+                                    <div>
+                                        <span class="text-slate-400 text-[11px] block">Ruang / Kelas:</span>
+                                        <span class="font-bold text-slate-800">{{ $item['kelas'] }}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-slate-400 text-[11px] block">Mata Pelajaran:</span>
+                                        <span class="font-bold text-slate-800">{{ $item['mapel'] }}</span>
+                                    </div>
+                                </div>
+
+                                @if($cat !== 'hadir')
+                                    <div class="mt-2.5 pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
+                                        <div class="flex items-center gap-1.5">
+                                            <span class="text-slate-400 text-[11px]">Kategori:</span>
+                                            <span class="font-semibold text-slate-800">{{ $item['alasan'] }}</span>
+                                        </div>
+                                        @if($item['keterangan'])
+                                            <div class="text-[11px] text-slate-600 italic bg-slate-50 px-2.5 py-1 rounded-md border border-slate-200/60 max-w-full">
+                                                Catatan: &ldquo;{{ $item['keterangan'] }}&rdquo;
+                                            </div>
+                                        @endif
+                                    </div>
+                                @endif
+                            </div>
+                        @empty
+                            <div class="py-12 text-center">
+                                <div class="w-12 h-12 rounded-2xl mx-auto mb-3 flex items-center justify-center 
+                                    @if($cat === 'alpa') bg-green-50 text-green-600
+                                    @elseif($cat === 'izin') bg-purple-50 text-purple-600
+                                    @elseif($cat === 'sakit') bg-amber-50 text-amber-600
+                                    @else bg-slate-50 text-slate-600
+                                    @endif">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                </div>
+                                <h4 class="text-sm font-bold text-slate-800">Tidak Ada Riwayat {{ ucfirst($cat) }}</h4>
+                                <p class="text-xs text-slate-500 max-w-sm mx-auto mt-1 leading-relaxed">
+                                    @if($cat === 'alpa')
+                                        Luar biasa! Tidak ada jam pelajaran yang tercatat sebagai alpa atau tanpa keterangan.
+                                    @else
+                                        Tidak ada catatan jam pelajaran mengajar Anda pada kategori {{ $cat }}.
+                                    @endif
+                                </p>
+                            </div>
+                        @endforelse
+                    </div>
+                @endforeach
+            </div>
+
+            {{-- Modal Footer --}}
+            <div class="px-5 py-3 border-t border-slate-100 bg-white flex items-center justify-between text-xs">
+                <span class="text-slate-500">
+                    Total: <strong class="text-slate-700">{{ $stats['total'] }} JP</strong> direkap selama ini
+                </span>
+                <button type="button" onclick="closeDetailModal()" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl transition-colors cursor-pointer shadow-2xs">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const categoryConfigs = {
+            alpa: {
+                title: 'Rincian Jam Pelajaran: Alpa / Tanpa Keterangan',
+                subtitle: 'Daftar sesi KBM di mana Anda tercatat tidak hadir tanpa keterangan',
+                bg: 'bg-rose-600',
+                activeTabClass: 'bg-rose-50 border-rose-500 text-rose-800 shadow-2xs font-bold',
+                inactiveTabClass: 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100',
+                icon: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>'
+            },
+            izin: {
+                title: 'Rincian Jam Pelajaran: Izin / Dispensasi',
+                subtitle: 'Daftar sesi KBM di mana Anda memiliki surat/keterangan izin atau dinas luar',
+                bg: 'bg-purple-600',
+                activeTabClass: 'bg-purple-50 border-purple-500 text-purple-800 shadow-2xs font-bold',
+                inactiveTabClass: 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100',
+                icon: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>'
+            },
+            sakit: {
+                title: 'Rincian Jam Pelajaran: Sakit',
+                subtitle: 'Daftar sesi KBM yang tidak dapat diampu karena sakit',
+                bg: 'bg-amber-600',
+                activeTabClass: 'bg-amber-50 border-amber-500 text-amber-800 shadow-2xs font-bold',
+                inactiveTabClass: 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100',
+                icon: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>'
+            },
+            hadir: {
+                title: 'Rincian Jam Pelajaran: Hadir & Terlambat',
+                subtitle: 'Daftar seluruh sesi KBM yang terlaksana dengan kehadiran Anda',
+                bg: 'bg-green-600',
+                activeTabClass: 'bg-green-50 border-green-500 text-green-800 shadow-2xs font-bold',
+                inactiveTabClass: 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100',
+                icon: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>'
+            }
+        };
+
+        function openDetailModal(category = 'alpa') {
+            switchDetailTab(category);
+            document.getElementById('modal-rincian-kehadiran').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeDetailModal() {
+            document.getElementById('modal-rincian-kehadiran').classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+
+        function closeDetailModalOnBackdrop(e) {
+            if (e.target.id === 'modal-rincian-kehadiran') {
+                closeDetailModal();
+            }
+        }
+
+        function switchDetailTab(category) {
+            const config = categoryConfigs[category] || categoryConfigs.alpa;
+            
+            // Update Header
+            document.getElementById('modal-category-title').textContent = config.title;
+            document.getElementById('modal-category-subtitle').textContent = config.subtitle;
+            
+            const iconEl = document.getElementById('modal-category-icon');
+            iconEl.className = 'w-9 h-9 rounded-xl flex items-center justify-center font-bold text-white shadow-2xs shrink-0 ' + config.bg;
+            iconEl.innerHTML = config.icon;
+
+            // Toggle Tab Buttons and Tab Contents
+            ['alpa', 'izin', 'sakit', 'hadir'].forEach(cat => {
+                const btn = document.getElementById('tab-btn-' + cat);
+                const content = document.getElementById('tab-content-' + cat);
+                if (btn && content) {
+                    if (cat === category) {
+                        btn.className = 'px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 border cursor-pointer shrink-0 ' + config.activeTabClass;
+                        content.classList.remove('hidden');
+                    } else {
+                        btn.className = 'px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 border cursor-pointer shrink-0 ' + config.inactiveTabClass;
+                        content.classList.add('hidden');
+                    }
+                }
+            });
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeDetailModal();
+            }
+        });
+    </script>
 </x-layouts.guru>

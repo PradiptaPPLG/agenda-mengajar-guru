@@ -75,39 +75,110 @@ class DashboardController extends Controller
         }
 
         // Attendance statistics for the logged-in teacher (kecualikan presensi pada jadwal kelas saat masa PKL)
-        $kehadiranStats = KehadiranGuru::where('guru_id', $user->id)
+        $kehadiranList = KehadiranGuru::where('guru_id', $user->id)
             ->whereDoesntHave('pertemuan.jadwal.kelas.pkls', function ($q) {
                 $q->where('is_aktif', true)
                     ->whereColumn('kelas_pkls.tanggal_mulai', '<=', 'pertemuans.tanggal')
                     ->whereColumn('kelas_pkls.tanggal_selesai', '>=', 'pertemuans.tanggal');
             })
-            ->selectRaw('status, count(*) as total')
-            ->groupBy('status')
-            ->pluck('total', 'status');
+            ->with([
+                'pertemuan.jadwal.kelas',
+                'pertemuan.jadwal.mataPelajaran',
+            ])
+            ->get();
 
-        $totalKehadiran = $kehadiranStats->sum();
-        $totalHadir = $kehadiranStats->get('hadir', 0) + $kehadiranStats->get('terlambat', 0);
+        $recordsByCat = [
+            'hadir' => collect(),
+            'sakit' => collect(),
+            'izin' => collect(),
+            'alpa' => collect(),
+        ];
+
+        foreach ($kehadiranList as $k) {
+            if ($k->isHadirCategory()) {
+                $recordsByCat['hadir']->push($k);
+            } elseif ($k->isSakitCategory()) {
+                $recordsByCat['sakit']->push($k);
+            } elseif ($k->isDispensasiCategory()) {
+                $recordsByCat['izin']->push($k);
+            } else {
+                $recordsByCat['alpa']->push($k);
+            }
+        }
+
+        $totalKehadiran = $kehadiranList->count();
+        $totalHadir = $recordsByCat['hadir']->count();
+        $totalSakit = $recordsByCat['sakit']->count();
+        $totalIzin = $recordsByCat['izin']->count();
+        $totalAlpa = $recordsByCat['alpa']->count();
+
         $persentaseHadir = $totalKehadiran > 0
             ? round(($totalHadir / $totalKehadiran) * 100, 1)
             : 0;
 
-        $izinCount = KehadiranGuru::where('guru_id', $user->id)
-            ->where('alasan_tidak_hadir', 'izin')
-            ->whereDoesntHave('pertemuan.jadwal.kelas.pkls', function ($q) {
-                $q->where('is_aktif', true)
-                    ->whereColumn('kelas_pkls.tanggal_mulai', '<=', 'pertemuans.tanggal')
-                    ->whereColumn('kelas_pkls.tanggal_selesai', '>=', 'pertemuans.tanggal');
-            })
-            ->count();
-
         $stats = [
             'total' => $totalKehadiran,
             'hadir' => $totalHadir,
-            'sakit' => $kehadiranStats->get('sakit', 0),
-            'izin' => $izinCount,
-            'alpa' => $kehadiranStats->get('alpa', 0) + $kehadiranStats->get('tidak_hadir', 0),
+            'sakit' => $totalSakit,
+            'izin' => $totalIzin,
+            'alpa' => $totalAlpa,
             'persentase' => $persentaseHadir,
         ];
+
+        // Format detailed records for modal view
+        $detailedAttendance = [];
+        foreach (['alpa', 'izin', 'sakit', 'hadir'] as $cat) {
+            $sorted = $recordsByCat[$cat]->sortByDesc(function ($item) {
+                $tgl = $item->pertemuan?->tanggal ? Carbon::parse($item->pertemuan->tanggal)->format('Y-m-d') : '1970-01-01';
+                $jam = $item->pertemuan?->jadwal?->jam_mulai ?? '00:00';
+
+                return $tgl.' '.$jam;
+            })->values();
+
+            $grouped = [];
+            foreach ($sorted as $item) {
+                $p = $item->pertemuan;
+                $j = $p?->jadwal;
+                $tgl = $p?->tanggal ? Carbon::parse($p->tanggal) : null;
+                $tglStr = $tgl ? $tgl->toDateString() : 'N/A';
+                $kelasNama = $j?->kelas?->nama ?? '-';
+                $mapelNama = $j?->mataPelajaran?->nama ?? '-';
+                $statusLabel = $item->status_label;
+                $alasanLabel = $item->alasan_tidak_hadir_label ?? ($item->status === 'alpa' ? 'Tanpa Keterangan' : '-');
+                $keterangan = trim($item->keterangan ?? '');
+
+                $groupKey = $tglStr.'|'.$kelasNama.'|'.$mapelNama.'|'.$statusLabel.'|'.$alasanLabel.'|'.$keterangan;
+
+                $startMulai = $j?->jam_mulai ? substr($j->jam_mulai, 0, 5) : '-';
+                $endSelesai = $j?->jam_selesai ? substr($j->jam_selesai, 0, 5) : '-';
+
+                if (! isset($grouped[$groupKey])) {
+                    $grouped[$groupKey] = [
+                        'tanggal' => $tgl ? $tgl->translatedFormat('l, d F Y') : '-',
+                        'tanggal_short' => $tgl ? $tgl->translatedFormat('d M Y') : '-',
+                        'hari' => $tgl ? $tgl->translatedFormat('l') : '-',
+                        'jam_mulai' => $startMulai,
+                        'jam_selesai' => $endSelesai,
+                        'kelas' => $kelasNama,
+                        'mapel' => $mapelNama,
+                        'status' => $statusLabel,
+                        'alasan' => $alasanLabel,
+                        'keterangan' => ($keterangan !== '' && $keterangan !== '-') ? $keterangan : null,
+                        'total_jp' => 1,
+                    ];
+                } else {
+                    $grouped[$groupKey]['total_jp']++;
+                    if ($startMulai !== '-' && ($grouped[$groupKey]['jam_mulai'] === '-' || $startMulai < $grouped[$groupKey]['jam_mulai'])) {
+                        $grouped[$groupKey]['jam_mulai'] = $startMulai;
+                    }
+                    if ($endSelesai !== '-' && ($grouped[$groupKey]['jam_selesai'] === '-' || $endSelesai > $grouped[$groupKey]['jam_selesai'])) {
+                        $grouped[$groupKey]['jam_selesai'] = $endSelesai;
+                    }
+                }
+            }
+
+            $detailedAttendance[$cat] = array_values($grouped);
+        }
 
         // Daftar kelas yang diampu guru ini yang sedang dalam masa PKL
         $kelasPklList = KelasPkl::with('kelas')
@@ -124,6 +195,7 @@ class DashboardController extends Controller
             'nextWeek' => $weekStart->copy()->addWeek()->toDateString(),
             'today' => Carbon::today(),
             'stats' => $stats,
+            'detailedAttendance' => $detailedAttendance,
             'kelasPklList' => $kelasPklList,
         ]);
     }
