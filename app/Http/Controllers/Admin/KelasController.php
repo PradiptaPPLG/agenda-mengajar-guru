@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\KalenderBlokMinggu;
 use App\Models\KehadiranSiswa;
 use App\Models\Kelas;
+use App\Models\Setting;
 use App\Models\SiswaProfile;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -72,19 +73,26 @@ class KelasController extends Controller
         return view('admin.kelas.index', compact('kelas', 'hasKalender', 'daftarJurusan'));
     }
 
-    public function show(Kelas $kelas): View
+    public function show(Request $request, Kelas $kelas): View
     {
+        $selectedTahunAjaran = $request->input('tahun_ajaran', Setting::getTahunAjaranAktif());
+        $selectedSemester = $request->input('semester', Setting::getSemesterAktif());
+
         $kelas->load([
             'waliKelas.guruProfile',
             'guruBk.guruProfile',
             'siswaProfiles.user',
-            'jadwalPelajarans.guru.guruProfile',
-            'jadwalPelajarans.mataPelajaran',
         ]);
 
-        $jadwalGrouped = $kelas->jadwalPelajarans
-            ->sortBy(['hari', 'jam_mulai'])
-            ->groupBy('hari');
+        $jadwalPelajarans = $kelas->jadwalPelajarans()
+            ->when($selectedTahunAjaran && $selectedTahunAjaran !== 'all', fn ($q) => $q->where('tahun_ajaran', $selectedTahunAjaran))
+            ->when($selectedSemester && $selectedSemester !== 'all', fn ($q) => $q->where('semester', $selectedSemester))
+            ->with(['guru.guruProfile', 'mataPelajaran'])
+            ->orderBy('hari')
+            ->orderBy('jam_mulai')
+            ->get();
+
+        $jadwalGrouped = $jadwalPelajarans->groupBy('hari');
 
         $totalSiswa = $kelas->siswaProfiles->count();
         $siswaUserIds = $kelas->siswaProfiles->pluck('user_id')->filter();
@@ -111,7 +119,20 @@ class KelasController extends Controller
         $hadirAll = $kehadiran->where('status', 'hadir')->count();
         $persentaseKelas = $totalAll > 0 ? round(($hadirAll / $totalAll) * 100, 1) : 100;
 
-        return view('admin.kelas.show', compact('kelas', 'jadwalGrouped', 'totalSiswa', 'rekapSiswa', 'persentaseKelas'));
+        $daftarTahunAjaran = Setting::getDaftarTahunAjaran();
+        $daftarSemester = Setting::getDaftarSemester();
+
+        return view('admin.kelas.show', compact(
+            'kelas',
+            'jadwalGrouped',
+            'totalSiswa',
+            'rekapSiswa',
+            'persentaseKelas',
+            'selectedTahunAjaran',
+            'selectedSemester',
+            'daftarTahunAjaran',
+            'daftarSemester'
+        ));
     }
 
     public function create(): View

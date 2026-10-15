@@ -128,6 +128,27 @@
 
             {{-- Tab 1: Jadwal & Guru Mengajar --}}
             <div x-show="tab === 'jadwal'" class="p-6">
+                {{-- Filter Semester & Tahun Ajaran --}}
+                <form method="GET" action="{{ route('admin.kelas.show', $kelas) }}" class="flex flex-wrap items-center justify-between gap-3 mb-6 p-3 bg-slate-50 border border-slate-200/80 rounded-xl">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-bold text-slate-700">Filter Jadwal:</span>
+                        <select name="tahun_ajaran" class="px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg text-slate-700 font-medium focus:ring-2 focus:ring-blue-500" onchange="this.form.submit()">
+                            <option value="all">Semua T.A.</option>
+                            @foreach($daftarTahunAjaran as $ta)
+                                <option value="{{ $ta }}" {{ ($selectedTahunAjaran ?? '') === $ta ? 'selected' : '' }}>{{ $ta }}</option>
+                            @endforeach
+                        </select>
+                        <select name="semester" class="px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg text-slate-700 font-medium focus:ring-2 focus:ring-blue-500" onchange="this.form.submit()">
+                            <option value="all">Semua Semester</option>
+                            @foreach($daftarSemester as $sem)
+                                <option value="{{ $sem }}" {{ ($selectedSemester ?? '') === $sem ? 'selected' : '' }}>{{ ucfirst($sem) }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="text-xs text-slate-500 font-medium">
+                        Menampilkan jadwal aktif semester <strong class="text-slate-800">{{ ucfirst($selectedSemester ?? 'Semua') }}</strong> T.A. <strong class="text-slate-800">{{ $selectedTahunAjaran ?? 'Semua' }}</strong>
+                    </div>
+                </form>
                 @php
                     $namaHari = [
                         1 => 'Senin',

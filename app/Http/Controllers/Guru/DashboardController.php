@@ -8,6 +8,7 @@ use App\Models\JadwalPelajaran;
 use App\Models\KehadiranGuru;
 use App\Models\Kelas;
 use App\Models\KelasPkl;
+use App\Models\Setting;
 use App\Services\JadwalBlokResolverService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -74,8 +75,30 @@ class DashboardController extends Controller
             ];
         }
 
-        // Attendance statistics for the logged-in teacher (kecualikan presensi pada jadwal kelas saat masa PKL)
+        $activeTa = Setting::getTahunAjaranAktif();
+        $activeSem = Setting::getSemesterAktif();
+
+        // Attendance statistics for the logged-in teacher:
+        // Hanya menghitung sesi pada jadwal aktif yang memang diampu oleh guru ini pada tahun ajaran & semester aktif.
+        // Jadwal yang sudah dialihkan ke guru lain atau dihapus otomatis dikecualikan.
         $kehadiranList = KehadiranGuru::where('guru_id', $user->id)
+            ->whereHas('pertemuan', function ($q) use ($user, $activeTa, $activeSem) {
+                if ($activeTa) {
+                    $q->where(fn ($sq) => $sq->where('tahun_ajaran', $activeTa)->orWhereNull('tahun_ajaran'));
+                }
+                if ($activeSem) {
+                    $q->where(fn ($sq) => $sq->where('semester', $activeSem)->orWhereNull('semester'));
+                }
+                $q->whereHas('jadwal', function ($jq) use ($user, $activeTa, $activeSem) {
+                    $jq->where('guru_id', $user->id);
+                    if ($activeTa) {
+                        $jq->where(fn ($sq) => $sq->where('tahun_ajaran', $activeTa)->orWhereNull('tahun_ajaran'));
+                    }
+                    if ($activeSem) {
+                        $jq->where(fn ($sq) => $sq->where('semester', $activeSem)->orWhereNull('semester'));
+                    }
+                });
+            })
             ->whereDoesntHave('pertemuan.jadwal.kelas.pkls', function ($q) {
                 $q->where('is_aktif', true)
                     ->whereColumn('kelas_pkls.tanggal_mulai', '<=', 'pertemuans.tanggal')
