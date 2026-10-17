@@ -272,7 +272,8 @@ class CaptureController extends Controller
         $fotoPath = $existing?->foto_path;
         if ($request->hasFile('foto')) {
             $imageCompressor = app(ImageCompressor::class);
-            $fotoPath = $imageCompressor->compressAndStore($request->file('foto'), 'foto-bukti', 1200, 80);
+            $subFolder = 'foto-bukti/'.now()->format('Y/m/d');
+            $fotoPath = $imageCompressor->compressAndStore($request->file('foto'), $subFolder, 1200, 80);
         }
 
         $hasNewFoto = $request->hasFile('foto');
@@ -469,7 +470,8 @@ class CaptureController extends Controller
         ]);
 
         $imageCompressor = app(ImageCompressor::class);
-        $fotoCheckoutPath = $imageCompressor->compressAndStore($request->file('foto_checkout'), 'foto-bukti', 1200, 80);
+        $subFolder = 'foto-bukti/'.now()->format('Y/m/d');
+        $fotoCheckoutPath = $imageCompressor->compressAndStore($request->file('foto_checkout'), $subFolder, 1200, 80);
 
         DB::transaction(function () use ($pertemuanIds, $user, $fotoCheckoutPath) {
             foreach ($pertemuanIds as $pertemuanId) {

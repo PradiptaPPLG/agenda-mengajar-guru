@@ -22,7 +22,11 @@
             </div>
             <div class="flex items-center gap-2">
                 <span class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 text-xs font-semibold border border-slate-200">
-                    Total: {{ number_format($logs->total()) }} Log Aktivitas
+                    @if(method_exists($logs, 'total'))
+                        Total: {{ number_format($logs->total()) }} Log Aktivitas
+                    @else
+                        Halaman {{ $logs->currentPage() }} ({{ $logs->count() }} Data Ditampilkan)
+                    @endif
                 </span>
             </div>
         </div>

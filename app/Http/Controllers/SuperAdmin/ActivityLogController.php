@@ -5,6 +5,7 @@ namespace App\Http\Controllers\SuperAdmin;
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\View\View;
 
 class ActivityLogController extends Controller
@@ -42,17 +43,23 @@ class ActivityLogController extends Controller
             $query->whereDate('created_at', '<=', $request->end_date);
         }
 
-        $logs = $query->paginate(25)->withQueryString();
+        $logs = $query->simplePaginate(25)->withQueryString();
 
-        $availableActions = ActivityLog::select('action')->distinct()->pluck('action');
-        if ($availableActions->isEmpty()) {
-            $availableActions = collect(['CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'IMPERSONATE', 'RESTORE']);
-        }
+        $availableActions = Cache::remember('activity_log:available_actions', 3600, function () {
+            $actions = ActivityLog::select('action')->distinct()->pluck('action');
 
-        $availableModules = ActivityLog::select('module')->distinct()->pluck('module');
-        if ($availableModules->isEmpty()) {
-            $availableModules = collect(['Auth', 'Jadwal', 'Kelas', 'Siswa', 'Guru', 'Agenda Mengajar', 'Settings']);
-        }
+            return $actions->isNotEmpty()
+                ? $actions
+                : collect(['CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'IMPERSONATE', 'RESTORE']);
+        });
+
+        $availableModules = Cache::remember('activity_log:available_modules', 3600, function () {
+            $modules = ActivityLog::select('module')->distinct()->pluck('module');
+
+            return $modules->isNotEmpty()
+                ? $modules
+                : collect(['Auth', 'Jadwal', 'Kelas', 'Siswa', 'Guru', 'Agenda Mengajar', 'Settings']);
+        });
 
         $availableRoles = ['super_admin', 'admin', 'guru', 'siswa', 'piket', 'tu', 'kepala_sekolah', 'pengawas'];
 

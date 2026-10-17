@@ -138,6 +138,11 @@ class User extends Authenticatable
         return $this->hasMany(KehadiranSiswa::class, 'siswa_id');
     }
 
+    public function rekapKehadiranSiswas(): HasMany
+    {
+        return $this->hasMany(RekapKehadiranSiswa::class, 'siswa_id');
+    }
+
     public function fotoBuktis(): HasMany
     {
         return $this->hasMany(FotoBukti::class, 'siswa_id');

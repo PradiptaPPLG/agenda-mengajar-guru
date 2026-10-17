@@ -4,27 +4,70 @@ namespace App\Models;
 
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 
 class Setting extends Model
 {
     protected $fillable = ['key', 'value'];
 
-    /**
-     * Get a setting value by key.
-     */
-    public static function get(string $key, mixed $default = null): mixed
+    protected static function booted(): void
     {
-        $setting = static::where('key', $key)->first();
+        static::saved(function (Setting $setting) {
+            static::clearCache($setting->key);
+        });
 
-        return $setting ? $setting->value : $default;
+        static::deleted(function (Setting $setting) {
+            static::clearCache($setting->key);
+        });
     }
 
     /**
-     * Set a setting value.
+     * Clear all cached settings or a specific key.
+     */
+    public static function clearCache(?string $key = null): void
+    {
+        if ($key !== null) {
+            Cache::forget("setting:{$key}");
+        }
+        Cache::forget('setting:tahun_ajaran_aktif');
+        Cache::forget('setting:semester_aktif');
+        Cache::forget('setting:daftar_tahun_ajaran');
+    }
+
+    /**
+     * Get a setting value by key with caching.
+     */
+    public static function get(string $key, mixed $default = null): mixed
+    {
+        $value = Cache::rememberForever("setting:{$key}", function () use ($key) {
+            return static::where('key', $key)->value('value') ?? '__NOT_SET__';
+        });
+
+        if ($value === '__NOT_SET__') {
+            return $default;
+        }
+
+        return $value ?? $default;
+    }
+
+    /**
+     * Set a setting value and invalidate cache.
      */
     public static function set(string $key, mixed $value): void
     {
         static::updateOrCreate(['key' => $key], ['value' => $value]);
+
+        if ($key === 'tahun_ajaran_aktif') {
+            static::updateOrCreate(['key' => 'school_year'], ['value' => $value]);
+        } elseif ($key === 'school_year') {
+            static::updateOrCreate(['key' => 'tahun_ajaran_aktif'], ['value' => $value]);
+        } elseif ($key === 'semester_aktif') {
+            static::updateOrCreate(['key' => 'semester'], ['value' => $value]);
+        } elseif ($key === 'semester') {
+            static::updateOrCreate(['key' => 'semester_aktif'], ['value' => $value]);
+        }
+
+        static::clearCache($key);
     }
 
     /**
@@ -32,11 +75,15 @@ class Setting extends Model
      */
     public static function getTahunAjaranAktif(): string
     {
-        $now = Carbon::now();
-        $year = $now->year;
-        $default = $now->month >= 7 ? "{$year}/".($year + 1) : ($year - 1)."/{$year}";
+        return Cache::rememberForever('setting:tahun_ajaran_aktif', function () {
+            $now = Carbon::now();
+            $year = $now->year;
+            $default = $now->month >= 7 ? "{$year}/".($year + 1) : ($year - 1)."/{$year}";
 
-        return (string) static::get('school_year', $default);
+            $val = static::get('tahun_ajaran_aktif') ?? static::get('school_year');
+
+            return (string) ($val ?: $default);
+        });
     }
 
     /**
@@ -44,9 +91,11 @@ class Setting extends Model
      */
     public static function getSemesterAktif(): string
     {
-        $sem = (string) static::get('semester', '1');
+        return Cache::rememberForever('setting:semester_aktif', function () {
+            $sem = (string) (static::get('semester_aktif') ?? static::get('semester', '1'));
 
-        return in_array($sem, ['2', 'genap'], true) ? 'genap' : 'ganjil';
+            return in_array($sem, ['2', 'genap'], true) ? 'genap' : 'ganjil';
+        });
     }
 
     /**
@@ -87,14 +136,16 @@ class Setting extends Model
      */
     public static function getDaftarTahunAjaran(): array
     {
-        $fromJadwal = JadwalPelajaran::distinct()->pluck('tahun_ajaran')->filter()->all();
-        $fromKelas = Kelas::distinct()->pluck('tahun_ajaran')->filter()->all();
-        $current = static::getTahunAjaranAktif();
+        return Cache::remember('setting:daftar_tahun_ajaran', 3600, function () {
+            $fromJadwal = JadwalPelajaran::distinct()->pluck('tahun_ajaran')->filter()->all();
+            $fromKelas = Kelas::distinct()->pluck('tahun_ajaran')->filter()->all();
+            $current = static::getTahunAjaranAktif();
 
-        $all = array_unique(array_merge([$current], $fromJadwal, $fromKelas));
-        rsort($all);
+            $all = array_unique(array_merge([$current], $fromJadwal, $fromKelas));
+            rsort($all);
 
-        return array_values($all);
+            return array_values($all);
+        });
     }
 
     /**

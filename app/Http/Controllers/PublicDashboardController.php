@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Services\JadwalBlokResolverService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\View\View;
 
 class PublicDashboardController extends Controller
@@ -21,56 +22,70 @@ class PublicDashboardController extends Controller
         $today = Carbon::today();
         $hari = $today->dayOfWeekIso;
         $nowTime = Carbon::now()->format('H:i');
+        $todayStr = $today->toDateString();
 
-        // ── Guru Stats Hari Ini (dihitung per ORANG/unik, bukan per sesi) ────────
-        // Guru "hadir"       = punya minimal 1 sesi berstatus 'hadir' hari ini
-        // Guru "terlambat"   = tidak ada sesi 'hadir', tapi ada sesi 'terlambat'
-        // Guru "tidak hadir" = semua sesi hari ini non-hadir (tidak ada hadir/terlambat sama sekali)
-        $guruTodayQuery = fn () => KehadiranGuru::whereHas('pertemuan', fn ($q) => $q->whereDate('tanggal', $today));
+        $stats = Cache::remember("public_dashboard_stats_{$todayStr}", 30, function () use ($today) {
+            $todayPertemuanIds = Pertemuan::whereDate('tanggal', $today)->pluck('id');
 
-        // Guru IDs yang hadir di minimal 1 sesi
-        $guruHadirIds = $guruTodayQuery()->where('status', 'hadir')->distinct()->pluck('guru_id');
-        // Guru IDs yang terlambat di minimal 1 sesi (tapi tidak ada yang hadir)
-        $guruTerlambatIds = $guruTodayQuery()->where('status', 'terlambat')
-            ->whereNotIn('guru_id', $guruHadirIds)
-            ->distinct()->pluck('guru_id');
-        // Guru IDs yang SAMA SEKALI tidak hadir/terlambat hari ini
-        $guruTidakHadirIds = $guruTodayQuery()
-            ->whereNotIn('status', ['hadir', 'terlambat'])
-            ->whereNotIn('guru_id', $guruHadirIds)
-            ->whereNotIn('guru_id', $guruTerlambatIds)
-            ->distinct()->pluck('guru_id');
+            // ── Guru Stats Hari Ini (dihitung per ORANG/unik, bukan per sesi) ────────
+            $guruHadirCount = 0;
+            $guruTerlambatCount = 0;
+            $guruTidakHadirCount = 0;
 
-        // ── Siswa Stats Hari Ini (dihitung per ORANG/unik, bukan per sesi) ────────
-        // Siswa "hadir"       = punya minimal 1 sesi 'hadir' hari ini
-        // Siswa "terlambat"   = tidak ada sesi 'hadir', tapi ada sesi 'terlambat'
-        // Siswa "tidak hadir" = siswa yang SAMA SEKALI tidak hadir/terlambat di semua sesi hari ini
-        $siswaTodayQuery = fn () => KehadiranSiswa::whereHas('pertemuan', fn ($q) => $q->whereDate('tanggal', $today));
+            if ($todayPertemuanIds->isNotEmpty()) {
+                $kehadiranGurus = KehadiranGuru::whereIn('pertemuan_id', $todayPertemuanIds)
+                    ->select('guru_id', 'status')
+                    ->get()
+                    ->groupBy('guru_id');
 
-        $siswaHadirIds = $siswaTodayQuery()->where('status', 'hadir')->distinct()->pluck('siswa_id');
-        $siswaTerlambatIds = $siswaTodayQuery()->where('status', 'terlambat')
-            ->whereNotIn('siswa_id', $siswaHadirIds)
-            ->distinct()->pluck('siswa_id');
-        $siswaTidakHadirIds = $siswaTodayQuery()
-            ->whereNotIn('status', ['hadir', 'terlambat'])
-            ->whereNotIn('siswa_id', $siswaHadirIds)
-            ->whereNotIn('siswa_id', $siswaTerlambatIds)
-            ->distinct()->pluck('siswa_id');
+                foreach ($kehadiranGurus as $records) {
+                    if ($records->contains('status', 'hadir')) {
+                        $guruHadirCount++;
+                    } elseif ($records->contains('status', 'terlambat')) {
+                        $guruTerlambatCount++;
+                    } else {
+                        $guruTidakHadirCount++;
+                    }
+                }
+            }
 
-        $stats = [
-            // Guru (per kepala/orang)
-            'guru_hadir_hari_ini' => $guruHadirIds->count(),
-            'guru_terlambat_hari_ini' => $guruTerlambatIds->count(),
-            'guru_tidak_hadir_hari_ini' => $guruTidakHadirIds->count(),
-            'total_guru' => User::where('role', 'guru')->count(),
-            'pertemuan_hari_ini' => Pertemuan::whereDate('tanggal', $today)->count(),
+            // ── Siswa Stats Hari Ini (dihitung per ORANG/unik, bukan per sesi) ────────
+            $siswaHadirCount = 0;
+            $siswaTerlambatCount = 0;
+            $siswaTidakHadirCount = 0;
 
-            // Siswa (per kepala/orang)
-            'siswa_hadir_hari_ini' => $siswaHadirIds->count(),
-            'siswa_terlambat_hari_ini' => $siswaTerlambatIds->count(),
-            'siswa_tidak_hadir_hari_ini' => $siswaTidakHadirIds->count(),
-            'total_siswa' => User::where('role', 'siswa')->count(),
-        ];
+            if ($todayPertemuanIds->isNotEmpty()) {
+                $kehadiranSiswas = KehadiranSiswa::whereIn('pertemuan_id', $todayPertemuanIds)
+                    ->select('siswa_id', 'status')
+                    ->get()
+                    ->groupBy('siswa_id');
+
+                foreach ($kehadiranSiswas as $records) {
+                    if ($records->contains('status', 'hadir')) {
+                        $siswaHadirCount++;
+                    } elseif ($records->contains('status', 'terlambat')) {
+                        $siswaTerlambatCount++;
+                    } else {
+                        $siswaTidakHadirCount++;
+                    }
+                }
+            }
+
+            return [
+                // Guru (per kepala/orang)
+                'guru_hadir_hari_ini' => $guruHadirCount,
+                'guru_terlambat_hari_ini' => $guruTerlambatCount,
+                'guru_tidak_hadir_hari_ini' => $guruTidakHadirCount,
+                'total_guru' => User::where('role', 'guru')->count(),
+                'pertemuan_hari_ini' => $todayPertemuanIds->count(),
+
+                // Siswa (per kepala/orang)
+                'siswa_hadir_hari_ini' => $siswaHadirCount,
+                'siswa_terlambat_hari_ini' => $siswaTerlambatCount,
+                'siswa_tidak_hadir_hari_ini' => $siswaTidakHadirCount,
+                'total_siswa' => User::where('role', 'siswa')->count(),
+            ];
+        });
 
         // Real-Time Monitoring KBM Hari Ini (menggunakan resolver sistem blok)
         $kelasList = Kelas::orderBy('nama')->get();

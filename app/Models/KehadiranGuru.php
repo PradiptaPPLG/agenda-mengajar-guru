@@ -118,11 +118,14 @@ class KehadiranGuru extends Model
 
     public function getHasDiscrepancyAttribute(): bool
     {
-        $siswaReport = $this->siswa_report;
-        if (! $siswaReport || ! $siswaReport->status_guru_dilaporkan) {
+        $reportedStatus = array_key_exists('reported_status', $this->attributes)
+            ? $this->attributes['reported_status']
+            : $this->siswa_report?->status_guru_dilaporkan;
+
+        if (! $reportedStatus) {
             return false;
         }
 
-        return $this->status !== $siswaReport->status_guru_dilaporkan;
+        return $this->status !== $reportedStatus;
     }
 }
