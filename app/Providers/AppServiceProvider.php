@@ -3,10 +3,13 @@
 namespace App\Providers;
 
 use App\Models\JadwalPelajaran;
+use App\Models\KehadiranSiswa;
 use App\Models\Kelas;
 use App\Models\Pertemuan;
 use App\Models\User;
 use App\Observers\AuditTrailObserver;
+use App\Observers\KehadiranSiswaObserver;
+use App\Observers\PertemuanRekapObserver;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
@@ -34,5 +37,9 @@ class AppServiceProvider extends ServiceProvider
         Kelas::observe(AuditTrailObserver::class);
         JadwalPelajaran::observe(AuditTrailObserver::class);
         Pertemuan::observe(AuditTrailObserver::class);
+
+        // Pre-Aggregation Summary Table Observers
+        KehadiranSiswa::observe(KehadiranSiswaObserver::class);
+        Pertemuan::observe(PertemuanRekapObserver::class);
     }
 }

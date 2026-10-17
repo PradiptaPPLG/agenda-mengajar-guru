@@ -175,7 +175,13 @@ class TrashController extends Controller
             return back()->with('error', "Tidak ada data {$type} di keranjang sampah.");
         }
 
-        $query->restore();
+        if ($type === 'pertemuan') {
+            foreach ($query->get() as $model) {
+                $model->restore();
+            }
+        } else {
+            $query->restore();
+        }
 
         ActivityLogger::log(
             'RESTORE',
@@ -204,7 +210,13 @@ class TrashController extends Controller
             return back()->with('error', "Keranjang sampah {$type} sudah kosong.");
         }
 
-        $query->forceDelete();
+        if ($type === 'pertemuan') {
+            foreach ($query->get() as $model) {
+                $model->forceDelete();
+            }
+        } else {
+            $query->forceDelete();
+        }
 
         ActivityLogger::log(
             'DELETE',
