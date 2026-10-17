@@ -24,6 +24,7 @@ class DefaultSiswaStatusTest extends TestCase
             'semester' => '1',
             'default_siswa_status' => 'aktif',
             'apply_to_existing_siswa' => '1',
+            'max_backdate_days' => 3,
         ]);
 
         $response->assertRedirect();
