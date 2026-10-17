@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\KehadiranSiswa;
 use App\Models\Kelas;
 use App\Models\Pertemuan;
+use App\Models\RekapKehadiranSiswa;
 use App\Models\Setting;
 use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -307,13 +308,36 @@ class WaliKelasController extends Controller
 
         $kelas = Kelas::with(['siswaProfiles.user'])->findOrFail($kelasId);
 
-        $pertemuanIds = Pertemuan::whereBetween('tanggal', [$startDate->toDateString(), $endDate->toDateString()])
-            ->whereHas('jadwal', fn ($j) => $j->where('kelas_id', $kelasId))
-            ->pluck('id');
+        if ($periodeType === 'semester') {
+            $sem = in_array($semester, ['2', 'genap'], true) ? 'genap' : 'ganjil';
+            $rekapMap = RekapKehadiranSiswa::where('kelas_id', $kelasId)
+                ->where('tahun_ajaran', $tahunAjaran)
+                ->where(function ($q) use ($semester, $sem) {
+                    $q->where('semester', $semester)->orWhere('semester', $sem);
+                })
+                ->get()
+                ->keyBy('siswa_id');
+        } else {
+            $pertemuanIds = Pertemuan::whereBetween('tanggal', [$startDate->toDateString(), $endDate->toDateString()])
+                ->whereHas('jadwal', fn ($j) => $j->where('kelas_id', $kelasId))
+                ->pluck('id');
 
-        $kehadiranData = KehadiranSiswa::whereIn('pertemuan_id', $pertemuanIds)
-            ->whereHas('siswa.siswaProfile', fn ($q) => $q->where('kelas_id', $kelasId))
-            ->get();
+            $rekapMap = KehadiranSiswa::whereIn('pertemuan_id', $pertemuanIds)
+                ->whereHas('siswa.siswaProfile', fn ($q) => $q->where('kelas_id', $kelasId))
+                ->selectRaw("
+                    siswa_id,
+                    SUM(CASE WHEN status = 'hadir' THEN 1 ELSE 0 END) as hadir_murni,
+                    SUM(CASE WHEN status = 'terlambat' THEN 1 ELSE 0 END) as terlambat,
+                    SUM(CASE WHEN status = 'sakit' THEN 1 ELSE 0 END) as sakit,
+                    SUM(CASE WHEN status = 'izin' THEN 1 ELSE 0 END) as izin,
+                    SUM(CASE WHEN status = 'alpa' THEN 1 ELSE 0 END) as alpa,
+                    SUM(CASE WHEN status = 'dispensasi' THEN 1 ELSE 0 END) as dispensasi,
+                    COUNT(*) as total
+                ")
+                ->groupBy('siswa_id')
+                ->get()
+                ->keyBy('siswa_id');
+        }
 
         $rekapSiswa = [];
         $totalHadirSemua = 0;
@@ -329,14 +353,14 @@ class WaliKelasController extends Controller
                 continue;
             }
 
-            $items = $kehadiranData->where('siswa_id', $siswaUser->id);
-            $hadir = $items->where('status', 'hadir')->count();
-            $terlambat = $items->where('status', 'terlambat')->count();
-            $sakit = $items->where('status', 'sakit')->count();
-            $izin = $items->where('status', 'izin')->count();
-            $alpa = $items->where('status', 'alpa')->count();
-            $dispensasi = $items->where('status', 'dispensasi')->count();
-            $totalPertemuan = $items->count();
+            $stat = $rekapMap->get($siswaUser->id);
+            $hadir = (int) ($stat?->hadir_murni ?? 0);
+            $terlambat = (int) ($stat?->terlambat ?? 0);
+            $sakit = (int) ($stat?->sakit ?? 0);
+            $izin = (int) ($stat?->izin ?? 0);
+            $alpa = (int) ($stat?->alpa ?? 0);
+            $dispensasi = (int) ($stat?->dispensasi ?? 0);
+            $totalPertemuan = (int) ($stat?->total ?? 0);
 
             // Persentase kehadiran: siswa hadir tepat waktu, hadir terlambat, dan dispensasi dihitung hadir
             $persentase = $totalPertemuan > 0
@@ -379,10 +403,15 @@ class WaliKelasController extends Controller
         // Rata-rata sesi pertemuan hadir per siswa
         $rataRataHadirPerSiswa = $totalSiswa > 0 ? round($totalHadirSemua / $totalSiswa, 1) : 0;
 
+        $pertemuanQuery = Pertemuan::whereBetween('tanggal', [$startDate->toDateString(), $endDate->toDateString()])
+            ->whereHas('jadwal', fn ($j) => $j->where('kelas_id', $kelasId));
+
+        $totalPertemuanKelas = (clone $pertemuanQuery)->count();
+
         // Jumlah pertemuan unik yang terlaksana (memiliki catatan presensi siswa)
-        $pertemuanTerlaksana = $kehadiranData->pluck('pertemuan_id')->unique()->count();
+        $pertemuanTerlaksana = (clone $pertemuanQuery)->whereHas('kehadiranSiswas')->count();
         if ($pertemuanTerlaksana === 0 && $totalCatatanPresensi > 0) {
-            $pertemuanTerlaksana = $pertemuanIds->count();
+            $pertemuanTerlaksana = $totalPertemuanKelas;
         }
 
         // Siswa hadir penuh 100%
@@ -402,7 +431,7 @@ class WaliKelasController extends Controller
             'semester' => $semester,
             'startDate' => $startDate,
             'endDate' => $endDate,
-            'totalPertemuanKelas' => $pertemuanIds->count(),
+            'totalPertemuanKelas' => $totalPertemuanKelas,
             'pertemuanTerlaksana' => $pertemuanTerlaksana,
             'rekapSiswa' => $rekapSiswa,
             'totalHadir' => $totalHadirSemua,

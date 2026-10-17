@@ -7,6 +7,7 @@ use App\Models\KehadiranGuru;
 use App\Models\KehadiranSiswa;
 use App\Models\Kelas;
 use App\Models\Pertemuan;
+use App\Models\RekapKehadiranSiswa;
 use App\Models\Setting;
 use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -79,48 +80,85 @@ class PdfController extends Controller
             $targetKelasIds = null;
         }
 
-        $query = KehadiranGuru::with([
-            'guru',
-            'pertemuan.jadwal.kelas',
-            'pertemuan.jadwal.mataPelajaran',
-        ])
-            ->whereHas('pertemuan', function ($q) use ($startDate, $endDate, $targetKelasIds, $selectedTahunAjaran, $selectedSemester, $filterMode) {
-                $q->whereBetween('tanggal', [$startDate->toDateString(), $endDate->toDateString()]);
+        $baseQuery = KehadiranGuru::whereHas('pertemuan', function ($q) use ($startDate, $endDate, $targetKelasIds, $selectedTahunAjaran, $selectedSemester, $filterMode) {
+            $q->whereBetween('tanggal', [$startDate->toDateString(), $endDate->toDateString()]);
 
-                if ($filterMode === 'semester') {
-                    if ($selectedTahunAjaran !== 'all') {
-                        $q->where(fn ($sub) => $sub->where('tahun_ajaran', $selectedTahunAjaran)->orWhereNull('tahun_ajaran'));
-                    }
-                    if ($selectedSemester !== 'all') {
-                        $q->where(fn ($sub) => $sub->where('semester', $selectedSemester)->orWhereNull('semester'));
-                    }
+            if ($filterMode === 'semester') {
+                if ($selectedTahunAjaran !== 'all') {
+                    $q->where(fn ($sub) => $sub->where('tahun_ajaran', $selectedTahunAjaran)->orWhereNull('tahun_ajaran'));
                 }
+                if ($selectedSemester !== 'all') {
+                    $q->where(fn ($sub) => $sub->where('semester', $selectedSemester)->orWhereNull('semester'));
+                }
+            }
 
-                if ($targetKelasIds !== null) {
-                    $q->whereHas('jadwal', fn ($j) => $j->whereIn('kelas_id', $targetKelasIds));
-                }
-            });
+            if ($targetKelasIds !== null) {
+                $q->whereHas('jadwal', fn ($j) => $j->whereIn('kelas_id', $targetKelasIds));
+            }
+        });
 
         if ($selectedGuruId) {
-            $query->where('guru_id', $selectedGuruId);
+            $baseQuery->where('guru_id', $selectedGuruId);
         }
 
-        $kehadiran = $query->orderBy(
-            Pertemuan::select('tanggal')
-                ->whereColumn('pertemuans.id', 'kehadiran_gurus.pertemuan_id')
-                ->limit(1)
-        )->get();
+        // Hitung ringkasan per guru secara langsung di level database (hemat RAM)
+        $teacherStats = (clone $baseQuery)
+            ->selectRaw("
+                guru_id,
+                COUNT(*) as total,
+                SUM(CASE WHEN status IN ('hadir', 'terlambat') THEN 1 ELSE 0 END) as hadir,
+                SUM(CASE WHEN status = 'sakit' OR alasan_tidak_hadir = 'sakit' THEN 1 ELSE 0 END) as sakit,
+                SUM(CASE WHEN status IN ('dispensasi', 'izin') OR alasan_tidak_hadir IN ('izin', 'cuti', 'rapat_dinas', 'dinas_luar', 'tugas_luar', 'dispensasi') THEN 1 ELSE 0 END) as dispensasi
+            ")
+            ->groupBy('guru_id')
+            ->get();
 
-        $summary = $kehadiran->groupBy('guru_id')->map(function ($items) {
+        $guruIds = $teacherStats->pluck('guru_id');
+        $guruModels = User::whereIn('id', $guruIds)->get()->keyBy('id');
+
+        $summary = $teacherStats->map(function ($stat) use ($guruModels) {
+            $hadir = (int) $stat->hadir;
+            $sakit = (int) $stat->sakit;
+            $dispensasi = (int) $stat->dispensasi;
+            $total = (int) $stat->total;
+            $alpa = max(0, $total - $hadir - $sakit - $dispensasi);
+
             return [
-                'guru' => $items->first()->guru,
-                'hadir' => $items->filter(fn ($item) => $item->isHadirCategory())->count(),
-                'sakit' => $items->filter(fn ($item) => $item->isSakitCategory())->count(),
-                'dispensasi' => $items->filter(fn ($item) => $item->isDispensasiCategory())->count(),
-                'alpa' => $items->filter(fn ($item) => $item->isAlpaCategory())->count(),
-                'total' => $items->count(),
+                'guru' => $guruModels->get($stat->guru_id),
+                'hadir' => $hadir,
+                'sakit' => $sakit,
+                'dispensasi' => $dispensasi,
+                'alpa' => $alpa,
+                'total' => $total,
             ];
-        })->values();
+        })->sortBy(fn ($item) => $item['guru']?->name ?? '')->values();
+
+        // Ambil detail catatan kehadiran dengan seleksi kolom esensial dan batasan keamanan render PDF
+        $kehadiran = (clone $baseQuery)
+            ->select([
+                'kehadiran_gurus.id',
+                'kehadiran_gurus.pertemuan_id',
+                'kehadiran_gurus.guru_id',
+                'kehadiran_gurus.status',
+                'kehadiran_gurus.alasan_tidak_hadir',
+                'kehadiran_gurus.jenis_alpa',
+                'kehadiran_gurus.guru_pengganti_nama',
+                'kehadiran_gurus.keterangan',
+            ])
+            ->with([
+                'guru:id,name',
+                'pertemuan:id,jadwal_id,tanggal',
+                'pertemuan.jadwal:id,kelas_id,mata_pelajaran_id',
+                'pertemuan.jadwal.kelas:id,nama',
+                'pertemuan.jadwal.mataPelajaran:id,nama',
+            ])
+            ->orderBy(
+                Pertemuan::select('tanggal')
+                    ->whereColumn('pertemuans.id', 'kehadiran_gurus.pertemuan_id')
+                    ->limit(1)
+            )
+            ->limit(1000)
+            ->get();
 
         $schoolName = Setting::get('school_name', 'Nama Sekolah');
         $selectedGuru = $selectedGuruId ? User::find($selectedGuruId) : null;
@@ -221,17 +259,40 @@ class PdfController extends Controller
             $pertemuanSubQuery->whereHas('jadwal', fn ($j) => $j->whereIn('kelas_id', $targetKelasIds));
         }
 
-        $siswaStats = KehadiranSiswa::whereIn('pertemuan_id', $pertemuanSubQuery->select('id'))
-            ->selectRaw("siswa_id,
-                count(*) as total,
-                SUM(CASE WHEN status IN ('hadir', 'terlambat') THEN 1 ELSE 0 END) as hadir,
-                SUM(CASE WHEN status = 'sakit' THEN 1 ELSE 0 END) as sakit,
-                SUM(CASE WHEN status = 'izin' THEN 1 ELSE 0 END) as izin,
-                SUM(CASE WHEN status = 'alpa' THEN 1 ELSE 0 END) as alpa,
-                SUM(CASE WHEN status = 'dispensasi' THEN 1 ELSE 0 END) as dispensasi
-            ")
-            ->groupBy('siswa_id')
-            ->get();
+        // Ringkasan per siswa: Fast-Path (Mode Semester) vs Fallback (Mode Custom)
+        if ($filterMode === 'semester') {
+            $rekapQuery = RekapKehadiranSiswa::query();
+
+            if ($selectedTahunAjaran !== 'all') {
+                $rekapQuery->where('tahun_ajaran', $selectedTahunAjaran);
+            }
+            if ($selectedSemester !== 'all') {
+                $sem = in_array($selectedSemester, ['2', 'genap'], true) ? 'genap' : 'ganjil';
+                $rekapQuery->where(function ($q) use ($selectedSemester, $sem) {
+                    $q->where('semester', $selectedSemester)->orWhere('semester', $sem);
+                });
+            }
+            if ($targetKelasIds !== null) {
+                $rekapQuery->whereIn('kelas_id', $targetKelasIds);
+            }
+
+            $siswaStats = $rekapQuery
+                ->selectRaw('siswa_id, SUM(total) as total, SUM(hadir) as hadir, SUM(sakit) as sakit, SUM(izin) as izin, SUM(alpa) as alpa, SUM(dispensasi) as dispensasi')
+                ->groupBy('siswa_id')
+                ->get();
+        } else {
+            $siswaStats = KehadiranSiswa::whereIn('pertemuan_id', $pertemuanSubQuery->select('id'))
+                ->selectRaw("siswa_id,
+                    count(*) as total,
+                    SUM(CASE WHEN status IN ('hadir', 'terlambat') THEN 1 ELSE 0 END) as hadir,
+                    SUM(CASE WHEN status = 'sakit' THEN 1 ELSE 0 END) as sakit,
+                    SUM(CASE WHEN status = 'izin' THEN 1 ELSE 0 END) as izin,
+                    SUM(CASE WHEN status = 'alpa' THEN 1 ELSE 0 END) as alpa,
+                    SUM(CASE WHEN status = 'dispensasi' THEN 1 ELSE 0 END) as dispensasi
+                ")
+                ->groupBy('siswa_id')
+                ->get();
+        }
 
         $siswaIds = $siswaStats->pluck('siswa_id');
         $siswaModels = User::with('siswaProfile.kelas')->whereIn('id', $siswaIds)->get()->keyBy('id');

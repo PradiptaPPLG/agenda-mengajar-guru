@@ -198,9 +198,21 @@ class RekapController extends Controller
             })
             ->pluck('id');
 
-        $kehadiranData = KehadiranSiswa::whereIn('pertemuan_id', $pertemuanIds)
+        $rekapMap = KehadiranSiswa::whereIn('pertemuan_id', $pertemuanIds)
             ->whereHas('siswa.siswaProfile', fn ($q) => $q->where('kelas_id', $kelasId))
-            ->get();
+            ->selectRaw("
+                siswa_id,
+                SUM(CASE WHEN status = 'hadir' THEN 1 ELSE 0 END) as hadir_murni,
+                SUM(CASE WHEN status = 'terlambat' THEN 1 ELSE 0 END) as terlambat,
+                SUM(CASE WHEN status = 'sakit' THEN 1 ELSE 0 END) as sakit,
+                SUM(CASE WHEN status = 'izin' THEN 1 ELSE 0 END) as izin,
+                SUM(CASE WHEN status = 'alpa' THEN 1 ELSE 0 END) as alpa,
+                SUM(CASE WHEN status = 'dispensasi' THEN 1 ELSE 0 END) as dispensasi,
+                COUNT(*) as total
+            ")
+            ->groupBy('siswa_id')
+            ->get()
+            ->keyBy('siswa_id');
 
         $rekapSiswa = [];
         $totalHadirSemua = 0;
@@ -216,14 +228,14 @@ class RekapController extends Controller
                 continue;
             }
 
-            $items = $kehadiranData->where('siswa_id', $siswaUser->id);
-            $hadir = $items->where('status', 'hadir')->count();
-            $terlambat = $items->where('status', 'terlambat')->count();
-            $sakit = $items->where('status', 'sakit')->count();
-            $izin = $items->where('status', 'izin')->count();
-            $alpa = $items->where('status', 'alpa')->count();
-            $dispensasi = $items->where('status', 'dispensasi')->count();
-            $totalPertemuan = $items->count();
+            $stat = $rekapMap->get($siswaUser->id);
+            $hadir = (int) ($stat?->hadir_murni ?? 0);
+            $terlambat = (int) ($stat?->terlambat ?? 0);
+            $sakit = (int) ($stat?->sakit ?? 0);
+            $izin = (int) ($stat?->izin ?? 0);
+            $alpa = (int) ($stat?->alpa ?? 0);
+            $dispensasi = (int) ($stat?->dispensasi ?? 0);
+            $totalPertemuan = (int) ($stat?->total ?? 0);
 
             // Siswa hadir tepat waktu, terlambat, dan dispensasi dihitung hadir secara sah
             $persentase = $totalPertemuan > 0

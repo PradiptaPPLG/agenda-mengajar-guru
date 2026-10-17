@@ -38,12 +38,11 @@ class UserController extends Controller
 
     public function exportExcel(Request $request): BinaryFileResponse
     {
-        $users = $this->getFilteredUsersQuery($request)->get();
-
         $tempPath = tempnam(sys_get_temp_dir(), 'guru_export_').'.xlsx';
         $writer = SimpleExcelWriter::create($tempPath);
 
-        foreach ($users as $index => $u) {
+        $index = 0;
+        foreach ($this->getFilteredUsersQuery($request)->lazy(200) as $u) {
             $nip = $u->guruProfile?->nip ?? '-';
 
             $rolesList = $u->roles->pluck('name')->map(function ($name) use ($u) {
@@ -77,6 +76,7 @@ class UserController extends Controller
                 'Mata Pelajaran Diampu' => $mapelList ?: '-',
                 'Mengajar Kelas' => $kelasMengajarList ?: '-',
             ]);
+            $index++;
         }
 
         $writer->close();

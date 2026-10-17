@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\KepalaSekolah;
 
 use App\Http\Controllers\Controller;
+use App\Models\FotoBukti;
 use App\Models\KehadiranGuru;
 use App\Models\KehadiranSiswa;
 use App\Models\Kelas;
 use App\Models\Pertemuan;
+use App\Models\RekapKehadiranSiswa;
 use App\Models\Setting;
 use App\Models\User;
 use Carbon\Carbon;
@@ -106,12 +108,23 @@ class ReportController extends Controller
             $targetKelasIds = null;
         }
 
-        $query = KehadiranGuru::with([
-            'guru',
-            'pertemuan.jadwal.kelas',
-            'pertemuan.jadwal.mataPelajaran',
-            'pertemuan.fotoBuktis',
+        $query = KehadiranGuru::select([
+            'kehadiran_gurus.id',
+            'kehadiran_gurus.pertemuan_id',
+            'kehadiran_gurus.guru_id',
+            'kehadiran_gurus.status',
+            'kehadiran_gurus.alasan_tidak_hadir',
+            'kehadiran_gurus.jenis_alpa',
+            'kehadiran_gurus.keterangan',
+            'kehadiran_gurus.created_at',
         ])
+            ->selectSub(
+                FotoBukti::select('status_guru_dilaporkan')
+                    ->whereColumn('foto_buktis.pertemuan_id', 'kehadiran_gurus.pertemuan_id')
+                    ->orderBy('id', 'asc')
+                    ->limit(1),
+                'reported_status'
+            )
             ->whereHas('pertemuan', function ($q) use ($startDate, $endDate, $targetKelasIds, $selectedTahunAjaran, $selectedSemester, $filterMode) {
                 $q->whereBetween('tanggal', [$startDate->toDateString(), $endDate->toDateString()]);
 
@@ -224,21 +237,36 @@ class ReportController extends Controller
             ? $allKehadiran->filter(fn ($kh) => $kh->has_discrepancy)->values()
             : $allKehadiran;
 
-        // Paginate Kehadiran Detail (10 per page)
+        // Paginate Kehadiran Detail (10 per page) - eager load hanya untuk halaman aktif
         $kehadiranPage = LengthAwarePaginator::resolveCurrentPage('page');
         $perPage = 10;
+        $slicedKehadiran = $kehadiranCollection->slice(($kehadiranPage - 1) * $perPage, $perPage)->values();
+
+        $slicedKehadiran->load([
+            'guru',
+            'pertemuan.fotoBuktis',
+            'pertemuan.jadwal.kelas',
+            'pertemuan.jadwal.mataPelajaran',
+        ]);
+
         $kehadiran = new LengthAwarePaginator(
-            $kehadiranCollection->slice(($kehadiranPage - 1) * $perPage, $perPage)->values(),
+            $slicedKehadiran,
             $kehadiranCollection->count(),
             $perPage,
             $kehadiranPage,
             ['path' => LengthAwarePaginator::resolveCurrentPath(), 'pageName' => 'page', 'query' => $request->query()]
         );
 
-        // Summary per guru (10 per page)
-        $summaryCollection = $allKehadiran->groupBy('guru_id')->map(function ($items) {
+        // Summary per guru (10 per page) - eager load guru models hanya untuk 10 guru di halaman aktif
+        $allTeacherGroups = $allKehadiran->groupBy('guru_id');
+        $summaryPage = LengthAwarePaginator::resolveCurrentPage('summary_page');
+        $slicedTeacherGroups = $allTeacherGroups->slice(($summaryPage - 1) * $perPage, $perPage);
+        $pageTeacherIds = $slicedTeacherGroups->keys();
+        $teacherModels = User::whereIn('id', $pageTeacherIds)->get()->keyBy('id');
+
+        $summaryCollection = $slicedTeacherGroups->map(function ($items, $guruId) use ($teacherModels) {
             return [
-                'guru' => $items->first()->guru,
+                'guru' => $teacherModels->get($guruId) ?? $items->first()?->guru,
                 'hadir' => $items->filter(fn ($item) => $item->isHadirCategory())->count(),
                 'sakit' => $items->filter(fn ($item) => $item->isSakitCategory())->count(),
                 'dispensasi' => $items->filter(fn ($item) => $item->isDispensasiCategory())->count(),
@@ -247,10 +275,9 @@ class ReportController extends Controller
             ];
         })->values();
 
-        $summaryPage = LengthAwarePaginator::resolveCurrentPage('summary_page');
         $summary = new LengthAwarePaginator(
-            $summaryCollection->slice(($summaryPage - 1) * $perPage, $perPage)->values(),
-            $summaryCollection->count(),
+            $summaryCollection,
+            $allTeacherGroups->count(),
             $perPage,
             $summaryPage,
             ['path' => LengthAwarePaginator::resolveCurrentPath(), 'pageName' => 'summary_page', 'query' => $request->query()]
@@ -487,19 +514,45 @@ class ReportController extends Controller
             }
         }
 
-        // Summary per siswa (10 per page, langsung diagregasi di database)
-        $paginatedSiswaStats = (clone $baseKehadiranQuery)
-            ->selectRaw("siswa_id,
-                count(*) as total,
-                SUM(CASE WHEN status IN ('hadir', 'terlambat') THEN 1 ELSE 0 END) as hadir,
-                SUM(CASE WHEN status = 'sakit' THEN 1 ELSE 0 END) as sakit,
-                SUM(CASE WHEN status = 'izin' THEN 1 ELSE 0 END) as izin,
-                SUM(CASE WHEN status = 'alpa' THEN 1 ELSE 0 END) as alpa,
-                SUM(CASE WHEN status = 'dispensasi' THEN 1 ELSE 0 END) as dispensasi
-            ")
-            ->groupBy('siswa_id')
-            ->paginate(10)
-            ->appends($request->query());
+        // Summary per siswa (10 per page) - Hybrid Routing: Fast-Path (Mode Semester) vs Fallback (Mode Custom)
+        if ($filterMode === 'semester') {
+            $rekapQuery = RekapKehadiranSiswa::query();
+
+            if ($selectedTahunAjaran !== 'all') {
+                $rekapQuery->where('tahun_ajaran', $selectedTahunAjaran);
+            }
+            if ($selectedSemester !== 'all') {
+                $sem = in_array($selectedSemester, ['2', 'genap'], true) ? 'genap' : 'ganjil';
+                $rekapQuery->where(function ($q) use ($selectedSemester, $sem) {
+                    $q->where('semester', $selectedSemester)->orWhere('semester', $sem);
+                });
+            }
+            if ($targetKelasIds !== null) {
+                $rekapQuery->whereIn('kelas_id', $targetKelasIds);
+            }
+            if ($selectedSiswaId && $selectedSiswaId !== 'all') {
+                $rekapQuery->where('siswa_id', $selectedSiswaId);
+            }
+
+            $paginatedSiswaStats = $rekapQuery
+                ->selectRaw('siswa_id, SUM(total) as total, SUM(hadir) as hadir, SUM(sakit) as sakit, SUM(izin) as izin, SUM(alpa) as alpa, SUM(dispensasi) as dispensasi')
+                ->groupBy('siswa_id')
+                ->paginate(10)
+                ->appends($request->query());
+        } else {
+            $paginatedSiswaStats = (clone $baseKehadiranQuery)
+                ->selectRaw("siswa_id,
+                    count(*) as total,
+                    SUM(CASE WHEN status IN ('hadir', 'terlambat') THEN 1 ELSE 0 END) as hadir,
+                    SUM(CASE WHEN status = 'sakit' THEN 1 ELSE 0 END) as sakit,
+                    SUM(CASE WHEN status = 'izin' THEN 1 ELSE 0 END) as izin,
+                    SUM(CASE WHEN status = 'alpa' THEN 1 ELSE 0 END) as alpa,
+                    SUM(CASE WHEN status = 'dispensasi' THEN 1 ELSE 0 END) as dispensasi
+                ")
+                ->groupBy('siswa_id')
+                ->paginate(10)
+                ->appends($request->query());
+        }
 
         $siswaIdsOnPage = $paginatedSiswaStats->pluck('siswa_id');
         $siswaModels = User::with('siswaProfile.kelas')->whereIn('id', $siswaIdsOnPage)->get()->keyBy('id');

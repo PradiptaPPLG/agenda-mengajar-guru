@@ -27,21 +27,24 @@ class JadwalController extends Controller
         $selectedTahunAjaran = $request->input('tahun_ajaran', Setting::getTahunAjaranAktif());
         $selectedSemester = $request->input('semester', Setting::getSemesterAktif());
 
-        $jadwals = JadwalPelajaran::with(['kelas', 'guru', 'mataPelajaran'])
+        $jadwalQuery = JadwalPelajaran::with([
+            'kelas:id,nama',
+            'guru:id,name',
+            'mataPelajaran:id,nama,kode',
+        ])
             ->when($selectedTahunAjaran && $selectedTahunAjaran !== 'all', fn ($q) => $q->where('tahun_ajaran', $selectedTahunAjaran))
             ->when($selectedSemester && $selectedSemester !== 'all', fn ($q) => $q->where('semester', $selectedSemester))
             ->when($request->input('kelas_id'), fn ($q, $id) => $q->where('kelas_id', $id))
             ->when($request->input('guru_id'), fn ($q, $id) => $q->where('guru_id', $id))
             ->orderBy('hari')
-            ->orderBy('jam_mulai')
-            ->get();
+            ->orderBy('jam_mulai');
 
         $hariNames = [1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu', 4 => 'Kamis', 5 => 'Jumat', 6 => 'Sabtu', 7 => 'Minggu'];
 
         $tempPath = tempnam(sys_get_temp_dir(), 'jadwal_').'.xlsx';
         $writer = SimpleExcelWriter::create($tempPath);
 
-        foreach ($jadwals as $j) {
+        foreach ($jadwalQuery->lazy(500) as $j) {
             $writer->addRow([
                 'Tahun Ajaran' => $j->tahun_ajaran ?? Setting::getTahunAjaranAktif(),
                 'Semester' => ucfirst($j->semester ?? Setting::getSemesterAktif()),
@@ -88,13 +91,18 @@ class JadwalController extends Controller
         $selectedTahunAjaran = $request->input('tahun_ajaran', Setting::getTahunAjaranAktif());
         $selectedSemester = $request->input('semester', Setting::getSemesterAktif());
 
-        $jadwals = JadwalPelajaran::with(['kelas', 'guru', 'mataPelajaran'])
+        $jadwals = JadwalPelajaran::with([
+            'kelas:id,nama',
+            'guru:id,name',
+            'mataPelajaran:id,nama,kode',
+        ])
             ->when($selectedTahunAjaran && $selectedTahunAjaran !== 'all', fn ($q) => $q->where('tahun_ajaran', $selectedTahunAjaran))
             ->when($selectedSemester && $selectedSemester !== 'all', fn ($q) => $q->where('semester', $selectedSemester))
             ->when($request->input('kelas_id'), fn ($q, $id) => $q->where('kelas_id', $id))
             ->when($request->input('guru_id'), fn ($q, $id) => $q->where('guru_id', $id))
             ->orderBy('hari')
             ->orderBy('jam_mulai')
+            ->limit(1000)
             ->get();
 
         $hariNames = [1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu', 4 => 'Kamis', 5 => 'Jumat', 6 => 'Sabtu', 7 => 'Minggu'];
