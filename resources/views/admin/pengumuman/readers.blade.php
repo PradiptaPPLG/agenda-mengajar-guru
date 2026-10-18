@@ -94,7 +94,7 @@
                                 </span>
                             </td>
                             <td class="py-3 px-4 text-slate-700 font-medium">
-                                {{ $read->user->siswaProfile->kelas->nama_kelas ?? '-' }}
+                                {{ $read->user->siswaProfile->kelas->nama ?? '-' }}
                             </td>
                             <td class="py-3 px-4">
                                 <div class="font-semibold text-slate-800">

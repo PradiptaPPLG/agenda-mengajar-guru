@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Pengumuman;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -66,6 +67,11 @@ class PengumumanController extends Controller
             $fileName = $uploaded->getClientOriginalName();
         }
 
+        $tanggalSelesai = ! empty($validated['tanggal_selesai']) ? Carbon::parse($validated['tanggal_selesai']) : null;
+        if ($tanggalSelesai && $tanggalSelesai->format('H:i:s') === '00:00:00') {
+            $tanggalSelesai = $tanggalSelesai->endOfDay();
+        }
+
         Pengumuman::create([
             'judul' => $validated['judul'],
             'isi' => $validated['isi'],
@@ -77,7 +83,7 @@ class PengumumanController extends Controller
             'is_pinned' => $request->boolean('is_pinned'),
             'is_active' => $request->boolean('is_active', true),
             'tanggal_mulai' => $validated['tanggal_mulai'],
-            'tanggal_selesai' => $validated['tanggal_selesai'] ?? null,
+            'tanggal_selesai' => $tanggalSelesai,
             'created_by' => Auth::id(),
         ]);
 
@@ -87,11 +93,21 @@ class PengumumanController extends Controller
 
     public function edit(Pengumuman $pengumuman): View
     {
+        $user = Auth::user();
+        if (! $user->isAdmin() && $pengumuman->created_by !== $user->id) {
+            abort(403, 'Anda hanya dapat mengubah pengumuman yang Anda buat sendiri.');
+        }
+
         return view('admin.pengumuman.edit', compact('pengumuman'));
     }
 
     public function update(Request $request, Pengumuman $pengumuman): RedirectResponse
     {
+        $user = Auth::user();
+        if (! $user->isAdmin() && $pengumuman->created_by !== $user->id) {
+            abort(403, 'Anda hanya dapat memperbarui pengumuman yang Anda buat sendiri.');
+        }
+
         $validated = $request->validate([
             'judul' => ['required', 'string', 'max:255'],
             'isi' => ['required', 'string'],
@@ -117,6 +133,11 @@ class PengumumanController extends Controller
             $fileName = $uploaded->getClientOriginalName();
         }
 
+        $tanggalSelesai = ! empty($validated['tanggal_selesai']) ? Carbon::parse($validated['tanggal_selesai']) : null;
+        if ($tanggalSelesai && $tanggalSelesai->format('H:i:s') === '00:00:00') {
+            $tanggalSelesai = $tanggalSelesai->endOfDay();
+        }
+
         $pengumuman->update([
             'judul' => $validated['judul'],
             'isi' => $validated['isi'],
@@ -128,7 +149,7 @@ class PengumumanController extends Controller
             'is_pinned' => $request->boolean('is_pinned'),
             'is_active' => $request->boolean('is_active'),
             'tanggal_mulai' => $validated['tanggal_mulai'],
-            'tanggal_selesai' => $validated['tanggal_selesai'] ?? null,
+            'tanggal_selesai' => $tanggalSelesai,
         ]);
 
         return redirect()->route('admin.pengumuman.index')
@@ -137,6 +158,11 @@ class PengumumanController extends Controller
 
     public function destroy(Pengumuman $pengumuman): RedirectResponse
     {
+        $user = Auth::user();
+        if (! $user->isAdmin() && $pengumuman->created_by !== $user->id) {
+            abort(403, 'Anda hanya dapat menghapus pengumuman yang Anda buat sendiri.');
+        }
+
         if ($pengumuman->file_lampiran && Storage::disk('public')->exists($pengumuman->file_lampiran)) {
             Storage::disk('public')->delete($pengumuman->file_lampiran);
         }

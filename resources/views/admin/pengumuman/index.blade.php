@@ -128,6 +128,7 @@
                             @endif
                         </td>
                         <td class="px-4 py-3.5 text-right whitespace-nowrap">
+                            @if(auth()->user()->isAdmin() || $p->created_by === auth()->id())
                             <div class="inline-flex items-center gap-2">
                                 <a href="{{ route('admin.pengumuman.edit', $p) }}" class="text-blue-600 hover:text-blue-800 text-xs font-semibold p-1 hover:bg-blue-50 rounded-lg transition-colors">
                                     Edit
@@ -142,6 +143,9 @@
                                     </button>
                                 </form>
                             </div>
+                            @else
+                            <span class="text-2xs text-slate-400 italic">Oleh: {{ $p->author?->name ?? 'Admin' }}</span>
+                            @endif
                         </td>
                     </tr>
                     @empty

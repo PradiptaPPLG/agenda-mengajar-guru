@@ -30,7 +30,7 @@ class HariLiburController extends Controller
         // Get list of unique years present in holidays for filter (DB-agnostic)
         $years = HariLibur::orderBy('tanggal', 'desc')
             ->pluck('tanggal')
-            ->map(fn ($d) => $d->format('Y'))
+            ->map(fn ($d) => $d instanceof Carbon ? $d->format('Y') : substr((string) $d, 0, 4))
             ->unique()
             ->values();
 
@@ -66,6 +66,10 @@ class HariLiburController extends Controller
 
         $start = Carbon::parse($validated['tanggal_mulai']);
         $end = Carbon::parse($validated['tanggal_selesai']);
+
+        if ($start->diffInDays($end) > 180) {
+            return back()->withInput()->with('error', 'Rentang hari libur tidak boleh melebihi 180 hari berturut-turut.');
+        }
 
         $count = 0;
         DB::transaction(function () use ($start, $end, $validated, &$count) {

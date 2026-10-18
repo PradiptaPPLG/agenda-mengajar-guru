@@ -40,7 +40,7 @@ class Pengumuman extends Model
 
     public function author(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'created_by');
+        return $this->belongsTo(User::class, 'created_by')->withTrashed();
     }
 
     public function reads(): HasMany
@@ -90,11 +90,14 @@ class Pengumuman extends Model
             if ($isBk) {
                 $q->orWhereJsonContains('target_roles', 'bk');
             }
-        })->when($role === 'siswa' && $userTingkat, function ($q) use ($userTingkat) {
+        })->when($role === 'siswa', function ($q) use ($userTingkat) {
             $q->where(function ($sub) use ($userTingkat) {
                 $sub->whereNull('target_tingkat')
-                    ->orWhere('target_tingkat', 'all')
-                    ->orWhere('target_tingkat', $userTingkat);
+                    ->orWhere('target_tingkat', 'all');
+
+                if ($userTingkat) {
+                    $sub->orWhere('target_tingkat', (string) $userTingkat);
+                }
             });
         });
     }

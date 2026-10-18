@@ -81,8 +81,8 @@
                             const seenKey = 'notif_seen_{{ $p->id }}';
                             if (!sessionStorage.getItem(seenKey)) {
                                 sessionStorage.setItem(seenKey, '1');
-                                const title = '{{ addslashes($p->judul) }}';
-                                const body = '{{ addslashes(\Illuminate\Support\Str::limit(strip_tags($p->isi), 100)) }}';
+                                const title = {{ json_encode($p->judul) }};
+                                const body = {{ json_encode(\Illuminate\Support\Str::limit(strip_tags($p->isi), 100)) }};
                                 if (navigator.serviceWorker && navigator.serviceWorker.controller) {
                                     navigator.serviceWorker.ready.then(reg => {
                                         reg.showNotification(title, {
