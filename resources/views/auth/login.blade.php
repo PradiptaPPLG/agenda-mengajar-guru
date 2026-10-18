@@ -66,8 +66,8 @@
                 </div>
 
                 <div class="flex items-center gap-2">
-                    <input id="remember" type="checkbox" name="remember" class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
-                    <label for="remember" class="text-sm text-slate-600">Ingat saya</label>
+                    <input id="remember" type="checkbox" name="remember" value="1" checked class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer">
+                    <label for="remember" class="text-sm text-slate-600 select-none cursor-pointer">Ingat saya (tetap masuk di perangkat ini)</label>
                 </div>
 
                 <button type="submit"

@@ -60,7 +60,8 @@ class AuthController extends Controller
                 ])->onlyInput('identifier');
             }
 
-            Auth::login($user, $request->boolean('remember'));
+            $remember = $request->has('remember') ? $request->boolean('remember') : true;
+            Auth::login($user, $remember);
             $request->session()->regenerate();
 
             ActivityLogger::log(

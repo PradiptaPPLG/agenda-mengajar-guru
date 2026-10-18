@@ -96,7 +96,7 @@ class SettingsController extends Controller
 
             // Aturan Pengisian Agenda & Backdate
             'allow_backdate_agenda' => ['nullable', 'in:0,1'],
-            'max_backdate_days' => ['required', 'integer', 'min:0', 'max:30'],
+            'max_backdate_days' => ['nullable', 'integer', 'min:0', 'max:30'],
 
             // Geofencing & IP
             'enable_geofencing' => ['nullable', 'in:0,1'],
@@ -112,6 +112,7 @@ class SettingsController extends Controller
 
         $validated['enable_checkout_foto'] = $request->has('enable_checkout_foto') ? '1' : '0';
         $validated['allow_backdate_agenda'] = $request->has('allow_backdate_agenda') ? '1' : '0';
+        $validated['max_backdate_days'] = $validated['max_backdate_days'] ?? Setting::get('max_backdate_days', '3');
         $validated['enable_geofencing'] = $request->has('enable_geofencing') ? '1' : '0';
         $validated['maintenance_mode'] = $request->has('maintenance_mode') ? '1' : '0';
 
