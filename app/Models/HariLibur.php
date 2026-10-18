@@ -5,6 +5,7 @@ namespace App\Models;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 
 class HariLibur extends Model
 {
@@ -28,24 +29,59 @@ class HariLibur extends Model
             : Carbon::parse($value)->format('Y-m-d');
     }
 
+    protected static function booted(): void
+    {
+        static::saved(function () {
+            static::flushCache();
+        });
+
+        static::deleted(function () {
+            static::flushCache();
+        });
+    }
+
     /**
-     * Check if a specific date is a registered holiday.
+     * Clear holiday caches.
+     */
+    public static function flushCache(): void
+    {
+        $current = (int) Cache::get('hari_libur_cache_v', 1);
+        Cache::forever('hari_libur_cache_v', $current + 1);
+    }
+
+    protected static function getCacheVersion(): int
+    {
+        return (int) Cache::get('hari_libur_cache_v', 1);
+    }
+
+    /**
+     * Check if a specific date is a registered holiday with caching.
      */
     public static function isLibur(Carbon|string $date): bool
     {
         $dateStr = $date instanceof Carbon ? $date->toDateString() : Carbon::parse($date)->toDateString();
+        $v = static::getCacheVersion();
 
-        return static::whereDate('tanggal', $dateStr)->exists();
+        return (bool) Cache::remember(
+            "hari_libur_is_{$v}_{$dateStr}",
+            86400,
+            fn () => static::whereDate('tanggal', $dateStr)->exists()
+        );
     }
 
     /**
-     * Get the holiday record for a specific date, if any.
+     * Get the holiday record for a specific date with caching.
      */
     public static function getLibur(Carbon|string $date): ?self
     {
         $dateStr = $date instanceof Carbon ? $date->toDateString() : Carbon::parse($date)->toDateString();
+        $v = static::getCacheVersion();
 
-        return static::whereDate('tanggal', $dateStr)->first();
+        return Cache::remember(
+            "hari_libur_get_{$v}_{$dateStr}",
+            86400,
+            fn () => static::whereDate('tanggal', $dateStr)->first()
+        );
     }
 
     /**

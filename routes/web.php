@@ -163,6 +163,8 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
     Route::post('jadwal/salin-semester', [AdminJadwalController::class, 'salinSemester'])->name('jadwal.salin-semester');
     Route::post('jadwal/bulk-destroy', [AdminJadwalController::class, 'bulkDestroy'])->name('jadwal.bulk-destroy');
     Route::resource('jadwal', AdminJadwalController::class)->except(['show']);
+    Route::post('hari-libur/sync', [AdminHariLiburController::class, 'syncNasional'])->name('hari-libur.sync');
+    Route::post('hari-libur/range', [AdminHariLiburController::class, 'storeRange'])->name('hari-libur.range');
     Route::resource('hari-libur', AdminHariLiburController::class)->only(['index', 'store', 'destroy']);
 
     // PKL Kelas Management
