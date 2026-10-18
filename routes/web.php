@@ -253,10 +253,14 @@ Route::middleware(['auth', 'role:super_admin,admin,kepala_sekolah,pengawas,piket
         Route::get('/jadwal-terlewat/export-pdf', [JadwalTerlewatController::class, 'exportPdf'])->name('jadwal-terlewat.export-pdf');
     });
 
-// ─── Super Admin ─────────────────────────────────────────────────────────────
+// ─── Audit Trail / Activity Logs (Super Admin & Admin) ────────────────────────
+Route::middleware(['auth', 'role:super_admin,admin'])->prefix('super-admin')->name('super-admin.')->group(function () {
+    Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs.index');
+});
+
+// ─── Super Admin Dedicated Area ─────────────────────────────────────────────
 Route::middleware(['auth', 'role:super_admin'])->prefix('super-admin')->name('super-admin.')->group(function () {
     Route::get('/dashboard', [SaDashboardController::class, 'index'])->name('dashboard');
-    Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs.index');
     Route::post('/impersonate/{user}', [ImpersonateController::class, 'impersonate'])->name('impersonate');
     Route::match(['post', 'patch'], '/academic-years/{academicYear}/activate', [AcademicYearController::class, 'activate'])->name('academic-years.activate');
     Route::match(['post', 'patch'], '/academic-years/{academicYear}/toggle-lock', [AcademicYearController::class, 'toggleLock'])->name('academic-years.toggle-lock');

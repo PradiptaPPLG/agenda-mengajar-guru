@@ -194,7 +194,7 @@
                             </span>
                             <h3 class="font-bold text-slate-900 text-sm">Audit Trail / Log Aktivitas Terbaru</h3>
                         </div>
-                        @if(Route::has('super-admin.activity-logs.index') && $isSuperAdmin)
+                        @if(Route::has('super-admin.activity-logs.index'))
                         <a href="{{ route('super-admin.activity-logs.index') }}" class="text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline">
                             Lihat Semua &rarr;
                         </a>
@@ -247,7 +247,7 @@
 
                 <div class="pt-3 border-t border-slate-100 mt-4 flex items-center justify-between text-xs text-slate-500">
                     <span>Audit trail tersimpan aman dan terenkripsi</span>
-                    @if(Route::has('super-admin.activity-logs.index') && $isSuperAdmin)
+                    @if(Route::has('super-admin.activity-logs.index'))
                     <a href="{{ route('super-admin.activity-logs.index') }}" class="font-semibold text-blue-600 hover:text-blue-700 hover:underline">Semua Log Aktivitas &rarr;</a>
                     @endif
                 </div>

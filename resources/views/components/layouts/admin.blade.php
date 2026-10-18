@@ -185,17 +185,51 @@
                         </div>
                     </div>
                 </div>
+
+                {{-- Dropdown Log Aktivitas (Admin & Super Admin) --}}
+                <div x-data="{ openLog: {{ request()->routeIs('super-admin.activity-logs.*') ? 'true' : 'false' }} }">
+                    <button @click="openLog = !openLog" 
+                            type="button"
+                            class="flex w-full items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('super-admin.activity-logs.*') ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
+                        <div class="flex items-center gap-2.5">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <span>Log Aktivitas</span>
+                        </div>
+                        <svg :class="{'rotate-180': openLog}" class="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </button>
+                    <div x-show="openLog" style="display: none;" class="pl-7 pr-3 pt-1 pb-2 space-y-1">
+                        <a href="{{ route('super-admin.activity-logs.index') }}" 
+                           class="block px-3 py-1.5 rounded-lg text-xs font-medium transition-colors {{ request()->routeIs('super-admin.activity-logs.*') && !request('kategori') ? 'text-blue-700 bg-blue-50/70 font-bold' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50' }}">
+                            Semua Log
+                        </a>
+                        <a href="{{ route('super-admin.activity-logs.index', ['kategori' => 'keamanan']) }}" 
+                           class="flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-medium transition-colors {{ request('kategori') === 'keamanan' ? 'text-blue-700 bg-blue-50/70 font-bold' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50' }}">
+                            <span>Keamanan & Akun</span>
+                            <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                        </a>
+                        <a href="{{ route('super-admin.activity-logs.index', ['kategori' => 'akademik']) }}" 
+                           class="flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-medium transition-colors {{ request('kategori') === 'akademik' ? 'text-emerald-700 bg-emerald-50/70 font-bold' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50' }}">
+                            <span>Akademik & KBM</span>
+                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        </a>
+                        <a href="{{ route('super-admin.activity-logs.index', ['kategori' => 'kesiswaan']) }}" 
+                           class="flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-medium transition-colors {{ request('kategori') === 'kesiswaan' ? 'text-amber-700 bg-amber-50/70 font-bold' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50' }}">
+                            <span>Kesiswaan & Presensi</span>
+                            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                        </a>
+                        <a href="{{ route('super-admin.activity-logs.index', ['kategori' => 'sistem']) }}" 
+                           class="flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-medium transition-colors {{ request('kategori') === 'sistem' ? 'text-purple-700 bg-purple-50/70 font-bold' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50' }}">
+                            <span>Pengaturan & Sistem</span>
+                            <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+                        </a>
+                    </div>
+                </div>
                 @endif
 
                 @if(auth()->user()->isSuperAdmin())
                 <div class="pt-2 pb-1">
                     <p class="px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Super Admin</p>
                 </div>
-
-                <x-admin-nav-link href="{{ route('super-admin.activity-logs.index') }}" :active="request()->routeIs('super-admin.activity-logs.*')">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    Audit Trail / Log
-                </x-admin-nav-link>
 
                 <x-admin-nav-link href="{{ route('super-admin.academic-years.index') }}" :active="request()->routeIs('super-admin.academic-years.*')">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14v4m-2-2h4"/></svg>

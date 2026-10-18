@@ -10,9 +10,69 @@ use Illuminate\View\View;
 
 class ActivityLogController extends Controller
 {
+    /**
+     * Category definitions mapping to modules and actions.
+     *
+     * @var array<string, array{key: string, label: string, badge: string, dot: string, description: string, modules: array<int, string>, actions: array<int, string>}>
+     */
+    public const CATEGORIES = [
+        'keamanan' => [
+            'key' => 'keamanan',
+            'label' => 'Keamanan & Akun',
+            'badge' => 'bg-blue-100 text-blue-700 border-blue-200',
+            'dot' => 'bg-blue-500',
+            'description' => 'Log aktivitas login, logout, impersonasi, dan mutasi akun/hak akses pengguna.',
+            'modules' => ['Auth', 'Pengguna', 'Role', 'Permission', 'User'],
+            'actions' => ['LOGIN', 'IMPERSONATE'],
+        ],
+        'akademik' => [
+            'key' => 'akademik',
+            'label' => 'Akademik & KBM',
+            'badge' => 'bg-emerald-100 text-emerald-700 border-emerald-200',
+            'dot' => 'bg-emerald-500',
+            'description' => 'Log jadwal pelajaran, kalender pendidikan, hari libur, sistem blok, dan jurnal KBM guru.',
+            'modules' => ['Jadwal', 'Agenda Mengajar', 'Pertemuan', 'Hari Libur', 'Kalender Blok', 'Pemetaan Blok', 'Mata Pelajaran', 'Guru'],
+            'actions' => [],
+        ],
+        'kesiswaan' => [
+            'key' => 'kesiswaan',
+            'label' => 'Kesiswaan & Presensi',
+            'badge' => 'bg-amber-100 text-amber-700 border-amber-200',
+            'dot' => 'bg-amber-500',
+            'description' => 'Log data peserta didik, kenaikan kelas, presensi kehadiran, teguran piket, dan broadcast sekolah.',
+            'modules' => ['Siswa', 'Kelas', 'Kenaikan Kelas', 'Pengumuman', 'Teguran', 'Presensi'],
+            'actions' => [],
+        ],
+        'sistem' => [
+            'key' => 'sistem',
+            'label' => 'Pengaturan & Sistem',
+            'badge' => 'bg-purple-100 text-purple-700 border-purple-200',
+            'dot' => 'bg-purple-500',
+            'description' => 'Log konfigurasi sekolah, penetapan tahun ajaran, lock cut-off, dan pemulihan data dari sampah.',
+            'modules' => ['Settings', 'Tahun Ajaran', 'Trash', 'System'],
+            'actions' => ['RESTORE'],
+        ],
+    ];
+
     public function index(Request $request): View
     {
         $query = ActivityLog::with('user')->latest('created_at');
+
+        $activeCategory = null;
+        if ($request->filled('kategori') && isset(self::CATEGORIES[$request->kategori])) {
+            $activeCategory = self::CATEGORIES[$request->kategori];
+            $catModules = $activeCategory['modules'];
+            $catActions = $activeCategory['actions'];
+
+            $query->where(function ($q) use ($catModules, $catActions) {
+                if (! empty($catModules)) {
+                    $q->whereIn('module', $catModules);
+                }
+                if (! empty($catActions)) {
+                    $q->orWhereIn('action', $catActions);
+                }
+            });
+        }
 
         if ($request->filled('search')) {
             $search = trim($request->search);
@@ -62,12 +122,15 @@ class ActivityLogController extends Controller
         });
 
         $availableRoles = ['super_admin', 'admin', 'guru', 'siswa', 'piket', 'tu', 'kepala_sekolah', 'pengawas'];
+        $categories = self::CATEGORIES;
 
         return view('super-admin.activity-logs.index', compact(
             'logs',
             'availableActions',
             'availableModules',
-            'availableRoles'
+            'availableRoles',
+            'categories',
+            'activeCategory'
         ));
     }
 }

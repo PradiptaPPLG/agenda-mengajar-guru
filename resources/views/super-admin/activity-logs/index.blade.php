@@ -31,15 +31,44 @@
             </div>
         </div>
 
+        <!-- Category Tabs Bar -->
+        <div class="flex flex-wrap items-center gap-2 p-1.5 bg-slate-100/80 rounded-2xl border border-slate-200/80">
+            <a href="{{ route('super-admin.activity-logs.index', request()->except('kategori', 'page')) }}" 
+               class="px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 {{ !request('kategori') ? 'bg-white text-slate-900 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900 hover:bg-white/50' }}">
+                <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+                <span>Semua Log</span>
+            </a>
+            @foreach($categories as $catKey => $cat)
+            <a href="{{ route('super-admin.activity-logs.index', array_merge(request()->except('page'), ['kategori' => $catKey])) }}" 
+               class="px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 {{ request('kategori') === $catKey ? 'bg-white text-slate-900 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900 hover:bg-white/50' }}">
+                <span class="w-2 h-2 rounded-full {{ $cat['dot'] }}"></span>
+                <span>{{ $cat['label'] }}</span>
+            </a>
+            @endforeach
+        </div>
+
+        @if($activeCategory)
+        <div class="p-3.5 rounded-xl border {{ $activeCategory['badge'] }} flex items-start gap-3 text-xs">
+            <span class="w-2.5 h-2.5 rounded-full {{ $activeCategory['dot'] }} mt-1 shrink-0"></span>
+            <div>
+                <strong class="font-bold">{{ $activeCategory['label'] }}</strong>
+                <p class="mt-0.5 opacity-90">{{ $activeCategory['description'] }}</p>
+            </div>
+        </div>
+        @endif
+
         <!-- Filter Card -->
         <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs">
             <form action="{{ route('super-admin.activity-logs.index') }}" method="GET" class="space-y-3">
+                @if(request('kategori'))
+                <input type="hidden" name="kategori" value="{{ request('kategori') }}">
+                @endif
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
                     <!-- Search Input -->
                     <div class="lg:col-span-2 relative">
                         <svg class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                         <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama user, deskripsi, atau IP..."
-                               class="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors">
+                                class="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors">
                     </div>
 
                     <!-- Action Filter -->
@@ -78,15 +107,15 @@
                     <div class="flex flex-wrap items-center gap-2 text-xs">
                         <span class="text-slate-500 text-[11px] font-medium">Rentang Tanggal:</span>
                         <input type="date" name="start_date" value="{{ request('start_date') }}"
-                               class="px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500">
+                                class="px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500">
                         <span class="text-slate-400">s/d</span>
                         <input type="date" name="end_date" value="{{ request('end_date') }}"
-                               class="px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500">
+                                class="px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500">
                     </div>
 
                     <div class="flex items-center gap-2">
                         @if(request()->hasAny(['search', 'action', 'module', 'role', 'start_date', 'end_date']))
-                        <a href="{{ route('super-admin.activity-logs.index') }}" 
+                        <a href="{{ request('kategori') ? route('super-admin.activity-logs.index', ['kategori' => request('kategori')]) : route('super-admin.activity-logs.index') }}" 
                            class="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-semibold transition-colors">
                             Reset Filter
                         </a>
@@ -150,12 +179,15 @@
                             </td>
 
                             <td class="px-4 py-3">
-                                <div class="flex items-center gap-1.5">
+                                <div class="flex items-center gap-1.5 flex-wrap">
                                     <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-{{ $actionColor }}-50 text-{{ $actionColor }}-700 border border-{{ $actionColor }}-200">
                                         {{ $log->action }}
                                     </span>
                                     <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
                                         {{ $log->module }}
+                                    </span>
+                                    <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold border {{ $log->category_meta['badge'] }}">
+                                        {{ $log->category_meta['label'] }}
                                     </span>
                                 </div>
                             </td>
