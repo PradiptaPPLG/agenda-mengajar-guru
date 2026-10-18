@@ -61,16 +61,17 @@ class HariLiburAutoSyncTest extends TestCase
     {
         // Mock Public API Response
         Http::fake([
-            'https://dayoffapi.vercel.app/api?year=2026' => Http::response([
-                [
-                    'tanggal' => '2026-01-01',
-                    'keterangan' => 'Tahun Baru 2026 Masehi',
-                    'is_cuti' => false,
-                ],
-                [
-                    'tanggal' => '2026-03-18',
-                    'keterangan' => 'Cuti Bersama Nyepi',
-                    'is_cuti' => true,
+            'https://api-hari-libur.vercel.app/api?year=2026' => Http::response([
+                'status' => 'success',
+                'data' => [
+                    [
+                        'date' => '2026-01-01',
+                        'description' => 'Tahun Baru 2026 Masehi',
+                    ],
+                    [
+                        'date' => '2026-03-18',
+                        'description' => 'Cuti Bersama Nyepi',
+                    ],
                 ],
             ], 200),
         ]);
@@ -124,11 +125,13 @@ class HariLiburAutoSyncTest extends TestCase
     public function test_artisan_libur_sync_command(): void
     {
         Http::fake([
-            'https://dayoffapi.vercel.app/api?year=2027' => Http::response([
-                [
-                    'tanggal' => '2027-08-17',
-                    'keterangan' => 'HUT Kemerdekaan RI ke-82',
-                    'is_cuti' => false,
+            'https://api-hari-libur.vercel.app/api?year=2027' => Http::response([
+                'status' => 'success',
+                'data' => [
+                    [
+                        'date' => '2027-08-17',
+                        'description' => 'HUT Kemerdekaan RI ke-82',
+                    ],
                 ],
             ], 200),
         ]);
