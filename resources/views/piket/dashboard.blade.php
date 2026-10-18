@@ -2,6 +2,9 @@
     <x-slot:title>Monitoring Kehadiran Guru (Piket)</x-slot:title>
 
     <div class="space-y-6">
+        {{-- Pengumuman & Agenda Digital Banner --}}
+        <x-pengumuman-banner />
+
         {{-- Banner & Auto-Refresh Header --}}
         <div class="bg-gradient-to-r from-teal-600 to-emerald-600 rounded-2xl p-5 text-white shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>

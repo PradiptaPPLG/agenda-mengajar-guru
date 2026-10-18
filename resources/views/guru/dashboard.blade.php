@@ -2,6 +2,9 @@
     <x-slot:title>Jadwal Saya</x-slot:title>
 
     <div class="px-4 py-4">
+        {{-- Pengumuman & Agenda Digital Banner --}}
+        <x-pengumuman-banner />
+
         {{-- Week navigation --}}
         <div class="flex items-center justify-between mb-4">
             <a href="{{ route('guru.dashboard', ['minggu' => $prevWeek]) }}"

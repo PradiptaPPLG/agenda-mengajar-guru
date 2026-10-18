@@ -2,6 +2,9 @@
     <x-slot:title>Dashboard Kepala Sekolah</x-slot:title>
 
     <div class="space-y-6">
+        {{-- Pengumuman & Agenda Digital Banner --}}
+        <x-pengumuman-banner />
+
         {{-- ═══ PANDUAN PERHITUNGAN & TRANSPARANSI STATISTIK KEHADIRAN ═══ --}}
         <div class="bg-gradient-to-r from-blue-50/90 via-indigo-50/80 to-emerald-50/80 border border-blue-200/80 rounded-2xl p-4 shadow-xs" x-data="{ openDetail: false }">
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">

@@ -2,6 +2,9 @@
     <x-slot:title>Pelajaran Hari Ini</x-slot:title>
 
     <div class="px-4 py-4 space-y-4">
+        {{-- Pengumuman & Agenda Digital Banner --}}
+        <x-pengumuman-banner />
+
         {{-- Today banner --}}
         <div class="bg-emerald-600 rounded-2xl p-4 text-white flex items-center justify-between">
             <div>

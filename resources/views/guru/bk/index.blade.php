@@ -23,6 +23,9 @@
             return matchSearch && matchTingkat;
         }
     }">
+        {{-- Pengumuman & Agenda Digital Banner --}}
+        <x-pengumuman-banner />
+
         {{-- Banner Header --}}
         <div class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-5 text-white shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -51,6 +54,12 @@
                 </div>
             </div>
 
+            <div class="flex flex-wrap items-center gap-2">
+                <a href="{{ route('admin.pengumuman.index') }}"
+                   class="px-3.5 py-2.5 bg-white/15 hover:bg-white/25 text-white active:scale-95 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 border border-white/20" title="Kelola / Buat Pengumuman Sekolah">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
+                    Papan Pengumuman
+                </a>
                 <a href="{{ route('monitoring.jadwal-terlewat') }}"
                    class="px-3.5 py-2.5 bg-rose-500 hover:bg-rose-600 text-white active:scale-95 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5" title="Pantau KBM yang Belum Diisi Guru">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -58,6 +67,7 @@
                     </svg>
                     Jadwal Terlewat
                 </a>
+            </div>
                 <button type="button" @click="showModalKelas = true"
                         class="px-4 py-2.5 bg-white text-blue-700 hover:bg-blue-50 active:scale-95 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-2">
                     <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

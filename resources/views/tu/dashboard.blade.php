@@ -1,6 +1,9 @@
 <x-layouts.admin>
     <x-slot:title>Dashboard TU - Rekapitulasi Presensi Siswa</x-slot:title>
     
+    {{-- Pengumuman & Agenda Digital Banner --}}
+    <x-pengumuman-banner />
+    
     <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden mb-6">
         <div class="p-6">
             <h2 class="text-lg font-bold text-slate-900 mb-4">Filter Data Siswa</h2>

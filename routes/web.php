@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\KenaikanKelasController as AdminKenaikanKelasCont
 use App\Http\Controllers\Admin\MataPelajaranController as AdminMataPelajaranController;
 use App\Http\Controllers\Admin\PemetaanBlokController;
 use App\Http\Controllers\Admin\PenggunaController;
+use App\Http\Controllers\Admin\PengumumanController;
 use App\Http\Controllers\Admin\PermissionCategoryController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RoleController;
@@ -28,6 +29,7 @@ use App\Http\Controllers\KepalaSekolah\DashboardController as KsDashboardControl
 use App\Http\Controllers\KepalaSekolah\PdfController as KsPdfController;
 use App\Http\Controllers\KepalaSekolah\ReportController as KsReportController;
 use App\Http\Controllers\Monitoring\JadwalTerlewatController;
+use App\Http\Controllers\PengumumanReadController;
 use App\Http\Controllers\Piket\DashboardController;
 use App\Http\Controllers\Piket\TeguranController;
 use App\Http\Controllers\ProfileController;
@@ -59,6 +61,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/panduan', function () {
         return view('panduan');
     })->name('panduan');
+
+    Route::post('/pengumuman/{pengumuman}/mark-as-read', [PengumumanReadController::class, 'markAsRead'])->name('pengumuman.mark-read');
 });
 
 // ─── Guru ───────────────────────────────────────────────────────────────────
@@ -198,6 +202,15 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
         Route::post('/process', [AdminKenaikanKelasController::class, 'process'])->name('process');
     });
 });
+
+// ─── Papan Pengumuman Sekolah (Admin, Super Admin, TU, Kesiswaan/BK) ──────────
+Route::middleware(['auth', 'role:admin,super_admin,tu,bk,kesiswaan'])
+    ->prefix('admin')
+    ->name('admin.')
+    ->group(function () {
+        Route::get('pengumuman/{pengumuman}/readers', [PengumumanController::class, 'readers'])->name('pengumuman.readers');
+        Route::resource('pengumuman', PengumumanController::class)->except(['show']);
+    });
 
 // ─── Guru / Petugas Piket ────────────────────────────────────────────────────
 Route::middleware(['auth', 'role:piket,admin,super_admin'])

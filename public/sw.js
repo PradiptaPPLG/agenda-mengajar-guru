@@ -90,3 +90,50 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
+
+// Push Event Listener for Web Push
+self.addEventListener('push', (event) => {
+  let data = { title: 'Pemberitahuan Sekolah', body: 'Ada pengumuman atau agenda baru.', url: '/' };
+  if (event.data) {
+    try {
+      data = Object.assign(data, event.data.json());
+    } catch (e) {
+      data.body = event.data.text();
+    }
+  }
+
+  const options = {
+    body: data.body,
+    icon: data.icon || '/images/logo_new.png',
+    badge: '/images/logo_new.png',
+    vibrate: [150, 80, 150],
+    data: {
+      url: data.url || '/'
+    },
+    actions: [
+      { action: 'open', title: 'Buka Aplikasi' }
+    ]
+  };
+
+  event.waitUntil(self.registration.showNotification(data.title, options));
+});
+
+// Notification Click Handler
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const urlToOpen = event.notification.data?.url || '/';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      for (let client of windowClients) {
+        if (client.url === urlToOpen && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow(urlToOpen);
+      }
+    })
+  );
+});
+

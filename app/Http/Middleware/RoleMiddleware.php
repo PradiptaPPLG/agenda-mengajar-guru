@@ -32,7 +32,17 @@ class RoleMiddleware
             ]);
         }
 
-        if (! in_array($user->role, $roles)) {
+        $hasAccess = in_array($user->role, $roles);
+
+        if (! $hasAccess) {
+            if (method_exists($user, 'hasAnyRole') && $user->hasAnyRole($roles)) {
+                $hasAccess = true;
+            } elseif (in_array('bk', $roles) && method_exists($user, 'isGuruBk') && $user->isGuruBk()) {
+                $hasAccess = true;
+            }
+        }
+
+        if (! $hasAccess) {
             abort(403, 'Akses ditolak. Anda tidak memiliki hak untuk mengakses halaman ini.');
         }
 
