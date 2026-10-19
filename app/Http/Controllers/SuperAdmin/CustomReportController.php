@@ -102,6 +102,11 @@ class CustomReportController extends Controller
 
         $kelasList = Kelas::orderBy('tingkat')->orderBy('nama')->get();
 
+        $tingkatList = Kelas::select('tingkat')->distinct()->orderBy('tingkat')->pluck('tingkat')->filter()->values()->all();
+        if (empty($tingkatList)) {
+            $tingkatList = ['10', '11', '12'];
+        }
+
         $tahunAjaranList = Setting::getDaftarTahunAjaran();
         if (empty($tahunAjaranList)) {
             $tahunAjaranList = Kelas::select('tahun_ajaran')->distinct()->pluck('tahun_ajaran')->filter()->values()->all();
@@ -123,6 +128,7 @@ class CustomReportController extends Controller
         return view('super-admin.custom-report.index', compact(
             'modules',
             'kelasList',
+            'tingkatList',
             'tahunAjaranList',
             'currentTahunAjaran',
             'currentSemester',
@@ -231,6 +237,10 @@ class CustomReportController extends Controller
             ->orderBy('kelas.tingkat')
             ->orderBy('kelas.nama')
             ->orderBy('users.name');
+
+        if (! empty($filters['tingkat']) && $filters['tingkat'] !== 'all') {
+            $query->where('kelas.tingkat', $filters['tingkat']);
+        }
 
         if (! empty($filters['kelas_id']) && $filters['kelas_id'] !== 'all') {
             $query->where('rekap_kehadiran_siswas.kelas_id', $filters['kelas_id']);

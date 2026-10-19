@@ -14,6 +14,10 @@
         currentModule: 'rekap_kehadiran',
         includePivot: true,
         isSubmitting: false,
+        selectedTingkatKehadiran: 'all',
+        selectedKelasKehadiran: 'all',
+        selectedTingkatSiswa: 'all',
+        selectedKelasSiswa: 'all',
         allColumns: {{ json_encode($moduleColumnsJson) }},
         selectedColumns: {{ json_encode($defaultColumnsJson) }},
         
@@ -166,7 +170,7 @@
                 </div>
 
                 <!-- Filters for rekap_kehadiran -->
-                <div x-show="currentModule === 'rekap_kehadiran'" class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-xs">
+                <div x-show="currentModule === 'rekap_kehadiran'" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 text-xs">
                     <div>
                         <label class="block font-semibold text-slate-700 mb-1">Tahun Ajaran</label>
                         <select name="tahun_ajaran" :disabled="currentModule !== 'rekap_kehadiran'" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500">
@@ -187,11 +191,32 @@
                     </div>
 
                     <div>
-                        <label class="block font-semibold text-slate-700 mb-1">Filter Kelas</label>
-                        <select name="kelas_id" :disabled="currentModule !== 'rekap_kehadiran'" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500">
-                            <option value="all">Semua Kelas (Seluruh Sekolah)</option>
+                        <label class="block font-semibold text-slate-700 mb-1">Tingkat / Angkatan</label>
+                        <select name="tingkat"
+                                x-model="selectedTingkatKehadiran"
+                                @change="selectedKelasKehadiran = 'all'"
+                                :disabled="currentModule !== 'rekap_kehadiran'"
+                                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500">
+                            <option value="all">Semua Tingkat (10, 11, 12)</option>
+                            @foreach($tingkatList as $t)
+                                <option value="{{ $t }}">Tingkat / Kelas {{ $t }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Filter Kelas Spesifik</label>
+                        <select name="kelas_id"
+                                x-model="selectedKelasKehadiran"
+                                :disabled="currentModule !== 'rekap_kehadiran'"
+                                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500">
+                            <option value="all" x-text="selectedTingkatKehadiran === 'all' ? 'Semua Kelas (Seluruh Sekolah)' : 'Semua Kelas (Tingkat ' + selectedTingkatKehadiran + ')'"></option>
                             @foreach($kelasList as $kls)
-                                <option value="{{ $kls->id }}">{{ $kls->nama }} (Tingkat {{ $kls->tingkat }})</option>
+                                <option value="{{ $kls->id }}"
+                                        :hidden="selectedTingkatKehadiran !== 'all' && String(selectedTingkatKehadiran) !== String('{{ $kls->tingkat }}')"
+                                        :disabled="selectedTingkatKehadiran !== 'all' && String(selectedTingkatKehadiran) !== String('{{ $kls->tingkat }}')">
+                                    {{ $kls->nama }} (Tingkat {{ $kls->tingkat }})
+                                </option>
                             @endforeach
                         </select>
                     </div>
@@ -240,21 +265,32 @@
                 <!-- Filters for master_siswa -->
                 <div x-show="currentModule === 'master_siswa'" style="display: none;" class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-xs">
                     <div>
-                        <label class="block font-semibold text-slate-700 mb-1">Tingkat Kelas</label>
-                        <select name="tingkat" :disabled="currentModule !== 'master_siswa'" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500">
-                            <option value="all">Semua Tingkat</option>
-                            <option value="10">Kelas 10</option>
-                            <option value="11">Kelas 11</option>
-                            <option value="12">Kelas 12</option>
+                        <label class="block font-semibold text-slate-700 mb-1">Tingkat / Angkatan</label>
+                        <select name="tingkat"
+                                x-model="selectedTingkatSiswa"
+                                @change="selectedKelasSiswa = 'all'"
+                                :disabled="currentModule !== 'master_siswa'"
+                                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500">
+                            <option value="all">Semua Tingkat (10, 11, 12)</option>
+                            @foreach($tingkatList as $t)
+                                <option value="{{ $t }}">Tingkat / Kelas {{ $t }}</option>
+                            @endforeach
                         </select>
                     </div>
 
                     <div>
-                        <label class="block font-semibold text-slate-700 mb-1">Kelas Spesifik</label>
-                        <select name="kelas_id" :disabled="currentModule !== 'master_siswa'" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500">
-                            <option value="all">Semua Kelas</option>
+                        <label class="block font-semibold text-slate-700 mb-1">Filter Kelas Spesifik</label>
+                        <select name="kelas_id"
+                                x-model="selectedKelasSiswa"
+                                :disabled="currentModule !== 'master_siswa'"
+                                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500">
+                            <option value="all" x-text="selectedTingkatSiswa === 'all' ? 'Semua Kelas (Seluruh Tingkat)' : 'Semua Kelas (Tingkat ' + selectedTingkatSiswa + ')'"></option>
                             @foreach($kelasList as $kls)
-                                <option value="{{ $kls->id }}">{{ $kls->nama }}</option>
+                                <option value="{{ $kls->id }}"
+                                        :hidden="selectedTingkatSiswa !== 'all' && String(selectedTingkatSiswa) !== String('{{ $kls->tingkat }}')"
+                                        :disabled="selectedTingkatSiswa !== 'all' && String(selectedTingkatSiswa) !== String('{{ $kls->tingkat }}')">
+                                    {{ $kls->nama }} (Tingkat {{ $kls->tingkat }})
+                                </option>
                             @endforeach
                         </select>
                     </div>

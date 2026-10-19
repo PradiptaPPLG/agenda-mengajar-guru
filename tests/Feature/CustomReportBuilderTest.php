@@ -255,4 +255,50 @@ class CustomReportBuilderTest extends TestCase
         $response->assertOk();
         $this->assertStringContainsString('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', $response->headers->get('Content-Type') ?? '');
     }
+
+    /**
+     * Test 9: Ekspor Rekap Kehadiran dengan filter Tingkat / Angkatan berhasil memfilter data secara akurat.
+     */
+    public function test_export_rekap_kehadiran_filters_by_tingkat_correctly(): void
+    {
+        $kelas10 = Kelas::create(['nama' => '10 RPL 1', 'tingkat' => '10', 'tahun_ajaran' => '2026/2027']);
+        $kelas11 = Kelas::create(['nama' => '11 RPL 1', 'tingkat' => '11', 'tahun_ajaran' => '2026/2027']);
+
+        $siswa10 = User::create(['name' => 'Siswa 10', 'email' => 's10@test.com', 'password' => Hash::make('password'), 'role' => 'siswa']);
+        $siswa11 = User::create(['name' => 'Siswa 11', 'email' => 's11@test.com', 'password' => Hash::make('password'), 'role' => 'siswa']);
+
+        SiswaProfile::create(['user_id' => $siswa10->id, 'kelas_id' => $kelas10->id, 'nis' => '1001']);
+        SiswaProfile::create(['user_id' => $siswa11->id, 'kelas_id' => $kelas11->id, 'nis' => '1101']);
+
+        RekapKehadiranSiswa::create([
+            'siswa_id' => $siswa10->id,
+            'kelas_id' => $kelas10->id,
+            'tahun_ajaran' => '2026/2027',
+            'semester' => 'ganjil',
+            'total' => 10,
+            'hadir' => 10,
+        ]);
+
+        RekapKehadiranSiswa::create([
+            'siswa_id' => $siswa11->id,
+            'kelas_id' => $kelas11->id,
+            'tahun_ajaran' => '2026/2027',
+            'semester' => 'ganjil',
+            'total' => 10,
+            'hadir' => 9,
+        ]);
+
+        $payload = [
+            'module' => 'rekap_kehadiran',
+            'columns' => ['nama_siswa', 'kelas', 'tingkat', 'hadir'],
+            'tingkat' => '10',
+            'kelas_id' => 'all',
+            'include_pivot' => 1,
+        ];
+
+        $response = $this->actingAs($this->superAdmin)->post(route('super-admin.custom-report.export'), $payload);
+
+        $response->assertOk();
+        $this->assertStringContainsString('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', $response->headers->get('Content-Type') ?? '');
+    }
 }
