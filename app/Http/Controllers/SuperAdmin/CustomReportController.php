@@ -169,7 +169,11 @@ class CustomReportController extends Controller
         // Prepare temporary file path
         $timestamp = Carbon::now()->format('Ymd_His');
         $fileName = 'custom_report_'.$moduleKey.'_'.$timestamp.'.xlsx';
-        $tempPath = tempnam(sys_get_temp_dir(), 'rep_builder_').'.xlsx';
+        $tempBase = tempnam(sys_get_temp_dir(), 'rep_builder_');
+        if ($tempBase && file_exists($tempBase)) {
+            @unlink($tempBase);
+        }
+        $tempPath = ($tempBase ?: sys_get_temp_dir().DIRECTORY_SEPARATOR.uniqid('rep_builder_')).'.xlsx';
 
         $writer = SimpleExcelWriter::create($tempPath);
 
@@ -221,6 +225,8 @@ class CustomReportController extends Controller
         $query = RekapKehadiranSiswa::with(['siswa.siswaProfile', 'kelas'])
             ->join('kelas', 'rekap_kehadiran_siswas.kelas_id', '=', 'kelas.id')
             ->join('users', 'rekap_kehadiran_siswas.siswa_id', '=', 'users.id')
+            ->whereNull('kelas.deleted_at')
+            ->whereNull('users.deleted_at')
             ->select('rekap_kehadiran_siswas.*')
             ->orderBy('kelas.tingkat')
             ->orderBy('kelas.nama')
@@ -306,6 +312,14 @@ class CustomReportController extends Controller
             }
         });
 
+        if ($totalRows === 0) {
+            $emptyRow = [];
+            foreach ($selectedColumns as $col) {
+                $emptyRow[$colLabels[$col]['label']] = '(Tidak ada data kehadiran yang sesuai filter)';
+            }
+            $writer->addRow($emptyRow);
+        }
+
         // Write Sheet 2: Automated Pivot Table
         if ($includePivot) {
             $pivotHeaderStyle = (new Style)
@@ -315,6 +329,22 @@ class CustomReportController extends Controller
 
             $writer->addNewSheetAndMakeItCurrent('Tabel Rekap - Pivot');
             $writer->setHeaderStyle($pivotHeaderStyle);
+
+            if (empty($pivotByClass)) {
+                $writer->addRow([
+                    'No' => '-',
+                    'Kelas' => 'Tidak ada data kehadiran yang sesuai filter',
+                    'Tingkat' => '-',
+                    'Jumlah Siswa' => 0,
+                    'Total Hadir' => 0,
+                    'Sakit (S)' => 0,
+                    'Izin (I)' => 0,
+                    'Alpa (A)' => 0,
+                    'Dispensasi (D)' => 0,
+                    'Total Akumulasi Sesi' => 0,
+                    'Rata-rata Kehadiran (%)' => '0%',
+                ]);
+            }
 
             $no = 1;
             $grandSiswa = 0;
@@ -449,6 +479,14 @@ class CustomReportController extends Controller
                 $writer->addRow($row);
             }
         });
+
+        if ($totalRows === 0) {
+            $emptyRow = [];
+            foreach ($selectedColumns as $col) {
+                $emptyRow[$colLabels[$col]['label']] = '(Tidak ada data log yang sesuai filter)';
+            }
+            $writer->addRow($emptyRow);
+        }
 
         // Write Sheet 2: Automated Pivot Table for Activity Logs
         if ($includePivot) {
@@ -604,6 +642,14 @@ class CustomReportController extends Controller
             }
         });
 
+        if ($totalRows === 0) {
+            $emptyRow = [];
+            foreach ($selectedColumns as $col) {
+                $emptyRow[$colLabels[$col]['label']] = '(Tidak ada data siswa yang sesuai filter)';
+            }
+            $writer->addRow($emptyRow);
+        }
+
         // Write Sheet 2: Automated Pivot Table for Students Master
         if ($includePivot) {
             $pivotHeaderStyle = (new Style)
@@ -613,6 +659,19 @@ class CustomReportController extends Controller
 
             $writer->addNewSheetAndMakeItCurrent('Tabel Rekap - Pivot');
             $writer->setHeaderStyle($pivotHeaderStyle);
+
+            if (empty($pivotByClass)) {
+                $writer->addRow([
+                    'No' => '-',
+                    'Kelas' => 'Tidak ada data siswa yang sesuai filter',
+                    'Tingkat' => '-',
+                    'Total Siswa' => 0,
+                    'Kelompok Blok A' => 0,
+                    'Kelompok Blok B' => 0,
+                    'Akun Aktif' => 0,
+                    'Akun Nonaktif' => 0,
+                ]);
+            }
 
             $no = 1;
             $grandTotal = 0;

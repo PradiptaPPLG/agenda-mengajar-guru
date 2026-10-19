@@ -219,4 +219,40 @@ class CustomReportBuilderTest extends TestCase
         ]);
         $resInvalidCols->assertSessionHasErrors('columns');
     }
+
+    /**
+     * Test 7: Ekspor berjalan mulus dan menghasilkan file valid meskipun dataset kosong (0 rows matching).
+     */
+    public function test_export_handles_empty_dataset_gracefully(): void
+    {
+        $payload = [
+            'module' => 'rekap_kehadiran',
+            'columns' => ['nama_siswa', 'nis', 'kelas', 'hadir'],
+            'include_pivot' => 1,
+            'tahun_ajaran' => '1990/1991', // Pasti kosong
+            'semester' => 'ganjil',
+        ];
+
+        $response = $this->actingAs($this->superAdmin)->post(route('super-admin.custom-report.export'), $payload);
+
+        $response->assertOk();
+        $this->assertStringContainsString('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', $response->headers->get('Content-Type') ?? '');
+    }
+
+    /**
+     * Test 8: Ekspor tanpa sheet pivot (include_pivot = 0) menghasilkan file valid.
+     */
+    public function test_export_works_without_pivot_sheet(): void
+    {
+        $payload = [
+            'module' => 'master_siswa',
+            'columns' => ['nama', 'email'],
+            'include_pivot' => 0,
+        ];
+
+        $response = $this->actingAs($this->superAdmin)->post(route('super-admin.custom-report.export'), $payload);
+
+        $response->assertOk();
+        $this->assertStringContainsString('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', $response->headers->get('Content-Type') ?? '');
+    }
 }

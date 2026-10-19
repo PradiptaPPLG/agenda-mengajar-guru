@@ -115,7 +115,7 @@
         @endif
 
         <!-- Form Builder Container -->
-        <form action="{{ route('super-admin.custom-report.export') }}" method="POST" @submit="isSubmitting = true" class="space-y-6">
+        <form action="{{ route('super-admin.custom-report.export') }}" method="POST" @submit="isSubmitting = true; setTimeout(() => { isSubmitting = false; }, 3500);" class="space-y-6">
             @csrf
 
             <!-- Hidden inputs to submit selected columns for currentModule -->
@@ -169,7 +169,7 @@
                 <div x-show="currentModule === 'rekap_kehadiran'" class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-xs">
                     <div>
                         <label class="block font-semibold text-slate-700 mb-1">Tahun Ajaran</label>
-                        <select name="tahun_ajaran" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500">
+                        <select name="tahun_ajaran" :disabled="currentModule !== 'rekap_kehadiran'" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500">
                             <option value="all">Semua Tahun Ajaran</option>
                             @foreach($tahunAjaranList as $ta)
                                 <option value="{{ $ta }}" {{ $currentTahunAjaran === $ta ? 'selected' : '' }}>{{ $ta }}</option>
@@ -179,7 +179,7 @@
 
                     <div>
                         <label class="block font-semibold text-slate-700 mb-1">Semester</label>
-                        <select name="semester" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500">
+                        <select name="semester" :disabled="currentModule !== 'rekap_kehadiran'" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500">
                             <option value="all">Semua Semester (Ganjil & Genap)</option>
                             <option value="ganjil" {{ $currentSemester === 'ganjil' ? 'selected' : '' }}>Semester Ganjil (1)</option>
                             <option value="genap" {{ $currentSemester === 'genap' ? 'selected' : '' }}>Semester Genap (2)</option>
@@ -188,7 +188,7 @@
 
                     <div>
                         <label class="block font-semibold text-slate-700 mb-1">Filter Kelas</label>
-                        <select name="kelas_id" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500">
+                        <select name="kelas_id" :disabled="currentModule !== 'rekap_kehadiran'" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500">
                             <option value="all">Semua Kelas (Seluruh Sekolah)</option>
                             @foreach($kelasList as $kls)
                                 <option value="{{ $kls->id }}">{{ $kls->nama }} (Tingkat {{ $kls->tingkat }})</option>
@@ -201,19 +201,19 @@
                 <div x-show="currentModule === 'activity_log'" style="display: none;" class="grid grid-cols-1 sm:grid-cols-4 gap-3.5 text-xs">
                     <div>
                         <label class="block font-semibold text-slate-700 mb-1">Tanggal Mulai (Start Date)</label>
-                        <input type="date" name="start_date" value="{{ request('start_date') }}"
+                        <input type="date" name="start_date" :disabled="currentModule !== 'activity_log'" value="{{ request('start_date') }}"
                                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500">
                     </div>
 
                     <div>
                         <label class="block font-semibold text-slate-700 mb-1">Tanggal Selesai (End Date)</label>
-                        <input type="date" name="end_date" value="{{ request('end_date') }}"
+                        <input type="date" name="end_date" :disabled="currentModule !== 'activity_log'" value="{{ request('end_date') }}"
                                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500">
                     </div>
 
                     <div>
                         <label class="block font-semibold text-slate-700 mb-1">Kategori Aktivitas</label>
-                        <select name="kategori" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500">
+                        <select name="kategori" :disabled="currentModule !== 'activity_log'" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500">
                             <option value="">Semua Kategori</option>
                             <option value="keamanan">Keamanan & Akun</option>
                             <option value="akademik">Akademik & KBM</option>
@@ -224,7 +224,7 @@
 
                     <div>
                         <label class="block font-semibold text-slate-700 mb-1">Role Pelaksana</label>
-                        <select name="role" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500">
+                        <select name="role" :disabled="currentModule !== 'activity_log'" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500">
                             <option value="all">Semua Role</option>
                             <option value="super_admin">Super Admin</option>
                             <option value="admin">Admin</option>
@@ -241,7 +241,7 @@
                 <div x-show="currentModule === 'master_siswa'" style="display: none;" class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-xs">
                     <div>
                         <label class="block font-semibold text-slate-700 mb-1">Tingkat Kelas</label>
-                        <select name="tingkat" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500">
+                        <select name="tingkat" :disabled="currentModule !== 'master_siswa'" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500">
                             <option value="all">Semua Tingkat</option>
                             <option value="10">Kelas 10</option>
                             <option value="11">Kelas 11</option>
@@ -251,7 +251,7 @@
 
                     <div>
                         <label class="block font-semibold text-slate-700 mb-1">Kelas Spesifik</label>
-                        <select name="kelas_id" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500">
+                        <select name="kelas_id" :disabled="currentModule !== 'master_siswa'" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500">
                             <option value="all">Semua Kelas</option>
                             @foreach($kelasList as $kls)
                                 <option value="{{ $kls->id }}">{{ $kls->nama }}</option>
@@ -261,7 +261,7 @@
 
                     <div>
                         <label class="block font-semibold text-slate-700 mb-1">Status Keaktifan Akun</label>
-                        <select name="status_aktif" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500">
+                        <select name="status_aktif" :disabled="currentModule !== 'master_siswa'" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500">
                             <option value="all">Semua Status (Aktif & Nonaktif)</option>
                             <option value="1">Hanya Siswa Aktif</option>
                             <option value="0">Hanya Siswa Nonaktif</option>
