@@ -1,0 +1,373 @@
+<x-layouts.admin>
+    <x-slot:title>Custom Dynamic Report & Automated Excel/Pivot Builder</x-slot:title>
+
+    @php
+        $moduleColumnsJson = [];
+        $defaultColumnsJson = [];
+        foreach($modules as $mKey => $mVal) {
+            $moduleColumnsJson[$mKey] = array_keys($mVal['columns']);
+            $defaultColumnsJson[$mKey] = array_keys(array_filter($mVal['columns'], fn($c) => $c['default']));
+        }
+    @endphp
+
+    <div class="space-y-6" x-data="{
+        currentModule: 'rekap_kehadiran',
+        includePivot: true,
+        isSubmitting: false,
+        allColumns: {{ json_encode($moduleColumnsJson) }},
+        selectedColumns: {{ json_encode($defaultColumnsJson) }},
+        
+        selectAll() {
+            this.selectedColumns[this.currentModule] = [...this.allColumns[this.currentModule]];
+        },
+        deselectAll() {
+            this.selectedColumns[this.currentModule] = [];
+        },
+        toggleColumn(col) {
+            const list = this.selectedColumns[this.currentModule] || [];
+            const idx = list.indexOf(col);
+            if (idx > -1) {
+                list.splice(idx, 1);
+            } else {
+                list.push(col);
+            }
+            this.selectedColumns[this.currentModule] = list;
+        },
+        isColSelected(col) {
+            return (this.selectedColumns[this.currentModule] || []).includes(col);
+        },
+        getSelectedCount() {
+            return (this.selectedColumns[this.currentModule] || []).length;
+        },
+        getTotalCount() {
+            return (this.allColumns[this.currentModule] || []).length;
+        }
+    }">
+        <!-- Page Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+                <h1 class="text-xl font-bold text-slate-900 flex items-center gap-2.5">
+                    <span class="p-2 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-xs">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    </span>
+                    Custom Dynamic Report & Automated Excel/Pivot Builder
+                </h1>
+                <p class="text-xs text-slate-500 mt-1 max-w-3xl leading-relaxed">
+                    Rancang dan ekspor laporan komprehensif berstandar enterprise. Pilih kolom dinamis, terapkan filter periode, dan peroleh file spreadsheet multi-sheet lengkap dengan <strong>Sheet Data Mentah</strong> serta <strong>Sheet Rekapitulasi Pivot Otomatis</strong>.
+                </p>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 text-xs font-semibold border border-emerald-200">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    Fast Stream Engine (< 15ms)
+                </span>
+            </div>
+        </div>
+
+        <!-- Metric Stat Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs flex items-center gap-3.5">
+                <div class="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                </div>
+                <div>
+                    <span class="text-[11px] font-medium text-slate-500 block">Tabel Agregasi Kehadiran</span>
+                    <strong class="text-lg font-bold text-slate-900">{{ number_format($stats['rekap_kehadiran_count']) }}</strong>
+                    <span class="text-[11px] text-slate-400 block">Record Siap Ekspor</span>
+                </div>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs flex items-center gap-3.5">
+                <div class="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+                <div>
+                    <span class="text-[11px] font-medium text-slate-500 block">Log Audit Trail Sistem</span>
+                    <strong class="text-lg font-bold text-slate-900">{{ number_format($stats['activity_logs_count']) }}</strong>
+                    <span class="text-[11px] text-slate-400 block">Rekam Jejak Mutasi Data</span>
+                </div>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs flex items-center gap-3.5">
+                <div class="w-11 h-11 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 border border-purple-100">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                </div>
+                <div>
+                    <span class="text-[11px] font-medium text-slate-500 block">Total Data Master Siswa</span>
+                    <strong class="text-lg font-bold text-slate-900">{{ number_format($stats['students_count']) }}</strong>
+                    <span class="text-[11px] text-slate-400 block">Peserta Didik Terdaftar</span>
+                </div>
+            </div>
+        </div>
+
+        @if($errors->any())
+        <div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs">
+            <div class="flex items-center gap-2 font-bold mb-1">
+                <svg class="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span>Terjadi kendala saat memproses laporan:</span>
+            </div>
+            <ul class="list-disc pl-5 space-y-0.5">
+                @foreach($errors->all() as $err)
+                    <li>{{ $err }}</li>
+                @endforeach
+            </ul>
+        </div>
+        @endif
+
+        <!-- Form Builder Container -->
+        <form action="{{ route('super-admin.custom-report.export') }}" method="POST" @submit="isSubmitting = true" class="space-y-6">
+            @csrf
+
+            <!-- Hidden inputs to submit selected columns for currentModule -->
+            <input type="hidden" name="module" :value="currentModule">
+            <template x-for="col in selectedColumns[currentModule]" :key="col">
+                <input type="hidden" name="columns[]" :value="col">
+            </template>
+
+            <!-- STEP 1: Pilih Modul Utama -->
+            <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div class="flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center">1</span>
+                        <h2 class="text-sm font-bold text-slate-900">Pilih Kategori / Modul Laporan Utama</h2>
+                    </div>
+                    <span class="text-xs text-slate-400">Pilih salah satu dataset untuk diekstrak</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                    @foreach($modules as $mKey => $mod)
+                    <div @click="currentModule = '{{ $mKey }}'"
+                         class="relative p-4 rounded-xl border-2 transition-all cursor-pointer select-none"
+                         :class="currentModule === '{{ $mKey }}' ? 'border-blue-600 bg-blue-50/40 ring-2 ring-blue-500/20' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/50'">
+                        <div class="flex items-start justify-between gap-2">
+                            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold border {{ $mod['badge'] }}">
+                                {{ $mod['key'] }}
+                            </span>
+                            <div class="w-4 h-4 rounded-full border flex items-center justify-center transition-colors"
+                                 :class="currentModule === '{{ $mKey }}' ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-300 bg-white'">
+                                <svg x-show="currentModule === '{{ $mKey }}'" class="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                            </div>
+                        </div>
+                        <h3 class="text-xs font-bold text-slate-900 mt-2.5">{{ $mod['label'] }}</h3>
+                        <p class="text-[11px] text-slate-500 mt-1 leading-relaxed">{{ $mod['description'] }}</p>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+
+            <!-- STEP 2: Filter Periode & Parameter -->
+            <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div class="flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center">2</span>
+                        <h2 class="text-sm font-bold text-slate-900">Tentukan Filter Data & Rentang Periode</h2>
+                    </div>
+                    <span class="text-xs text-slate-400">Parameter kontekstual sesuai modul terpilih</span>
+                </div>
+
+                <!-- Filters for rekap_kehadiran -->
+                <div x-show="currentModule === 'rekap_kehadiran'" class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-xs">
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Tahun Ajaran</label>
+                        <select name="tahun_ajaran" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500">
+                            <option value="all">Semua Tahun Ajaran</option>
+                            @foreach($tahunAjaranList as $ta)
+                                <option value="{{ $ta }}" {{ $currentTahunAjaran === $ta ? 'selected' : '' }}>{{ $ta }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Semester</label>
+                        <select name="semester" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500">
+                            <option value="all">Semua Semester (Ganjil & Genap)</option>
+                            <option value="ganjil" {{ $currentSemester === 'ganjil' ? 'selected' : '' }}>Semester Ganjil (1)</option>
+                            <option value="genap" {{ $currentSemester === 'genap' ? 'selected' : '' }}>Semester Genap (2)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Filter Kelas</label>
+                        <select name="kelas_id" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500">
+                            <option value="all">Semua Kelas (Seluruh Sekolah)</option>
+                            @foreach($kelasList as $kls)
+                                <option value="{{ $kls->id }}">{{ $kls->nama }} (Tingkat {{ $kls->tingkat }})</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Filters for activity_log -->
+                <div x-show="currentModule === 'activity_log'" style="display: none;" class="grid grid-cols-1 sm:grid-cols-4 gap-3.5 text-xs">
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Tanggal Mulai (Start Date)</label>
+                        <input type="date" name="start_date" value="{{ request('start_date') }}"
+                               class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500">
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Tanggal Selesai (End Date)</label>
+                        <input type="date" name="end_date" value="{{ request('end_date') }}"
+                               class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500">
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Kategori Aktivitas</label>
+                        <select name="kategori" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500">
+                            <option value="">Semua Kategori</option>
+                            <option value="keamanan">Keamanan & Akun</option>
+                            <option value="akademik">Akademik & KBM</option>
+                            <option value="kesiswaan">Kesiswaan & Presensi</option>
+                            <option value="sistem">Pengaturan & Sistem</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Role Pelaksana</label>
+                        <select name="role" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500">
+                            <option value="all">Semua Role</option>
+                            <option value="super_admin">Super Admin</option>
+                            <option value="admin">Admin</option>
+                            <option value="guru">Guru</option>
+                            <option value="siswa">Siswa</option>
+                            <option value="piket">Guru Piket</option>
+                            <option value="tu">Tata Usaha</option>
+                            <option value="kepala_sekolah">Kepala Sekolah</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Filters for master_siswa -->
+                <div x-show="currentModule === 'master_siswa'" style="display: none;" class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-xs">
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Tingkat Kelas</label>
+                        <select name="tingkat" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500">
+                            <option value="all">Semua Tingkat</option>
+                            <option value="10">Kelas 10</option>
+                            <option value="11">Kelas 11</option>
+                            <option value="12">Kelas 12</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Kelas Spesifik</label>
+                        <select name="kelas_id" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500">
+                            <option value="all">Semua Kelas</option>
+                            @foreach($kelasList as $kls)
+                                <option value="{{ $kls->id }}">{{ $kls->nama }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Status Keaktifan Akun</label>
+                        <select name="status_aktif" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500">
+                            <option value="all">Semua Status (Aktif & Nonaktif)</option>
+                            <option value="1">Hanya Siswa Aktif</option>
+                            <option value="0">Hanya Siswa Nonaktif</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEP 3: Pilih Kolom Data (Dynamic Column Selection) -->
+            <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                    <div class="flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center">3</span>
+                        <div>
+                            <h2 class="text-sm font-bold text-slate-900">Pilih Kolom Data yang Ingin Disertakan</h2>
+                            <p class="text-[11px] text-slate-500 mt-0.5">Centang bidang data yang akan menjadi header tabel pada Sheet Data Mentah.</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <span class="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 text-xs font-bold border border-blue-200">
+                            <span x-text="getSelectedCount()"></span> / <span x-text="getTotalCount()"></span> Kolom Terpilih
+                        </span>
+                        <button type="button" @click="selectAll()" class="px-3 py-1 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors">
+                            Pilih Semua
+                        </button>
+                        <button type="button" @click="deselectAll()" class="px-3 py-1 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors">
+                            Hapus Semua
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Column Checkboxes per Module -->
+                @foreach($modules as $mKey => $mod)
+                <div x-show="currentModule === '{{ $mKey }}'" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                    @foreach($mod['columns'] as $colKey => $colDef)
+                    <div @click="toggleColumn('{{ $colKey }}')"
+                         class="p-3 rounded-xl border transition-all cursor-pointer select-none flex items-center gap-3"
+                         :class="isColSelected('{{ $colKey }}') ? 'bg-blue-50/60 border-blue-400 ring-1 ring-blue-400/30' : 'bg-slate-50/60 border-slate-200 hover:bg-slate-100/60'">
+                        <input type="checkbox"
+                               :checked="isColSelected('{{ $colKey }}')"
+                               @click.stop="toggleColumn('{{ $colKey }}')"
+                               class="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer">
+                        <div class="min-w-0">
+                            <span class="text-xs font-bold block" :class="isColSelected('{{ $colKey }}') ? 'text-blue-900' : 'text-slate-800'">
+                                {{ $colDef['label'] }}
+                            </span>
+                            <span class="text-[10px] text-slate-400 font-mono">{{ $colKey }}</span>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+                @endforeach
+            </div>
+
+            <!-- STEP 4: Opsi Tambahan & Submit Action -->
+            <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div class="flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center">4</span>
+                        <h2 class="text-sm font-bold text-slate-900">Opsi Ekspor & Unduh File</h2>
+                    </div>
+                </div>
+
+                <!-- Checkbox Pivot Table Option -->
+                <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-3.5">
+                    <input type="checkbox" name="include_pivot" id="include_pivot" value="1"
+                           x-model="includePivot"
+                           class="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-5 h-5 mt-0.5 cursor-pointer">
+                    <label for="include_pivot" class="text-xs cursor-pointer select-none">
+                        <strong class="font-bold text-slate-900 flex items-center gap-2">
+                            <span>Sertakan Sheet Rekapitulasi / Pivot Otomatis (Tab ke-2 dalam file Excel)</span>
+                            <span class="px-2 py-0.5 rounded text-[10px] bg-emerald-100 text-emerald-700 font-bold">Rekomendasi</span>
+                        </strong>
+                        <p class="text-slate-500 mt-0.5 leading-relaxed">
+                            File Excel yang diunduh akan otomatis memiliki Tab kedua (Sheet "Tabel Rekap - Pivot") yang memuat data agregasi ringkas (rekap per kelas, rata-rata kehadiran %, serta total akumulasi seluruh sekolah) sehingga siap ditinjau pimpinan tanpa perlu membuat tabel pivot manual di Microsoft Excel.
+                        </p>
+                    </label>
+                </div>
+
+                <!-- Submit Action Buttons -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
+                    <div class="text-xs text-slate-500 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                        <span>Proteksi Memory Guard & Stream Chunking aktif. File sementara di server akan otomatis dihapus usai pengunduhan.</span>
+                    </div>
+
+                    <button type="submit"
+                            :disabled="getSelectedCount() === 0 || isSubmitting"
+                            class="px-6 py-2.5 rounded-xl font-bold text-xs text-white transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                            :class="getSelectedCount() > 0 && !isSubmitting ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-blue-500/20' : 'bg-slate-300 cursor-not-allowed'">
+                        <template x-if="!isSubmitting">
+                            <span class="flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                <span>Generate & Download Excel (.xlsx)</span>
+                            </span>
+                        </template>
+                        <template x-if="isSubmitting">
+                            <span class="flex items-center gap-2">
+                                <svg class="animate-spin w-4 h-4 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                <span>Sedang Menyusun Spreadsheet...</span>
+                            </span>
+                        </template>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</x-layouts.admin>

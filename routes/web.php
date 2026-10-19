@@ -38,6 +38,7 @@ use App\Http\Controllers\Siswa\CaptureController as SiswaCaptureController;
 use App\Http\Controllers\Siswa\DashboardController as SiswaDashboardController;
 use App\Http\Controllers\SuperAdmin\AcademicYearController;
 use App\Http\Controllers\SuperAdmin\ActivityLogController;
+use App\Http\Controllers\SuperAdmin\CustomReportController;
 use App\Http\Controllers\SuperAdmin\DashboardController as SaDashboardController;
 use App\Http\Controllers\SuperAdmin\ImpersonateController;
 use App\Http\Controllers\SuperAdmin\SettingsController as SaSettingsController;
@@ -275,6 +276,10 @@ Route::middleware(['auth', 'role:super_admin'])->prefix('super-admin')->name('su
 
     Route::get('/settings', [SaSettingsController::class, 'index'])->name('settings');
     Route::post('/settings', [SaSettingsController::class, 'update'])->name('settings.update');
+
+    // Custom Dynamic Report & Automated Excel/Pivot Builder
+    Route::get('/custom-report', [CustomReportController::class, 'index'])->name('custom-report.index');
+    Route::post('/custom-report/export', [CustomReportController::class, 'export'])->name('custom-report.export');
 });
 
 Route::post('/super-admin/impersonate-leave', [ImpersonateController::class, 'leave'])
