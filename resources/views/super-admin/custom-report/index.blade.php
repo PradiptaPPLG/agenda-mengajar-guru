@@ -11,6 +11,7 @@
     @endphp
 
     <div class="space-y-6" x-data="{
+        activeCategory: 'all',
         currentModule: 'rekap_kehadiran',
         includePivot: true,
         isSubmitting: false,
@@ -57,7 +58,7 @@
                     Custom Dynamic Report & Automated Excel/Pivot Builder
                 </h1>
                 <p class="text-xs text-slate-500 mt-1 max-w-3xl leading-relaxed">
-                    Rancang dan ekspor laporan komprehensif berstandar enterprise. Pilih kolom dinamis, terapkan filter periode, dan peroleh file spreadsheet multi-sheet lengkap dengan <strong>Sheet Data Mentah</strong> serta <strong>Sheet Rekapitulasi Pivot Otomatis</strong>.
+                    Rancang dan ekspor laporan komprehensif data siswa maupun data guru. Pilih kolom dinamis, terapkan filter periode, dan peroleh file spreadsheet multi-sheet lengkap dengan <strong>Sheet Data Mentah</strong> serta <strong>Sheet Rekapitulasi Pivot Otomatis</strong>.
                 </p>
             </div>
             <div class="flex items-center gap-2">
@@ -69,26 +70,15 @@
         </div>
 
         <!-- Metric Stat Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <div class="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs flex items-center gap-3.5">
                 <div class="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
                 </div>
                 <div>
-                    <span class="text-[11px] font-medium text-slate-500 block">Tabel Agregasi Kehadiran</span>
+                    <span class="text-[11px] font-medium text-slate-500 block">Presensi Siswa</span>
                     <strong class="text-lg font-bold text-slate-900">{{ number_format($stats['rekap_kehadiran_count']) }}</strong>
-                    <span class="text-[11px] text-slate-400 block">Record Siap Ekspor</span>
-                </div>
-            </div>
-
-            <div class="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs flex items-center gap-3.5">
-                <div class="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                </div>
-                <div>
-                    <span class="text-[11px] font-medium text-slate-500 block">Log Audit Trail Sistem</span>
-                    <strong class="text-lg font-bold text-slate-900">{{ number_format($stats['activity_logs_count']) }}</strong>
-                    <span class="text-[11px] text-slate-400 block">Rekam Jejak Mutasi Data</span>
+                    <span class="text-[11px] text-slate-400 block">Record Agregasi</span>
                 </div>
             </div>
 
@@ -97,9 +87,31 @@
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
                 </div>
                 <div>
-                    <span class="text-[11px] font-medium text-slate-500 block">Total Data Master Siswa</span>
+                    <span class="text-[11px] font-medium text-slate-500 block">Master Siswa</span>
                     <strong class="text-lg font-bold text-slate-900">{{ number_format($stats['students_count']) }}</strong>
-                    <span class="text-[11px] text-slate-400 block">Peserta Didik Terdaftar</span>
+                    <span class="text-[11px] text-slate-400 block">Peserta Didik</span>
+                </div>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs flex items-center gap-3.5">
+                <div class="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-100">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                </div>
+                <div>
+                    <span class="text-[11px] font-medium text-slate-500 block">Jurnal KBM Guru</span>
+                    <strong class="text-lg font-bold text-slate-900">{{ number_format($stats['kehadiran_guru_count']) }}</strong>
+                    <span class="text-[11px] text-slate-400 block">Sesi Presensi Mengajar</span>
+                </div>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs flex items-center gap-3.5">
+                <div class="w-11 h-11 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center shrink-0 border border-sky-100">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                </div>
+                <div>
+                    <span class="text-[11px] font-medium text-slate-500 block">Master Guru</span>
+                    <strong class="text-lg font-bold text-slate-900">{{ number_format($stats['gurus_count']) }}</strong>
+                    <span class="text-[11px] text-slate-400 block">Dewan Guru Terdaftar</span>
                 </div>
             </div>
         </div>
@@ -129,33 +141,141 @@
             </template>
 
             <!-- STEP 1: Pilih Modul Utama -->
-            <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
-                <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-5">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
                     <div class="flex items-center gap-2">
                         <span class="w-6 h-6 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center">1</span>
-                        <h2 class="text-sm font-bold text-slate-900">Pilih Kategori / Modul Laporan Utama</h2>
+                        <div>
+                            <h2 class="text-sm font-bold text-slate-900">Pilih Kategori & Modul Laporan Utama</h2>
+                            <p class="text-[11px] text-slate-500 mt-0.5">Dataset dipisahkan berdasarkan kategori (Siswa vs Guru) agar tidak bercampur dan mudah dipilih.</p>
+                        </div>
                     </div>
-                    <span class="text-xs text-slate-400">Pilih salah satu dataset untuk diekstrak</span>
+
+                    <!-- Category Filter Tabs -->
+                    <div class="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200/80 text-xs font-semibold overflow-x-auto">
+                        <button type="button"
+                                @click="activeCategory = 'all'"
+                                class="px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+                                :class="activeCategory === 'all' ? 'bg-white text-slate-900 font-bold shadow-xs' : 'text-slate-600 hover:text-slate-900'">
+                            <span>Semua Modul</span>
+                            <span class="px-1.5 py-0.2 rounded-full text-[10px]" :class="activeCategory === 'all' ? 'bg-slate-100 text-slate-700' : 'bg-slate-200 text-slate-600'">5</span>
+                        </button>
+                        <button type="button"
+                                @click="activeCategory = 'siswa'; if (!['rekap_kehadiran', 'master_siswa'].includes(currentModule)) currentModule = 'rekap_kehadiran';"
+                                class="px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+                                :class="activeCategory === 'siswa' ? 'bg-white text-purple-700 font-bold shadow-xs' : 'text-slate-600 hover:text-purple-700'">
+                            <span>🎓 Kategori Data Siswa</span>
+                            <span class="px-1.5 py-0.2 rounded-full text-[10px]" :class="activeCategory === 'siswa' ? 'bg-purple-100 text-purple-700' : 'bg-slate-200 text-slate-600'">2</span>
+                        </button>
+                        <button type="button"
+                                @click="activeCategory = 'guru'; if (!['kehadiran_guru', 'master_guru'].includes(currentModule)) currentModule = 'kehadiran_guru';"
+                                class="px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+                                :class="activeCategory === 'guru' ? 'bg-white text-amber-700 font-bold shadow-xs' : 'text-slate-600 hover:text-amber-700'">
+                            <span>👨‍🏫 Kategori Data Guru</span>
+                            <span class="px-1.5 py-0.2 rounded-full text-[10px]" :class="activeCategory === 'guru' ? 'bg-amber-100 text-amber-700' : 'bg-slate-200 text-slate-600'">2</span>
+                        </button>
+                        <button type="button"
+                                @click="activeCategory = 'sistem'; currentModule = 'activity_log';"
+                                class="px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+                                :class="activeCategory === 'sistem' ? 'bg-white text-blue-700 font-bold shadow-xs' : 'text-slate-600 hover:text-blue-700'">
+                            <span>⚙️ Log Sistem</span>
+                            <span class="px-1.5 py-0.2 rounded-full text-[10px]" :class="activeCategory === 'sistem' ? 'bg-blue-100 text-blue-700' : 'bg-slate-200 text-slate-600'">1</span>
+                        </button>
+                    </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-                    @foreach($modules as $mKey => $mod)
-                    <div @click="currentModule = '{{ $mKey }}'"
-                         class="relative p-4 rounded-xl border-2 transition-all cursor-pointer select-none"
-                         :class="currentModule === '{{ $mKey }}' ? 'border-blue-600 bg-blue-50/40 ring-2 ring-blue-500/20' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/50'">
-                        <div class="flex items-start justify-between gap-2">
-                            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold border {{ $mod['badge'] }}">
-                                {{ $mod['key'] }}
+                <!-- Categorized Modul Cards Container -->
+                <div class="space-y-4">
+                    <!-- KATEGORI 1: DATA SISWA -->
+                    <div x-show="activeCategory === 'all' || activeCategory === 'siswa'" class="space-y-2.5">
+                        <div class="flex items-center gap-2">
+                            <span class="px-2.5 py-1 rounded-lg bg-purple-100 text-purple-800 text-[11px] font-bold flex items-center gap-1.5">
+                                <span>🎓</span>
+                                <span>Kategori: Data Siswa (Peserta Didik)</span>
                             </span>
-                            <div class="w-4 h-4 rounded-full border flex items-center justify-center transition-colors"
-                                 :class="currentModule === '{{ $mKey }}' ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-300 bg-white'">
-                                <svg x-show="currentModule === '{{ $mKey }}'" class="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                            <span class="text-[11px] text-slate-400">Presensi kehadiran & data pokok kesiswaan</span>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                            @foreach(['rekap_kehadiran', 'master_siswa'] as $mKey)
+                            @php $mod = $modules[$mKey]; @endphp
+                            <div @click="currentModule = '{{ $mKey }}'"
+                                 class="relative p-4 rounded-xl border-2 transition-all cursor-pointer select-none"
+                                 :class="currentModule === '{{ $mKey }}' ? 'border-purple-600 bg-purple-50/40 ring-2 ring-purple-500/20 shadow-xs' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/50'">
+                                <div class="flex items-start justify-between gap-2">
+                                    <span class="px-2 py-0.5 rounded-md text-[10px] font-bold border {{ $mod['badge'] }}">
+                                        {{ $mod['key'] }}
+                                    </span>
+                                    <div class="w-4 h-4 rounded-full border flex items-center justify-center transition-colors"
+                                         :class="currentModule === '{{ $mKey }}' ? 'border-purple-600 bg-purple-600 text-white' : 'border-slate-300 bg-white'">
+                                        <svg x-show="currentModule === '{{ $mKey }}'" class="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                    </div>
+                                </div>
+                                <h3 class="text-xs font-bold text-slate-900 mt-2.5">{{ $mod['label'] }}</h3>
+                                <p class="text-[11px] text-slate-500 mt-1 leading-relaxed">{{ $mod['description'] }}</p>
+                            </div>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    <!-- KATEGORI 2: DATA GURU -->
+                    <div x-show="activeCategory === 'all' || activeCategory === 'guru'" class="space-y-2.5">
+                        <div class="flex items-center gap-2 pt-2 border-t border-slate-100">
+                            <span class="px-2.5 py-1 rounded-lg bg-amber-100 text-amber-800 text-[11px] font-bold flex items-center gap-1.5">
+                                <span>👨‍🏫</span>
+                                <span>Kategori: Data Guru & Tenaga Pengajar</span>
+                            </span>
+                            <span class="text-[11px] text-slate-400">Jurnal KBM, rekap presensi mengajar, penugasan mapel & wali kelas</span>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                            @foreach(['kehadiran_guru', 'master_guru'] as $mKey)
+                            @php $mod = $modules[$mKey]; @endphp
+                            <div @click="currentModule = '{{ $mKey }}'"
+                                 class="relative p-4 rounded-xl border-2 transition-all cursor-pointer select-none"
+                                 :class="currentModule === '{{ $mKey }}' ? 'border-amber-600 bg-amber-50/40 ring-2 ring-amber-500/20 shadow-xs' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/50'">
+                                <div class="flex items-start justify-between gap-2">
+                                    <span class="px-2 py-0.5 rounded-md text-[10px] font-bold border {{ $mod['badge'] }}">
+                                        {{ $mod['key'] }}
+                                    </span>
+                                    <div class="w-4 h-4 rounded-full border flex items-center justify-center transition-colors"
+                                         :class="currentModule === '{{ $mKey }}' ? 'border-amber-600 bg-amber-600 text-white' : 'border-slate-300 bg-white'">
+                                        <svg x-show="currentModule === '{{ $mKey }}'" class="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                    </div>
+                                </div>
+                                <h3 class="text-xs font-bold text-slate-900 mt-2.5">{{ $mod['label'] }}</h3>
+                                <p class="text-[11px] text-slate-500 mt-1 leading-relaxed">{{ $mod['description'] }}</p>
+                            </div>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    <!-- KATEGORI 3: LOG SISTEM -->
+                    <div x-show="activeCategory === 'all' || activeCategory === 'sistem'" class="space-y-2.5">
+                        <div class="flex items-center gap-2 pt-2 border-t border-slate-100">
+                            <span class="px-2.5 py-1 rounded-lg bg-blue-100 text-blue-800 text-[11px] font-bold flex items-center gap-1.5">
+                                <span>⚙️</span>
+                                <span>Kategori: Sistem & Audit Trail</span>
+                            </span>
+                            <span class="text-[11px] text-slate-400">Rekam mutasi data dan jejak aktivitas akun</span>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                            @php $mod = $modules['activity_log']; @endphp
+                            <div @click="currentModule = 'activity_log'"
+                                 class="relative p-4 rounded-xl border-2 transition-all cursor-pointer select-none"
+                                 :class="currentModule === 'activity_log' ? 'border-blue-600 bg-blue-50/40 ring-2 ring-blue-500/20 shadow-xs' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/50'">
+                                <div class="flex items-start justify-between gap-2">
+                                    <span class="px-2 py-0.5 rounded-md text-[10px] font-bold border {{ $mod['badge'] }}">
+                                        {{ $mod['key'] }}
+                                    </span>
+                                    <div class="w-4 h-4 rounded-full border flex items-center justify-center transition-colors"
+                                         :class="currentModule === 'activity_log' ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-300 bg-white'">
+                                        <svg x-show="currentModule === 'activity_log'" class="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                    </div>
+                                </div>
+                                <h3 class="text-xs font-bold text-slate-900 mt-2.5">{{ $mod['label'] }}</h3>
+                                <p class="text-[11px] text-slate-500 mt-1 leading-relaxed">{{ $mod['description'] }}</p>
                             </div>
                         </div>
-                        <h3 class="text-xs font-bold text-slate-900 mt-2.5">{{ $mod['label'] }}</h3>
-                        <p class="text-[11px] text-slate-500 mt-1 leading-relaxed">{{ $mod['description'] }}</p>
                     </div>
-                    @endforeach
                 </div>
             </div>
 
@@ -169,7 +289,7 @@
                     <span class="text-xs text-slate-400">Parameter kontekstual sesuai modul terpilih</span>
                 </div>
 
-                <!-- Filters for rekap_kehadiran -->
+                <!-- Filters for rekap_kehadiran (Data Siswa) -->
                 <div x-show="currentModule === 'rekap_kehadiran'" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 text-xs">
                     <div>
                         <label class="block font-semibold text-slate-700 mb-1">Tahun Ajaran</label>
@@ -222,7 +342,129 @@
                     </div>
                 </div>
 
-                <!-- Filters for activity_log -->
+                <!-- Filters for master_siswa (Data Siswa) -->
+                <div x-show="currentModule === 'master_siswa'" style="display: none;" class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-xs">
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Tingkat / Angkatan</label>
+                        <select name="tingkat"
+                                x-model="selectedTingkatSiswa"
+                                @change="selectedKelasSiswa = 'all'"
+                                :disabled="currentModule !== 'master_siswa'"
+                                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-purple-500">
+                            <option value="all">Semua Tingkat (10, 11, 12)</option>
+                            @foreach($tingkatList as $t)
+                                <option value="{{ $t }}">Tingkat / Kelas {{ $t }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Filter Kelas Spesifik</label>
+                        <select name="kelas_id"
+                                x-model="selectedKelasSiswa"
+                                :disabled="currentModule !== 'master_siswa'"
+                                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-purple-500">
+                            <option value="all" x-text="selectedTingkatSiswa === 'all' ? 'Semua Kelas (Seluruh Tingkat)' : 'Semua Kelas (Tingkat ' + selectedTingkatSiswa + ')'"></option>
+                            @foreach($kelasList as $kls)
+                                <option value="{{ $kls->id }}"
+                                        :hidden="selectedTingkatSiswa !== 'all' && String(selectedTingkatSiswa) !== String('{{ $kls->tingkat }}')"
+                                        :disabled="selectedTingkatSiswa !== 'all' && String(selectedTingkatSiswa) !== String('{{ $kls->tingkat }}')">
+                                    {{ $kls->nama }} (Tingkat {{ $kls->tingkat }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Status Keaktifan Akun</label>
+                        <select name="status_aktif" :disabled="currentModule !== 'master_siswa'" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-purple-500">
+                            <option value="all">Semua Status (Aktif & Nonaktif)</option>
+                            <option value="1">Hanya Siswa Aktif</option>
+                            <option value="0">Hanya Siswa Nonaktif</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Filters for kehadiran_guru (Data Guru) -->
+                <div x-show="currentModule === 'kehadiran_guru'" style="display: none;" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 text-xs">
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Tanggal Mulai (KBM)</label>
+                        <input type="date" name="start_date" :disabled="currentModule !== 'kehadiran_guru'" value="{{ request('start_date') }}"
+                               class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-amber-500">
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Tanggal Selesai (KBM)</label>
+                        <input type="date" name="end_date" :disabled="currentModule !== 'kehadiran_guru'" value="{{ request('end_date') }}"
+                               class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-amber-500">
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Guru Pengajar</label>
+                        <select name="guru_id" :disabled="currentModule !== 'kehadiran_guru'" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-amber-500">
+                            <option value="all">Semua Guru</option>
+                            @foreach($guruList as $g)
+                                <option value="{{ $g->id }}">{{ $g->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Status Presensi</label>
+                        <select name="status_kehadiran" :disabled="currentModule !== 'kehadiran_guru'" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-amber-500">
+                            <option value="all">Semua Status</option>
+                            <option value="hadir">Hadir (Tepat Waktu)</option>
+                            <option value="terlambat">Terlambat</option>
+                            <option value="izin">Izin</option>
+                            <option value="sakit">Sakit</option>
+                            <option value="tidak_hadir">Alpa / Tanpa Keterangan</option>
+                            <option value="dispensasi">Dispensasi / Tugas Luar</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Filter Kelas</label>
+                        <select name="kelas_id" :disabled="currentModule !== 'kehadiran_guru'" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-amber-500">
+                            <option value="all">Semua Kelas</option>
+                            @foreach($kelasList as $kls)
+                                <option value="{{ $kls->id }}">{{ $kls->nama }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Filters for master_guru (Data Guru) -->
+                <div x-show="currentModule === 'master_guru'" style="display: none;" class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-xs">
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Mata Pelajaran Diampu</label>
+                        <select name="mapel_id" :disabled="currentModule !== 'master_guru'" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-amber-500">
+                            <option value="all">Semua Mata Pelajaran</option>
+                            @foreach($mapelList as $mpl)
+                                <option value="{{ $mpl->id }}">{{ $mpl->nama }} ({{ $mpl->kode }})</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Penugasan Struktural</label>
+                        <select name="status_wali" :disabled="currentModule !== 'master_guru'" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-amber-500">
+                            <option value="all">Semua Guru (Dengan/Tanpa Penugasan)</option>
+                            <option value="ya">Hanya Wali Kelas</option>
+                            <option value="tidak">Bukan Wali Kelas</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">Status Keaktifan Akun</label>
+                        <select name="status_aktif" :disabled="currentModule !== 'master_guru'" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-amber-500">
+                            <option value="all">Semua Status (Aktif & Nonaktif)</option>
+                            <option value="1">Hanya Guru Aktif</option>
+                            <option value="0">Hanya Guru Nonaktif</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Filters for activity_log (Log Sistem) -->
                 <div x-show="currentModule === 'activity_log'" style="display: none;" class="grid grid-cols-1 sm:grid-cols-4 gap-3.5 text-xs">
                     <div>
                         <label class="block font-semibold text-slate-700 mb-1">Tanggal Mulai (Start Date)</label>
@@ -261,49 +503,6 @@
                         </select>
                     </div>
                 </div>
-
-                <!-- Filters for master_siswa -->
-                <div x-show="currentModule === 'master_siswa'" style="display: none;" class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-xs">
-                    <div>
-                        <label class="block font-semibold text-slate-700 mb-1">Tingkat / Angkatan</label>
-                        <select name="tingkat"
-                                x-model="selectedTingkatSiswa"
-                                @change="selectedKelasSiswa = 'all'"
-                                :disabled="currentModule !== 'master_siswa'"
-                                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500">
-                            <option value="all">Semua Tingkat (10, 11, 12)</option>
-                            @foreach($tingkatList as $t)
-                                <option value="{{ $t }}">Tingkat / Kelas {{ $t }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block font-semibold text-slate-700 mb-1">Filter Kelas Spesifik</label>
-                        <select name="kelas_id"
-                                x-model="selectedKelasSiswa"
-                                :disabled="currentModule !== 'master_siswa'"
-                                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500">
-                            <option value="all" x-text="selectedTingkatSiswa === 'all' ? 'Semua Kelas (Seluruh Tingkat)' : 'Semua Kelas (Tingkat ' + selectedTingkatSiswa + ')'"></option>
-                            @foreach($kelasList as $kls)
-                                <option value="{{ $kls->id }}"
-                                        :hidden="selectedTingkatSiswa !== 'all' && String(selectedTingkatSiswa) !== String('{{ $kls->tingkat }}')"
-                                        :disabled="selectedTingkatSiswa !== 'all' && String(selectedTingkatSiswa) !== String('{{ $kls->tingkat }}')">
-                                    {{ $kls->nama }} (Tingkat {{ $kls->tingkat }})
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block font-semibold text-slate-700 mb-1">Status Keaktifan Akun</label>
-                        <select name="status_aktif" :disabled="currentModule !== 'master_siswa'" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500">
-                            <option value="all">Semua Status (Aktif & Nonaktif)</option>
-                            <option value="1">Hanya Siswa Aktif</option>
-                            <option value="0">Hanya Siswa Nonaktif</option>
-                        </select>
-                    </div>
-                </div>
             </div>
 
             <!-- STEP 3: Pilih Kolom Data (Dynamic Column Selection) -->
@@ -312,7 +511,12 @@
                     <div class="flex items-center gap-2">
                         <span class="w-6 h-6 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center">3</span>
                         <div>
-                            <h2 class="text-sm font-bold text-slate-900">Pilih Kolom Data yang Ingin Disertakan</h2>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h2 class="text-sm font-bold text-slate-900">Pilih Kolom Data yang Ingin Disertakan</h2>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold"
+                                      :class="currentModule.includes('guru') ? 'bg-amber-100 text-amber-800 border border-amber-200' : (currentModule.includes('siswa') || currentModule === 'rekap_kehadiran' ? 'bg-purple-100 text-purple-800 border border-purple-200' : 'bg-blue-100 text-blue-800 border border-blue-200')"
+                                      x-text="currentModule === 'rekap_kehadiran' ? '🎓 Rekap Kehadiran Siswa' : (currentModule === 'master_siswa' ? '🎓 Master Siswa' : (currentModule === 'kehadiran_guru' ? '👨‍🏫 Jurnal KBM Guru' : (currentModule === 'master_guru' ? '👨‍🏫 Master Guru' : '⚙️ Log Sistem')))"></span>
+                            </div>
                             <p class="text-[11px] text-slate-500 mt-0.5">Centang bidang data yang akan menjadi header tabel pada Sheet Data Mentah.</p>
                         </div>
                     </div>

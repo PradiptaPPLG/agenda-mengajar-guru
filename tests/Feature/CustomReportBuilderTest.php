@@ -3,7 +3,12 @@
 namespace Tests\Feature;
 
 use App\Models\ActivityLog;
+use App\Models\GuruProfile;
+use App\Models\JadwalPelajaran;
+use App\Models\KehadiranGuru;
 use App\Models\Kelas;
+use App\Models\MataPelajaran;
+use App\Models\Pertemuan;
 use App\Models\RekapKehadiranSiswa;
 use App\Models\SiswaProfile;
 use App\Models\User;
@@ -70,7 +75,11 @@ class CustomReportBuilderTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Custom Dynamic Report');
+        $response->assertSee('Kategori Data Siswa');
+        $response->assertSee('Kategori Data Guru');
         $response->assertSee('Rekap Kehadiran Siswa');
+        $response->assertSee('Jurnal Presensi & KBM Guru');
+        $response->assertSee('Data Master Guru & Penugasan');
         $response->assertSee('Log Aktivitas');
         $response->assertSee('Data Master Siswa');
     }
@@ -294,6 +303,113 @@ class CustomReportBuilderTest extends TestCase
             'tingkat' => '10',
             'kelas_id' => 'all',
             'include_pivot' => 1,
+        ];
+
+        $response = $this->actingAs($this->superAdmin)->post(route('super-admin.custom-report.export'), $payload);
+
+        $response->assertOk();
+        $this->assertStringContainsString('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', $response->headers->get('Content-Type') ?? '');
+    }
+
+    /**
+     * Test 10: Ekspor Jurnal Presensi & KBM Guru menghasilkan file .xlsx multi-sheet dengan status 200.
+     */
+    public function test_export_kehadiran_guru_generates_valid_excel_download(): void
+    {
+        $guru = User::create([
+            'name' => 'Budi Santoso, S.Pd',
+            'email' => 'budis@sekolah.test',
+            'password' => Hash::make('password'),
+            'role' => 'guru',
+            'is_active' => true,
+        ]);
+
+        GuruProfile::create([
+            'user_id' => $guru->id,
+            'nip' => '198501012010011001',
+            'jenis_kelamin' => 'L',
+        ]);
+
+        $mapel = MataPelajaran::create([
+            'nama' => 'Pemrograman Web & Perangkat Bergerak',
+            'kode' => 'PWPB',
+        ]);
+
+        $jadwal = JadwalPelajaran::create([
+            'kelas_id' => $this->kelas->id,
+            'guru_id' => $guru->id,
+            'mata_pelajaran_id' => $mapel->id,
+            'hari' => 1,
+            'jam_mulai' => '07:15',
+            'jam_selesai' => '09:30',
+            'tahun_ajaran' => '2026/2027',
+            'semester' => 'ganjil',
+        ]);
+
+        $pertemuan = Pertemuan::create([
+            'jadwal_id' => $jadwal->id,
+            'tanggal' => '2026-10-15',
+            'materi_ajar' => 'Laravel Controller Architecture',
+            'status' => 'selesai',
+            'tahun_ajaran' => '2026/2027',
+            'semester' => 'ganjil',
+        ]);
+
+        KehadiranGuru::create([
+            'pertemuan_id' => $pertemuan->id,
+            'guru_id' => $guru->id,
+            'status' => 'hadir',
+            'waktu_hadir' => '2026-10-15 07:10:00',
+        ]);
+
+        $payload = [
+            'module' => 'kehadiran_guru',
+            'columns' => ['tanggal', 'nama_guru', 'nip', 'mata_pelajaran', 'kelas', 'status_kehadiran'],
+            'include_pivot' => 1,
+            'guru_id' => 'all',
+            'status_kehadiran' => 'all',
+            'kelas_id' => 'all',
+        ];
+
+        $response = $this->actingAs($this->superAdmin)->post(route('super-admin.custom-report.export'), $payload);
+
+        $response->assertOk();
+        $this->assertStringContainsString('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', $response->headers->get('Content-Type') ?? '');
+    }
+
+    /**
+     * Test 11: Ekspor Data Master Guru & Penugasan menghasilkan file .xlsx multi-sheet dengan status 200.
+     */
+    public function test_export_master_guru_generates_valid_excel_download(): void
+    {
+        $guru = User::create([
+            'name' => 'Siti Nurhaliza, M.Kom',
+            'email' => 'siti@sekolah.test',
+            'password' => Hash::make('password'),
+            'role' => 'guru',
+            'is_active' => true,
+        ]);
+
+        GuruProfile::create([
+            'user_id' => $guru->id,
+            'nip' => '199002022015022002',
+            'kaprog_jurusan' => 'RPL',
+        ]);
+
+        $mapel = MataPelajaran::create([
+            'nama' => 'Basis Data Relasional',
+            'kode' => 'BD',
+        ]);
+
+        $guru->mapels()->attach($mapel->id);
+
+        $payload = [
+            'module' => 'master_guru',
+            'columns' => ['nama', 'nip', 'email', 'mapel', 'wali_kelas', 'kaprog_jurusan', 'status_akun'],
+            'include_pivot' => 1,
+            'mapel_id' => 'all',
+            'status_wali' => 'all',
+            'status_aktif' => 'all',
         ];
 
         $response = $this->actingAs($this->superAdmin)->post(route('super-admin.custom-report.export'), $payload);
