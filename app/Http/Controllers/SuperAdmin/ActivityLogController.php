@@ -84,15 +84,36 @@ class ActivityLogController extends Controller
         }
 
         if ($request->filled('action')) {
-            $query->where('action', strtoupper($request->action));
+            if (is_string($request->action)) {
+                $query->where('action', strtoupper($request->action));
+            } elseif (is_array($request->action)) {
+                $actions = array_filter(array_map('strtoupper', array_filter($request->action, 'is_string')));
+                if (! empty($actions)) {
+                    $query->whereIn('action', $actions);
+                }
+            }
         }
 
         if ($request->filled('module')) {
-            $query->where('module', $request->module);
+            if (is_string($request->module)) {
+                $query->where('module', $request->module);
+            } elseif (is_array($request->module)) {
+                $modules = array_filter($request->module, 'is_string');
+                if (! empty($modules)) {
+                    $query->whereIn('module', $modules);
+                }
+            }
         }
 
         if ($request->filled('role')) {
-            $query->where('role', $request->role);
+            if (is_string($request->role)) {
+                $query->where('role', $request->role);
+            } elseif (is_array($request->role)) {
+                $roles = array_filter($request->role, 'is_string');
+                if (! empty($roles)) {
+                    $query->whereIn('role', $roles);
+                }
+            }
         }
 
         if ($request->filled('start_date')) {
@@ -105,21 +126,59 @@ class ActivityLogController extends Controller
 
         $logs = $query->simplePaginate(25)->withQueryString();
 
-        $availableActions = Cache::remember('activity_log:available_actions', 3600, function () {
+        // Purge legacy cache keys that may contain corrupted or nested structures
+        Cache::forget('activity_log:available_actions');
+        Cache::forget('activity_log:available_modules');
+
+        $availableActions = Cache::remember('activity_log:available_actions_v3', 1800, function () {
             $actions = ActivityLog::select('action')->distinct()->pluck('action');
 
-            return $actions->isNotEmpty()
+            $list = $actions->isNotEmpty()
                 ? $actions
                 : collect(['CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'IMPERSONATE', 'RESTORE']);
+
+            return collect($list)
+                ->flatten()
+                ->filter(fn ($item) => is_string($item) && trim($item) !== '')
+                ->unique()
+                ->values()
+                ->all();
         });
 
-        $availableModules = Cache::remember('activity_log:available_modules', 3600, function () {
+        $availableActions = collect($availableActions)
+            ->flatten()
+            ->filter(fn ($item) => is_string($item) && trim($item) !== '')
+            ->unique()
+            ->values();
+
+        if ($availableActions->isEmpty()) {
+            $availableActions = collect(['CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'IMPERSONATE', 'RESTORE']);
+        }
+
+        $availableModules = Cache::remember('activity_log:available_modules_v3', 1800, function () {
             $modules = ActivityLog::select('module')->distinct()->pluck('module');
 
-            return $modules->isNotEmpty()
+            $list = $modules->isNotEmpty()
                 ? $modules
                 : collect(['Auth', 'Jadwal', 'Kelas', 'Siswa', 'Guru', 'Agenda Mengajar', 'Settings']);
+
+            return collect($list)
+                ->flatten()
+                ->filter(fn ($item) => is_string($item) && trim($item) !== '')
+                ->unique()
+                ->values()
+                ->all();
         });
+
+        $availableModules = collect($availableModules)
+            ->flatten()
+            ->filter(fn ($item) => is_string($item) && trim($item) !== '')
+            ->unique()
+            ->values();
+
+        if ($availableModules->isEmpty()) {
+            $availableModules = collect(['Auth', 'Jadwal', 'Kelas', 'Siswa', 'Guru', 'Agenda Mengajar', 'Settings']);
+        }
 
         $availableRoles = ['super_admin', 'admin', 'guru', 'siswa', 'piket', 'tu', 'kepala_sekolah', 'pengawas'];
         $categories = self::CATEGORIES;

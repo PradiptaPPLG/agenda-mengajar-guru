@@ -36,8 +36,8 @@ class ActivityLog extends Model
 
     public function getCategoryAttribute(): string
     {
-        $module = $this->module;
-        $action = $this->action;
+        $module = is_string($this->module) ? $this->module : '';
+        $action = is_string($this->action) ? strtoupper($this->action) : '';
 
         if (in_array($action, ['LOGIN', 'IMPERSONATE']) || in_array($module, ['Auth', 'Pengguna', 'Role', 'Permission', 'User'])) {
             return 'keamanan';

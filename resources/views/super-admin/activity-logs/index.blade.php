@@ -76,7 +76,12 @@
                         <select name="action" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
                             <option value="">Semua Aksi</option>
                             @foreach($availableActions as $act)
-                            <option value="{{ $act }}" {{ request('action') == $act ? 'selected' : '' }}>{{ $act }}</option>
+                                @php
+                                    $actVal = is_string($act) ? $act : (is_scalar($act) ? (string) $act : '');
+                                @endphp
+                                @if($actVal !== '')
+                                <option value="{{ $actVal }}" {{ (is_array(request('action')) ? in_array($actVal, request('action')) : (string) request('action') === $actVal) ? 'selected' : '' }}>{{ $actVal }}</option>
+                                @endif
                             @endforeach
                         </select>
                     </div>
@@ -86,7 +91,12 @@
                         <select name="module" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
                             <option value="">Semua Modul</option>
                             @foreach($availableModules as $mod)
-                            <option value="{{ $mod }}" {{ request('module') == $mod ? 'selected' : '' }}>{{ $mod }}</option>
+                                @php
+                                    $modVal = is_string($mod) ? $mod : (is_scalar($mod) ? (string) $mod : '');
+                                @endphp
+                                @if($modVal !== '')
+                                <option value="{{ $modVal }}" {{ (is_array(request('module')) ? in_array($modVal, request('module')) : (string) request('module') === $modVal) ? 'selected' : '' }}>{{ $modVal }}</option>
+                                @endif
                             @endforeach
                         </select>
                     </div>
@@ -96,7 +106,12 @@
                         <select name="role" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
                             <option value="">Semua Role</option>
                             @foreach($availableRoles as $r)
-                            <option value="{{ $r }}" {{ request('role') == $r ? 'selected' : '' }}>{{ ucfirst(str_replace('_', ' ', $r)) }}</option>
+                                @php
+                                    $rVal = is_string($r) ? $r : (is_scalar($r) ? (string) $r : '');
+                                @endphp
+                                @if($rVal !== '')
+                                <option value="{{ $rVal }}" {{ (is_array(request('role')) ? in_array($rVal, request('role')) : (string) request('role') === $rVal) ? 'selected' : '' }}>{{ ucfirst(str_replace('_', ' ', $rVal)) }}</option>
+                                @endif
                             @endforeach
                         </select>
                     </div>
@@ -147,7 +162,8 @@
                     <tbody class="divide-y divide-slate-100">
                         @forelse($logs as $log)
                         @php
-                            $actionColor = match(strtoupper($log->action)) {
+                            $actionUpper = is_string($log->action) ? strtoupper($log->action) : '';
+                            $actionColor = match($actionUpper) {
                                 'CREATE' => 'emerald',
                                 'UPDATE' => 'blue',
                                 'DELETE' => 'red',
@@ -181,10 +197,10 @@
                             <td class="px-4 py-3">
                                 <div class="flex items-center gap-1.5 flex-wrap">
                                     <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-{{ $actionColor }}-50 text-{{ $actionColor }}-700 border border-{{ $actionColor }}-200">
-                                        {{ $log->action }}
+                                        {{ is_string($log->action) ? $log->action : (is_scalar($log->action) ? (string) $log->action : '-') }}
                                     </span>
                                     <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
-                                        {{ $log->module }}
+                                        {{ is_string($log->module) ? $log->module : (is_scalar($log->module) ? (string) $log->module : '-') }}
                                     </span>
                                     <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold border {{ $log->category_meta['badge'] }}">
                                         {{ $log->category_meta['label'] }}

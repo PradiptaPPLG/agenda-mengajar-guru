@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\ActivityLog;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
@@ -157,5 +158,48 @@ class ActivityLogCategorizationTest extends TestCase
         $resSistem->assertSee('Perubahan geofencing sekolah');
         $resSistem->assertDontSee('Login aktivitas keamanan');
         $resSistem->assertDontSee('Mutasi kelas siswa Ahmad');
+    }
+
+    /**
+     * Test 4: Halaman log kebal terhadap cache lama yang korup atau berisi nested array.
+     */
+    public function test_activity_logs_index_resilient_against_corrupted_nested_cache_or_arrays(): void
+    {
+        // Simulasi cache lama yang berisi nested array
+        Cache::put('activity_log:available_actions', [
+            ['LOGIN', 'IMPERSONATE'],
+            [],
+            ['RESTORE'],
+        ]);
+        Cache::put('activity_log:available_actions_v3', [
+            ['LOGIN', 'IMPERSONATE'],
+            'UPDATE',
+            ['RESTORE'],
+        ]);
+        Cache::put('activity_log:available_modules_v3', [
+            ['Auth', 'Jadwal'],
+            'Kelas',
+        ]);
+
+        ActivityLog::create([
+            'user_name' => 'Budi',
+            'role' => 'admin',
+            'action' => 'LOGIN',
+            'module' => 'Auth',
+            'description' => 'Test log kebal error',
+        ]);
+
+        // Akses langsung tanpa parameter (seperti klik Semua Log di PWA / browser)
+        $response = $this->actingAs($this->superAdmin)->get(route('super-admin.activity-logs.index'));
+        $response->assertOk();
+        $response->assertSee('Semua Aksi');
+        $response->assertSee('Test log kebal error');
+
+        // Akses dengan query array ganjil tidak boleh membuat TypeError
+        $resQueryArray = $this->actingAs($this->admin)->get(route('super-admin.activity-logs.index', [
+            'action' => ['LOGIN'],
+            'module' => ['Auth'],
+        ]));
+        $resQueryArray->assertOk();
     }
 }
