@@ -47,7 +47,37 @@
             </div>
 
             {{-- Navigation --}}
-            <nav @click="if (window.innerWidth < 1024) sidebarOpen = false" class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+            <nav id="admin-sidebar-nav"
+                 x-ref="sidebarNav"
+                 x-init="
+                    const restoreNavScroll = () => {
+                        try {
+                            const pos = sessionStorage.getItem('admin_sidebar_scroll_pos');
+                            if (pos !== null) {
+                                $el.scrollTop = parseInt(pos, 10);
+                            } else {
+                                const activeItem = $el.querySelector('.bg-blue-50, .text-blue-700.font-bold, [aria-current=\'page\']');
+                                if (activeItem) {
+                                    activeItem.scrollIntoView({ block: 'nearest' });
+                                }
+                            }
+                        } catch(e) {}
+                    };
+                    restoreNavScroll();
+                    $nextTick(() => restoreNavScroll());
+                    setTimeout(restoreNavScroll, 50);
+                    setTimeout(restoreNavScroll, 150);
+                 "
+                 @scroll.passive="sessionStorage.setItem('admin_sidebar_scroll_pos', $el.scrollTop)"
+                 @click="
+                    if ($event.target.closest('a')) {
+                        sessionStorage.setItem('admin_sidebar_scroll_pos', $el.scrollTop);
+                    }
+                    if (window.innerWidth < 1024 && $event.target.closest('a')) {
+                        sidebarOpen = false;
+                    }
+                 "
+                 class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
                 @php $isAdmin = in_array(auth()->user()->role, ['admin', 'super_admin']); @endphp
                 
                 @if(auth()->user()->role === 'tu')
@@ -148,6 +178,7 @@
 
                 <div x-data="{ open: {{ request()->routeIs('admin.pengguna.*', 'admin.roles.*', 'admin.permissions.*', 'admin.permission-categories.*') ? 'true' : 'false' }} }">
                     <button @click="open = !open" 
+                            type="button"
                             class="flex w-full items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('admin.pengguna.*', 'admin.roles.*', 'admin.permissions.*', 'admin.permission-categories.*') ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
                         <div class="flex items-center gap-2.5">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
@@ -155,20 +186,21 @@
                         </div>
                         <svg :class="{'rotate-180': open}" class="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                     </button>
-                    <div x-show="open" style="display: none;" class="pl-7 pr-3 pt-1 pb-2 space-y-1">
+                    <div x-show="open" @if(!request()->routeIs('admin.pengguna.*', 'admin.roles.*', 'admin.permissions.*', 'admin.permission-categories.*')) style="display: none;" @endif class="pl-7 pr-3 pt-1 pb-2 space-y-1">
                         <a href="{{ route('admin.pengguna.index') }}" 
                            class="block px-3 py-1.5 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('admin.pengguna.*') ? 'text-blue-700 bg-blue-50/50' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50' }}">
                             Pengguna
                         </a>
                         <div x-data="{ openRole: {{ request()->routeIs('admin.roles.*', 'admin.permissions.*', 'admin.permission-categories.*') ? 'true' : 'false' }} }">
                             <button @click="openRole = !openRole" 
+                                    type="button"
                                     class="flex w-full items-center justify-between px-3 py-1.5 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('admin.roles.*', 'admin.permissions.*', 'admin.permission-categories.*') ? 'text-blue-700' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50' }}">
                                 <div class="flex items-center gap-2.5">
                                     Role & Permission
                                 </div>
                                 <svg :class="{'rotate-180': openRole}" class="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                             </button>
-                            <div x-show="openRole" style="display: none;" class="pl-4 pr-3 pt-1 space-y-1">
+                            <div x-show="openRole" @if(!request()->routeIs('admin.roles.*', 'admin.permissions.*', 'admin.permission-categories.*')) style="display: none;" @endif class="pl-4 pr-3 pt-1 space-y-1">
                                 <a href="{{ route('admin.permission-categories.index') }}" 
                                    class="block px-3 py-1.5 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('admin.permission-categories.*') ? 'text-blue-700 bg-blue-50/50' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50' }}">
                                     Kategori Permission
@@ -197,7 +229,7 @@
                         </div>
                         <svg :class="{'rotate-180': openLog}" class="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                     </button>
-                    <div x-show="openLog" style="display: none;" class="pl-7 pr-3 pt-1 pb-2 space-y-1">
+                    <div x-show="openLog" @if(!request()->routeIs('super-admin.activity-logs.*')) style="display: none;" @endif class="pl-7 pr-3 pt-1 pb-2 space-y-1">
                         <a href="{{ route('super-admin.activity-logs.index') }}" 
                            class="block px-3 py-1.5 rounded-lg text-xs font-medium transition-colors {{ request()->routeIs('super-admin.activity-logs.*') && !request('kategori') ? 'text-blue-700 bg-blue-50/70 font-bold' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50' }}">
                             Semua Log
@@ -243,6 +275,7 @@
 
                 <div x-data="{ open: {{ request()->routeIs('kepala-sekolah.report.*') ? 'true' : 'false' }} }">
                     <button @click="open = !open" 
+                            type="button"
                             class="flex w-full items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('kepala-sekolah.report.*') ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
                         <div class="flex items-center gap-2.5">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
@@ -250,7 +283,7 @@
                         </div>
                         <svg :class="{'rotate-180': open}" class="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                     </button>
-                    <div x-show="open" style="display: none;" class="pl-7 pr-3 pt-1 pb-2 space-y-1">
+                    <div x-show="open" @if(!request()->routeIs('kepala-sekolah.report.*')) style="display: none;" @endif class="pl-7 pr-3 pt-1 pb-2 space-y-1">
                         <a href="{{ route('kepala-sekolah.report.guru') }}" 
                            class="block px-3 py-1.5 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('kepala-sekolah.report.guru') ? 'text-blue-700 bg-blue-50/50' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50' }}">
                             Laporan Guru
@@ -272,6 +305,27 @@
                 </x-admin-nav-link>
                 @endif
             </nav>
+
+            {{-- Script to restore sidebar scroll position immediately without jump/flicker --}}
+            <script>
+                (function() {
+                    try {
+                        var nav = document.getElementById('admin-sidebar-nav');
+                        var pos = sessionStorage.getItem('admin_sidebar_scroll_pos');
+                        if (nav && pos !== null) {
+                            nav.scrollTop = parseInt(pos, 10);
+                        }
+                    } catch (e) {}
+                })();
+                window.addEventListener('beforeunload', function() {
+                    var nav = document.getElementById('admin-sidebar-nav');
+                    if (nav) {
+                        try {
+                            sessionStorage.setItem('admin_sidebar_scroll_pos', nav.scrollTop);
+                        } catch (e) {}
+                    }
+                });
+            </script>
 
             <div class="px-3 py-2">
                 <a href="{{ route('panduan') }}" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors">
