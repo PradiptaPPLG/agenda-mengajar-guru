@@ -6,6 +6,7 @@ use App\Models\ActivityLog;
 use App\Models\GuruProfile;
 use App\Models\JadwalPelajaran;
 use App\Models\KehadiranGuru;
+use App\Models\KehadiranSiswa;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
 use App\Models\Pertemuan;
@@ -416,5 +417,153 @@ class CustomReportBuilderTest extends TestCase
 
         $response->assertOk();
         $this->assertStringContainsString('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', $response->headers->get('Content-Type') ?? '');
+    }
+
+    /**
+     * Test 12: Ekspor Rekap Kehadiran Siswa mode per hari (start_date = end_date) menghasilkan file .xlsx.
+     */
+    public function test_export_rekap_kehadiran_daily_mode_generates_valid_excel_download(): void
+    {
+        $guru = User::create([
+            'name' => 'Guru Tes Harian',
+            'email' => 'guru.harian@test.com',
+            'password' => Hash::make('password'),
+            'role' => 'guru',
+            'is_active' => true,
+        ]);
+
+        $siswa = User::create([
+            'name' => 'Siswa Tes Harian',
+            'email' => 'siswa.harian@test.com',
+            'password' => Hash::make('password'),
+            'role' => 'siswa',
+            'is_active' => true,
+        ]);
+
+        SiswaProfile::create([
+            'user_id' => $siswa->id,
+            'nis' => '77001',
+            'kelas_id' => $this->kelas->id,
+            'kelompok_blok' => 'kelompok_a',
+        ]);
+
+        $mapel = MataPelajaran::create(['nama' => 'Basis Data', 'kode' => 'BD']);
+
+        $jadwal = JadwalPelajaran::create([
+            'kelas_id' => $this->kelas->id,
+            'guru_id' => $guru->id,
+            'mata_pelajaran_id' => $mapel->id,
+            'hari' => 1,
+            'jam_mulai' => '07:00:00',
+            'jam_selesai' => '08:30:00',
+            'tahun_ajaran' => '2026/2027',
+            'semester' => 'ganjil',
+        ]);
+
+        $tanggal = now()->toDateString();
+
+        $pertemuan = Pertemuan::create([
+            'jadwal_id' => $jadwal->id,
+            'tanggal' => $tanggal,
+            'status' => 'selesai',
+            'tahun_ajaran' => '2026/2027',
+            'semester' => 'ganjil',
+        ]);
+
+        KehadiranSiswa::create([
+            'pertemuan_id' => $pertemuan->id,
+            'siswa_id' => $siswa->id,
+            'status' => 'hadir',
+        ]);
+
+        $payload = [
+            'module' => 'rekap_kehadiran',
+            'columns' => ['nama_siswa', 'nis', 'kelas', 'hadir', 'sakit', 'alpa', 'persentase_kehadiran'],
+            'include_pivot' => 1,
+            'start_date' => $tanggal,
+            'end_date' => $tanggal,
+        ];
+
+        $response = $this->actingAs($this->superAdmin)->post(route('super-admin.custom-report.export'), $payload);
+
+        $response->assertOk();
+        $this->assertStringContainsString(
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            $response->headers->get('Content-Type') ?? ''
+        );
+        $this->assertStringContainsString('custom_report_rekap_kehadiran', $response->headers->get('Content-Disposition') ?? '');
+    }
+
+    /**
+     * Test 13: Ekspor Rekap Kehadiran dengan hanya start_date (auto-fill end_date = start_date).
+     */
+    public function test_export_rekap_kehadiran_only_start_date_autofills_end_date(): void
+    {
+        $guru = User::create([
+            'name' => 'Guru Tes Autofill',
+            'email' => 'guru.autofill@test.com',
+            'password' => Hash::make('password'),
+            'role' => 'guru',
+            'is_active' => true,
+        ]);
+
+        $siswa = User::create([
+            'name' => 'Siswa Tes Autofill',
+            'email' => 'siswa.autofill@test.com',
+            'password' => Hash::make('password'),
+            'role' => 'siswa',
+            'is_active' => true,
+        ]);
+
+        SiswaProfile::create([
+            'user_id' => $siswa->id,
+            'nis' => '77002',
+            'kelas_id' => $this->kelas->id,
+            'kelompok_blok' => 'kelompok_a',
+        ]);
+
+        $mapel = MataPelajaran::create(['nama' => 'Matematika', 'kode' => 'MTK']);
+
+        $jadwal = JadwalPelajaran::create([
+            'kelas_id' => $this->kelas->id,
+            'guru_id' => $guru->id,
+            'mata_pelajaran_id' => $mapel->id,
+            'hari' => 2,
+            'jam_mulai' => '08:00:00',
+            'jam_selesai' => '09:30:00',
+            'tahun_ajaran' => '2026/2027',
+            'semester' => 'ganjil',
+        ]);
+
+        $tanggal = now()->toDateString();
+        $pertemuan = Pertemuan::create([
+            'jadwal_id' => $jadwal->id,
+            'tanggal' => $tanggal,
+            'status' => 'selesai',
+            'tahun_ajaran' => '2026/2027',
+            'semester' => 'ganjil',
+        ]);
+
+        KehadiranSiswa::create([
+            'pertemuan_id' => $pertemuan->id,
+            'siswa_id' => $siswa->id,
+            'status' => 'terlambat',
+        ]);
+
+        // Send only start_date — controller should auto-fill end_date = start_date
+        $payload = [
+            'module' => 'rekap_kehadiran',
+            'columns' => ['nama_siswa', 'kelas', 'hadir', 'terlambat', 'persentase_kehadiran'],
+            'include_pivot' => 0,
+            'start_date' => $tanggal,
+        ];
+
+        $response = $this->actingAs($this->superAdmin)->post(route('super-admin.custom-report.export'), $payload);
+
+        $response->assertOk();
+        $this->assertStringContainsString(
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            $response->headers->get('Content-Type') ?? ''
+        );
     }
 }

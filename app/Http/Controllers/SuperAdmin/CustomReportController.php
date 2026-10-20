@@ -5,8 +5,10 @@ namespace App\Http\Controllers\SuperAdmin;
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
 use App\Models\KehadiranGuru;
+use App\Models\KehadiranSiswa;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
+use App\Models\Pertemuan;
 use App\Models\RekapKehadiranSiswa;
 use App\Models\Setting;
 use App\Models\User;
@@ -234,6 +236,14 @@ class CustomReportController extends Controller
 
         $includePivot = $request->boolean('include_pivot', true);
 
+        // Auto-fill end_date when only start_date is supplied (single-day / perhari mode)
+        if (! empty($validated['start_date']) && empty($validated['end_date'])) {
+            $validated['end_date'] = $validated['start_date'];
+        }
+        if (! empty($validated['end_date']) && empty($validated['start_date'])) {
+            $validated['start_date'] = $validated['end_date'];
+        }
+
         // Prepare temporary file path
         $timestamp = Carbon::now()->format('Ymd_His');
         $fileName = 'custom_report_'.$moduleKey.'_'.$timestamp.'.xlsx';
@@ -282,6 +292,10 @@ class CustomReportController extends Controller
     /**
      * Process and write Rekap Kehadiran module (Data Detail + Pivot Rekap Kelas).
      *
+     * Dual-path routing:
+     *  - If start_date & end_date are supplied: aggregate from KehadiranSiswa (daily/range mode).
+     *  - Otherwise: use fast RekapKehadiranSiswa semester aggregation table.
+     *
      * @param  array<int, string>  $selectedColumns
      * @param  array<string, mixed>  $filters
      */
@@ -292,99 +306,218 @@ class CustomReportController extends Controller
         array $filters,
         int &$totalRows
     ): void {
-        $query = RekapKehadiranSiswa::with(['siswa.siswaProfile', 'kelas'])
-            ->join('kelas', 'rekap_kehadiran_siswas.kelas_id', '=', 'kelas.id')
-            ->join('users', 'rekap_kehadiran_siswas.siswa_id', '=', 'users.id')
-            ->whereNull('kelas.deleted_at')
-            ->whereNull('users.deleted_at')
-            ->select('rekap_kehadiran_siswas.*')
-            ->orderBy('kelas.tingkat')
-            ->orderBy('kelas.nama')
-            ->orderBy('users.name');
-
-        if (! empty($filters['tingkat']) && $filters['tingkat'] !== 'all') {
-            $query->where('kelas.tingkat', $filters['tingkat']);
-        }
-
-        if (! empty($filters['kelas_id']) && $filters['kelas_id'] !== 'all') {
-            $query->where('rekap_kehadiran_siswas.kelas_id', $filters['kelas_id']);
-        }
-
-        if (! empty($filters['tahun_ajaran']) && $filters['tahun_ajaran'] !== 'all') {
-            $query->where('rekap_kehadiran_siswas.tahun_ajaran', $filters['tahun_ajaran']);
-        }
-
-        if (! empty($filters['semester']) && $filters['semester'] !== 'all') {
-            $sem = in_array(strtolower($filters['semester']), ['2', 'genap'], true) ? 'genap' : 'ganjil';
-            $query->where('rekap_kehadiran_siswas.semester', $sem);
-        }
-
-        // Pivot aggregator per kelas
-        $pivotByClass = [];
+        $startDate = ! empty($filters['start_date']) ? $filters['start_date'] : null;
+        $endDate = ! empty($filters['end_date']) ? $filters['end_date'] : null;
+        $useDateMode = $startDate !== null && $endDate !== null;
 
         $colLabels = self::MODULES['rekap_kehadiran']['columns'];
+        $pivotByClass = [];
 
-        $query->chunk(500, function ($records) use ($writer, $selectedColumns, $colLabels, &$pivotByClass, &$totalRows) {
-            foreach ($records as $item) {
-                $totalRows++;
-                $kelasName = $item->kelas?->nama ?? '-';
+        if ($useDateMode) {
+            // ── DATE MODE: aggregate per-siswa from KehadiranSiswa ──────────────────
+            // Build pertemuan subquery scoped by date range and optional class/tingkat
+            $pertemuanQuery = Pertemuan::whereBetween('tanggal', [$startDate, $endDate])
+                ->whereNull('deleted_at');
 
-                // Aggregate for Sheet 2 Pivot
-                if (! isset($pivotByClass[$kelasName])) {
-                    $pivotByClass[$kelasName] = [
-                        'kelas' => $kelasName,
-                        'tingkat' => $item->kelas?->tingkat ?? '-',
-                        'total_siswa' => 0,
-                        'hadir' => 0,
-                        'hadir_murni' => 0,
-                        'terlambat' => 0,
-                        'sakit' => 0,
-                        'izin' => 0,
-                        'alpa' => 0,
-                        'dispensasi' => 0,
-                        'total_pertemuan' => 0,
-                    ];
-                }
-
-                $pivotByClass[$kelasName]['total_siswa']++;
-                $pivotByClass[$kelasName]['hadir'] += (int) $item->hadir;
-                $pivotByClass[$kelasName]['hadir_murni'] += (int) $item->hadir_murni;
-                $pivotByClass[$kelasName]['terlambat'] += (int) $item->terlambat;
-                $pivotByClass[$kelasName]['sakit'] += (int) $item->sakit;
-                $pivotByClass[$kelasName]['izin'] += (int) $item->izin;
-                $pivotByClass[$kelasName]['alpa'] += (int) $item->alpa;
-                $pivotByClass[$kelasName]['dispensasi'] += (int) $item->dispensasi;
-                $pivotByClass[$kelasName]['total_pertemuan'] += (int) $item->total;
-
-                // Format row values for Sheet 1 Raw Data
-                $row = [];
-                $persentase = $item->total > 0 ? round(($item->hadir / $item->total) * 100, 1) : 0;
-
-                foreach ($selectedColumns as $col) {
-                    $headerTitle = $colLabels[$col]['label'];
-                    $row[$headerTitle] = match ($col) {
-                        'nama_siswa' => $item->siswa?->name ?? '-',
-                        'nis' => $item->siswa?->siswaProfile?->nis ?? '-',
-                        'kelas' => $kelasName,
-                        'tingkat' => $item->kelas?->tingkat ?? '-',
-                        'tahun_ajaran' => $item->tahun_ajaran,
-                        'semester' => ucfirst($item->semester),
-                        'total_pertemuan' => (int) $item->total,
-                        'hadir' => (int) $item->hadir,
-                        'hadir_murni' => (int) $item->hadir_murni,
-                        'terlambat' => (int) $item->terlambat,
-                        'sakit' => (int) $item->sakit,
-                        'izin' => (int) $item->izin,
-                        'alpa' => (int) $item->alpa,
-                        'dispensasi' => (int) $item->dispensasi,
-                        'persentase_kehadiran' => $persentase.'%',
-                        default => '-',
-                    };
-                }
-
-                $writer->addRow($row);
+            if (! empty($filters['kelas_id']) && $filters['kelas_id'] !== 'all') {
+                $pertemuanQuery->whereHas('jadwal', fn ($j) => $j->where('kelas_id', $filters['kelas_id']));
+            } elseif (! empty($filters['tingkat']) && $filters['tingkat'] !== 'all') {
+                $pertemuanQuery->whereHas('jadwal.kelas', fn ($k) => $k->where('tingkat', $filters['tingkat']));
             }
-        });
+
+            $pertemuanIds = $pertemuanQuery->pluck('id');
+
+            // Aggregate attendance per siswa grouped at DB level
+            $aggregateQuery = KehadiranSiswa::whereIn('pertemuan_id', $pertemuanIds)
+                ->join('users', 'kehadiran_siswas.siswa_id', '=', 'users.id')
+                ->join('siswa_profiles', 'siswa_profiles.user_id', '=', 'users.id')
+                ->join('kelas', 'siswa_profiles.kelas_id', '=', 'kelas.id')
+                ->whereNull('users.deleted_at')
+                ->selectRaw("
+                    kehadiran_siswas.siswa_id,
+                    users.name AS nama_siswa,
+                    siswa_profiles.nis,
+                    kelas.id AS kelas_id,
+                    kelas.nama AS nama_kelas,
+                    kelas.tingkat,
+                    COUNT(*) AS total_pertemuan,
+                    SUM(CASE WHEN kehadiran_siswas.status IN ('hadir','terlambat') THEN 1 ELSE 0 END) AS hadir,
+                    SUM(CASE WHEN kehadiran_siswas.status = 'hadir' THEN 1 ELSE 0 END) AS hadir_murni,
+                    SUM(CASE WHEN kehadiran_siswas.status = 'terlambat' THEN 1 ELSE 0 END) AS terlambat,
+                    SUM(CASE WHEN kehadiran_siswas.status = 'sakit' THEN 1 ELSE 0 END) AS sakit,
+                    SUM(CASE WHEN kehadiran_siswas.status = 'izin' THEN 1 ELSE 0 END) AS izin,
+                    SUM(CASE WHEN kehadiran_siswas.status = 'alpa' THEN 1 ELSE 0 END) AS alpa,
+                    SUM(CASE WHEN kehadiran_siswas.status = 'dispensasi' THEN 1 ELSE 0 END) AS dispensasi
+                ")
+                ->groupBy(
+                    'kehadiran_siswas.siswa_id',
+                    'users.name',
+                    'siswa_profiles.nis',
+                    'kelas.id',
+                    'kelas.nama',
+                    'kelas.tingkat'
+                )
+                ->orderBy('kelas.tingkat')
+                ->orderBy('kelas.nama')
+                ->orderBy('users.name');
+
+            $aggregateQuery->chunk(500, function ($records) use ($writer, $selectedColumns, $colLabels, &$pivotByClass, &$totalRows, $startDate, $endDate) {
+                foreach ($records as $item) {
+                    $totalRows++;
+                    $kelasName = $item->nama_kelas ?? '-';
+                    $tingkat = $item->tingkat ?? '-';
+
+                    if (! isset($pivotByClass[$kelasName])) {
+                        $pivotByClass[$kelasName] = [
+                            'kelas' => $kelasName,
+                            'tingkat' => $tingkat,
+                            'total_siswa' => 0,
+                            'hadir' => 0,
+                            'hadir_murni' => 0,
+                            'terlambat' => 0,
+                            'sakit' => 0,
+                            'izin' => 0,
+                            'alpa' => 0,
+                            'dispensasi' => 0,
+                            'total_pertemuan' => 0,
+                        ];
+                    }
+
+                    $pivotByClass[$kelasName]['total_siswa']++;
+                    $pivotByClass[$kelasName]['hadir'] += (int) $item->hadir;
+                    $pivotByClass[$kelasName]['hadir_murni'] += (int) $item->hadir_murni;
+                    $pivotByClass[$kelasName]['terlambat'] += (int) $item->terlambat;
+                    $pivotByClass[$kelasName]['sakit'] += (int) $item->sakit;
+                    $pivotByClass[$kelasName]['izin'] += (int) $item->izin;
+                    $pivotByClass[$kelasName]['alpa'] += (int) $item->alpa;
+                    $pivotByClass[$kelasName]['dispensasi'] += (int) $item->dispensasi;
+                    $pivotByClass[$kelasName]['total_pertemuan'] += (int) $item->total_pertemuan;
+
+                    $row = [];
+                    $persentase = (int) $item->total_pertemuan > 0
+                        ? round(((int) $item->hadir / (int) $item->total_pertemuan) * 100, 1)
+                        : 0;
+
+                    $periodeLabel = $startDate === $endDate
+                        ? Carbon::parse($startDate)->translatedFormat('d F Y')
+                        : Carbon::parse($startDate)->translatedFormat('d F Y').' s/d '.Carbon::parse($endDate)->translatedFormat('d F Y');
+
+                    foreach ($selectedColumns as $col) {
+                        $headerTitle = $colLabels[$col]['label'];
+                        $row[$headerTitle] = match ($col) {
+                            'nama_siswa' => $item->nama_siswa ?? '-',
+                            'nis' => $item->nis ?? '-',
+                            'kelas' => $kelasName,
+                            'tingkat' => $tingkat,
+                            'tahun_ajaran' => $periodeLabel,
+                            'semester' => 'Per Tanggal',
+                            'total_pertemuan' => (int) $item->total_pertemuan,
+                            'hadir' => (int) $item->hadir,
+                            'hadir_murni' => (int) $item->hadir_murni,
+                            'terlambat' => (int) $item->terlambat,
+                            'sakit' => (int) $item->sakit,
+                            'izin' => (int) $item->izin,
+                            'alpa' => (int) $item->alpa,
+                            'dispensasi' => (int) $item->dispensasi,
+                            'persentase_kehadiran' => $persentase.'%',
+                            default => '-',
+                        };
+                    }
+
+                    $writer->addRow($row);
+                }
+            });
+        } else {
+            // ── SEMESTER MODE: fast aggregation from RekapKehadiranSiswa ─────────────
+            $query = RekapKehadiranSiswa::with(['siswa.siswaProfile', 'kelas'])
+                ->join('kelas', 'rekap_kehadiran_siswas.kelas_id', '=', 'kelas.id')
+                ->join('users', 'rekap_kehadiran_siswas.siswa_id', '=', 'users.id')
+                ->whereNull('kelas.deleted_at')
+                ->whereNull('users.deleted_at')
+                ->select('rekap_kehadiran_siswas.*')
+                ->orderBy('kelas.tingkat')
+                ->orderBy('kelas.nama')
+                ->orderBy('users.name');
+
+            if (! empty($filters['tingkat']) && $filters['tingkat'] !== 'all') {
+                $query->where('kelas.tingkat', $filters['tingkat']);
+            }
+
+            if (! empty($filters['kelas_id']) && $filters['kelas_id'] !== 'all') {
+                $query->where('rekap_kehadiran_siswas.kelas_id', $filters['kelas_id']);
+            }
+
+            if (! empty($filters['tahun_ajaran']) && $filters['tahun_ajaran'] !== 'all') {
+                $query->where('rekap_kehadiran_siswas.tahun_ajaran', $filters['tahun_ajaran']);
+            }
+
+            if (! empty($filters['semester']) && $filters['semester'] !== 'all') {
+                $sem = in_array(strtolower($filters['semester']), ['2', 'genap'], true) ? 'genap' : 'ganjil';
+                $query->where('rekap_kehadiran_siswas.semester', $sem);
+            }
+
+            $query->chunk(500, function ($records) use ($writer, $selectedColumns, $colLabels, &$pivotByClass, &$totalRows) {
+                foreach ($records as $item) {
+                    $totalRows++;
+                    $kelasName = $item->kelas?->nama ?? '-';
+
+                    if (! isset($pivotByClass[$kelasName])) {
+                        $pivotByClass[$kelasName] = [
+                            'kelas' => $kelasName,
+                            'tingkat' => $item->kelas?->tingkat ?? '-',
+                            'total_siswa' => 0,
+                            'hadir' => 0,
+                            'hadir_murni' => 0,
+                            'terlambat' => 0,
+                            'sakit' => 0,
+                            'izin' => 0,
+                            'alpa' => 0,
+                            'dispensasi' => 0,
+                            'total_pertemuan' => 0,
+                        ];
+                    }
+
+                    $pivotByClass[$kelasName]['total_siswa']++;
+                    $pivotByClass[$kelasName]['hadir'] += (int) $item->hadir;
+                    $pivotByClass[$kelasName]['hadir_murni'] += (int) $item->hadir_murni;
+                    $pivotByClass[$kelasName]['terlambat'] += (int) $item->terlambat;
+                    $pivotByClass[$kelasName]['sakit'] += (int) $item->sakit;
+                    $pivotByClass[$kelasName]['izin'] += (int) $item->izin;
+                    $pivotByClass[$kelasName]['alpa'] += (int) $item->alpa;
+                    $pivotByClass[$kelasName]['dispensasi'] += (int) $item->dispensasi;
+                    $pivotByClass[$kelasName]['total_pertemuan'] += (int) $item->total;
+
+                    $row = [];
+                    $persentase = $item->total > 0
+                        ? round(($item->hadir / $item->total) * 100, 1)
+                        : 0;
+
+                    foreach ($selectedColumns as $col) {
+                        $headerTitle = $colLabels[$col]['label'];
+                        $row[$headerTitle] = match ($col) {
+                            'nama_siswa' => $item->siswa?->name ?? '-',
+                            'nis' => $item->siswa?->siswaProfile?->nis ?? '-',
+                            'kelas' => $kelasName,
+                            'tingkat' => $item->kelas?->tingkat ?? '-',
+                            'tahun_ajaran' => $item->tahun_ajaran,
+                            'semester' => ucfirst($item->semester),
+                            'total_pertemuan' => (int) $item->total,
+                            'hadir' => (int) $item->hadir,
+                            'hadir_murni' => (int) $item->hadir_murni,
+                            'terlambat' => (int) $item->terlambat,
+                            'sakit' => (int) $item->sakit,
+                            'izin' => (int) $item->izin,
+                            'alpa' => (int) $item->alpa,
+                            'dispensasi' => (int) $item->dispensasi,
+                            'persentase_kehadiran' => $persentase.'%',
+                            default => '-',
+                        };
+                    }
+
+                    $writer->addRow($row);
+                }
+            });
+        }
 
         if ($totalRows === 0) {
             $emptyRow = [];
@@ -457,7 +590,7 @@ class CustomReportController extends Controller
                 ]);
             }
 
-            // Summary Grand Total Row with golden amber highlight
+            // Summary Grand Total Row
             $grandPct = $grandTotal > 0 ? round(($grandHadir / $grandTotal) * 100, 1) : 0;
             $grandTotalStyle = (new Style)
                 ->setFontBold()

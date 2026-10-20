@@ -19,9 +19,11 @@
         selectedKelasKehadiran: 'all',
         selectedTingkatSiswa: 'all',
         selectedKelasSiswa: 'all',
+        dateStartKehadiran: '',
+        dateEndKehadiran: '',
         allColumns: {{ json_encode($moduleColumnsJson) }},
         selectedColumns: {{ json_encode($defaultColumnsJson) }},
-        
+
         selectAll() {
             this.selectedColumns[this.currentModule] = [...this.allColumns[this.currentModule]];
         },
@@ -46,6 +48,36 @@
         },
         getTotalCount() {
             return (this.allColumns[this.currentModule] || []).length;
+        },
+        toLocalDateString(date) {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        },
+        setDatePreset(preset) {
+            const today = new Date();
+            if (preset === 'today') {
+                const t = this.toLocalDateString(today);
+                this.dateStartKehadiran = t;
+                this.dateEndKehadiran   = t;
+            } else if (preset === 'yesterday') {
+                const y = new Date(today); y.setDate(y.getDate() - 1);
+                const s = this.toLocalDateString(y);
+                this.dateStartKehadiran = s;
+                this.dateEndKehadiran   = s;
+            } else if (preset === '7days') {
+                const s = new Date(today); s.setDate(s.getDate() - 6);
+                this.dateStartKehadiran = this.toLocalDateString(s);
+                this.dateEndKehadiran   = this.toLocalDateString(today);
+            } else if (preset === 'thismonth') {
+                const s = new Date(today.getFullYear(), today.getMonth(), 1);
+                this.dateStartKehadiran = this.toLocalDateString(s);
+                this.dateEndKehadiran   = this.toLocalDateString(today);
+            } else if (preset === 'reset') {
+                this.dateStartKehadiran = '';
+                this.dateEndKehadiran   = '';
+            }
         }
     }">
         <!-- Page Header -->
@@ -139,6 +171,13 @@
             <template x-for="col in selectedColumns[currentModule]" :key="col">
                 <input type="hidden" name="columns[]" :value="col">
             </template>
+            <!-- Hidden date inputs for rekap_kehadiran date-mode (only submitted when active) -->
+            <input type="hidden" name="start_date"
+                   :disabled="currentModule !== 'rekap_kehadiran' || dateStartKehadiran === ''"
+                   :value="dateStartKehadiran">
+            <input type="hidden" name="end_date"
+                   :disabled="currentModule !== 'rekap_kehadiran' || dateEndKehadiran === ''"
+                   :value="dateEndKehadiran">
 
             <!-- STEP 1: Pilih Modul Utama -->
             <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-5">
@@ -342,8 +381,92 @@
                     </div>
                 </div>
 
+                <!-- Date / Per-Hari Filter Panel for rekap_kehadiran -->
+                <div x-show="currentModule === 'rekap_kehadiran'" class="space-y-3" style="display:none;">
+                    <div class="flex items-center gap-2 pt-1">
+                        <div class="h-px flex-1 bg-gradient-to-r from-emerald-200 to-transparent"></div>
+                        <span class="flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            Filter Per Hari / Rentang Tanggal
+                        </span>
+                        <div class="h-px flex-1 bg-gradient-to-l from-emerald-200 to-transparent"></div>
+                    </div>
+
+                    <!-- Preset pills -->
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="text-[11px] font-semibold text-slate-500 shrink-0">Pilih Cepat:</span>
+                        <button type="button" @click="setDatePreset('today')"
+                                class="px-3 py-1.5 text-[11px] font-semibold rounded-lg border transition-all"
+                                :class="dateStartKehadiran && dateStartKehadiran === dateEndKehadiran && dateStartKehadiran === toLocalDateString(new Date())
+                                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                                    : 'bg-white text-slate-700 border-slate-200 hover:border-emerald-400 hover:text-emerald-700'">
+                            📅 Hari Ini
+                        </button>
+                        <button type="button" @click="setDatePreset('yesterday')"
+                                class="px-3 py-1.5 text-[11px] font-semibold rounded-lg border transition-all bg-white text-slate-700 border-slate-200 hover:border-emerald-400 hover:text-emerald-700">
+                            ◀ Kemarin
+                        </button>
+                        <button type="button" @click="setDatePreset('7days')"
+                                class="px-3 py-1.5 text-[11px] font-semibold rounded-lg border transition-all bg-white text-slate-700 border-slate-200 hover:border-emerald-400 hover:text-emerald-700">
+                            📊 7 Hari Terakhir
+                        </button>
+                        <button type="button" @click="setDatePreset('thismonth')"
+                                class="px-3 py-1.5 text-[11px] font-semibold rounded-lg border transition-all bg-white text-slate-700 border-slate-200 hover:border-emerald-400 hover:text-emerald-700">
+                            🗓 Bulan Ini
+                        </button>
+                        <button type="button" @click="setDatePreset('reset')"
+                                x-show="dateStartKehadiran !== '' || dateEndKehadiran !== ''"
+                                class="px-3 py-1.5 text-[11px] font-semibold rounded-lg border transition-all bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100">
+                            ✕ Reset Tanggal
+                        </button>
+                    </div>
+
+                    <!-- Date range inputs -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">
+                                Tanggal Mulai
+                                <span class="ml-1 font-normal text-slate-400">(opsional — isi untuk filter perhari/range)</span>
+                            </label>
+                            <input type="date"
+                                   x-model="dateStartKehadiran"
+                                   class="w-full px-3 py-2 bg-slate-50 border rounded-xl text-xs focus:bg-white focus:outline-none transition-colors"
+                                   :class="dateStartKehadiran ? 'border-emerald-400 ring-1 ring-emerald-200' : 'border-slate-200 focus:border-emerald-400'">
+                        </div>
+                        <div>
+                            <label class="block font-semibold text-slate-700 mb-1">
+                                Tanggal Selesai
+                                <span class="ml-1 font-normal text-slate-400">(kosongkan = sama dgn tanggal mulai)</span>
+                            </label>
+                            <input type="date"
+                                   x-model="dateEndKehadiran"
+                                   :min="dateStartKehadiran"
+                                   class="w-full px-3 py-2 bg-slate-50 border rounded-xl text-xs focus:bg-white focus:outline-none transition-colors"
+                                   :class="dateEndKehadiran ? 'border-emerald-400 ring-1 ring-emerald-200' : 'border-slate-200 focus:border-emerald-400'">
+                        </div>
+                    </div>
+
+                    <!-- Active date filter info badge -->
+                    <div x-show="dateStartKehadiran !== ''" class="flex items-center gap-2 p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-[11px]">
+                        <svg class="w-3.5 h-3.5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <span class="text-emerald-800 font-medium">
+                            Mode <strong>Per Tanggal</strong> aktif — data akan diambil langsung dari rekaman presensi harian (bukan rekap semester).
+                            Rentang:
+                            <strong x-text="dateStartKehadiran"></strong>
+                            <span x-show="dateEndKehadiran && dateEndKehadiran !== dateStartKehadiran">
+                                s/d <strong x-text="dateEndKehadiran"></strong>
+                            </span>
+                            <span x-show="!dateEndKehadiran || dateEndKehadiran === dateStartKehadiran"> (1 hari)</span>
+                        </span>
+                    </div>
+                    <div x-show="dateStartKehadiran === ''" class="text-[11px] text-slate-400 italic">
+                        💡 Biarkan kosong untuk ekspor berdasarkan <strong>Tahun Ajaran &amp; Semester</strong> di atas (mode cepat).
+                    </div>
+                </div>
+
                 <!-- Filters for master_siswa (Data Siswa) -->
                 <div x-show="currentModule === 'master_siswa'" style="display: none;" class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-xs">
+
                     <div>
                         <label class="block font-semibold text-slate-700 mb-1">Tingkat / Angkatan</label>
                         <select name="tingkat"
