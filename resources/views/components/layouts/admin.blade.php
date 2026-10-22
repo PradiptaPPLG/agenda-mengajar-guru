@@ -12,15 +12,13 @@
              x-transition:leave-start="opacity-100"
              x-transition:leave-end="opacity-0"
              @click="sidebarOpen = false"
-             @touchstart.passive="sidebarOpen = false" 
              style="display: none;"
              class="fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-xs lg:hidden cursor-pointer"
              aria-hidden="true">
         </div>
 
         {{-- Sidebar --}}
-        <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
-               @click.outside="if (sidebarOpen) sidebarOpen = false"
+        <aside :class="{ 'translate-x-0 shadow-2xl': sidebarOpen, '-translate-x-full': !sidebarOpen }"
                @keydown.escape.window="sidebarOpen = false"
                class="fixed inset-y-0 left-0 z-50 flex flex-col w-64 bg-white border-r border-slate-200 shrink-0 transition-transform duration-300 ease-in-out -translate-x-full lg:translate-x-0 lg:static lg:z-auto">
             {{-- Logo & Mobile Close Button --}}
@@ -37,9 +35,8 @@
 
                 {{-- Mobile Close Button --}}
                 <button type="button"
-                        @click="sidebarOpen = false"
-                        @touchend.prevent="sidebarOpen = false"
-                        class="lg:hidden -mr-2 w-10 h-10 flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 active:bg-slate-200 transition-colors cursor-pointer"
+                        @click.stop="sidebarOpen = false"
+                        class="lg:hidden -mr-2 w-10 h-10 flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 active:bg-slate-200 transition-colors cursor-pointer touch-manipulation"
                         title="Tutup Menu"
                         aria-label="Tutup Menu">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -359,8 +356,8 @@
             {{-- Mobile topbar --}}
             <header class="lg:hidden flex items-center justify-between px-3 h-14 bg-white border-b border-slate-200 shrink-0 sticky top-0 z-30">
                 <button type="button" 
-                        @click="sidebarOpen = true" 
-                        class="w-10 h-10 flex items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 active:bg-slate-200 hover:text-slate-900 transition-colors cursor-pointer" 
+                        @click.stop="sidebarOpen = true" 
+                        class="w-10 h-10 flex items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 active:bg-slate-200 hover:text-slate-900 transition-colors cursor-pointer touch-manipulation select-none shrink-0" 
                         title="Buka Menu Navigasi"
                         aria-label="Buka Menu Navigasi">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
