@@ -2,8 +2,20 @@
 <html lang="id" class="h-full">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="HandheldFriendly" content="true">
+    <meta name="MobileOptimized" content="width">
     <title>Login — Agenda Mengajar</title>
+    
+    <!-- PWA Manifest & Icons -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Agenda Guru">
+    <link rel="apple-touch-icon" href="/images/logo_new.png">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     @vite('resources/css/app.css')
@@ -77,6 +89,13 @@
             </form>
         </div>
 
+        <div class="mt-4 text-center">
+            <a href="{{ route('home', ['public' => 1]) }}" class="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-semibold hover:underline">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                <span>Lihat Monitoring KBM Publik</span>
+            </a>
+        </div>
+
         <p class="text-center mt-6 text-xs text-slate-400">
             © {{ date('Y') }} Agenda Mengajar Guru — Semua hak dilindungi
         </p>
@@ -98,6 +117,52 @@
                 eyeOffIcon.style.display = 'none';
             }
         }
+
+        // PWA Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch((err) => {
+                    console.log('SW registration error:', err);
+                });
+            });
+        }
+
+        // Deteksi jika perangkat HP terjebak di "Mode Situs Desktop" browser
+        (function() {
+            try {
+                const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+                const screenWidth = Math.min(window.screen.width, window.screen.height);
+                const viewportWidth = window.innerWidth;
+                
+                if (isTouch && screenWidth < 768 && viewportWidth >= 768) {
+                    const renderNotice = function() {
+                        if (sessionStorage.getItem('dismiss_desktop_notice') === '1') return;
+                        if (document.getElementById('desktop-mode-notice')) return;
+                        const banner = document.createElement('div');
+                        banner.id = 'desktop-mode-notice';
+                        banner.className = 'fixed top-3 left-3 right-3 z-[9999] p-3 rounded-2xl bg-amber-500 text-slate-950 shadow-2xl border border-amber-300 flex items-center justify-between gap-3 text-xs font-semibold';
+                        banner.innerHTML = `
+                            <div class="flex items-center gap-2.5 min-w-0">
+                                <span class="text-base shrink-0">📱</span>
+                                <span class="leading-tight">Mode "Situs Desktop" sedang aktif di browser Anda. Matikan tanda centang <b>Situs Desktop</b> di menu browser (titik 3) agar tampilan HP normal.</span>
+                            </div>
+                            <button type="button" onclick="document.getElementById('desktop-mode-notice').remove(); sessionStorage.setItem('dismiss_desktop_notice', '1');" class="px-2.5 py-1 bg-slate-950 hover:bg-slate-800 text-white rounded-lg text-[11px] shrink-0 font-bold cursor-pointer">
+                                Tutup
+                            </button>
+                        `;
+                        if (document.body) {
+                            document.body.prepend(banner);
+                        }
+                    };
+
+                    if (document.readyState === 'loading') {
+                        document.addEventListener('DOMContentLoaded', renderNotice);
+                    } else {
+                        renderNotice();
+                    }
+                }
+            } catch (e) {}
+        })();
     </script>
 </body>
 </html>

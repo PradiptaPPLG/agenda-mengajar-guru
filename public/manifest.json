@@ -1,11 +1,13 @@
 {
+  "id": "/",
   "name": "Agenda Mengajar Guru - SOPAN",
   "short_name": "Agenda Guru",
   "description": "Sistem Informasi Presensi & Agenda Belajar Mengajar Guru Real-Time",
-  "start_url": "/",
+  "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
-  "orientation": "portrait-primary",
+  "display_override": ["standalone", "minimal-ui", "browser"],
+  "orientation": "portrait",
   "background_color": "#0f172a",
   "theme_color": "#2563eb",
   "icons": [

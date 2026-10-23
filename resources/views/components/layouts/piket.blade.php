@@ -74,9 +74,40 @@
                 </div>
             </header>
 
-            <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+            <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 pb-20 lg:pb-8">
                 {{ $slot }}
             </main>
+
+            {{-- Mobile Bottom Navigation Bar (Versi HP/PWA) --}}
+            <nav class="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 safe-area-bottom shadow-lg">
+                <div class="flex items-center justify-around px-2 h-16" style="padding-bottom: env(safe-area-inset-bottom)">
+                    <a href="{{ route('piket.dashboard') }}" 
+                       class="flex flex-col items-center justify-center flex-1 py-1 text-[11px] font-medium transition-colors {{ request()->routeIs('piket.dashboard') ? 'text-teal-600 font-bold' : 'text-slate-500 hover:text-slate-900' }}">
+                        <svg class="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                        <span>Monitoring</span>
+                    </a>
+
+                    <a href="{{ route('monitoring.jadwal-terlewat') }}" 
+                       class="flex flex-col items-center justify-center flex-1 py-1 text-[11px] font-medium transition-colors {{ request()->routeIs('monitoring.jadwal-terlewat*') ? 'text-teal-600 font-bold' : 'text-slate-500 hover:text-slate-900' }}">
+                        <svg class="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <span>Terlewat</span>
+                    </a>
+
+                    <a href="{{ route('panduan') }}" 
+                       class="flex flex-col items-center justify-center flex-1 py-1 text-[11px] font-medium transition-colors {{ request()->routeIs('panduan') ? 'text-teal-600 font-bold' : 'text-slate-500 hover:text-slate-900' }}">
+                        <svg class="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                        <span>Panduan</span>
+                    </a>
+
+                    <button type="button"
+                            onclick="window.dispatchEvent(new CustomEvent('open-logout-modal', { detail: { form: document.querySelector('#piket-logout-form') } }))"
+                            class="flex flex-col items-center justify-center flex-1 py-1 text-[11px] font-medium text-slate-500 hover:text-red-600 transition-colors cursor-pointer">
+                        <svg class="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                        <span>Keluar</span>
+                    </button>
+                    <form id="piket-logout-form" method="POST" action="{{ route('logout') }}" style="display: none;">@csrf</form>
+                </div>
+            </nav>
         </div>
     </div>
 </x-layouts.app>

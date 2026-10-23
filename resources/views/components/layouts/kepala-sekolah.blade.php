@@ -160,7 +160,7 @@
                 </div>
             </header>
 
-            <main class="flex-1 overflow-y-auto">
+            <main class="flex-1 overflow-y-auto pb-20 lg:pb-0">
                 {{-- Desktop Page header --}}
                 <div class="hidden lg:block px-4 sm:px-6 py-4 sm:py-5 bg-white border-b border-slate-200">
                     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -197,6 +197,42 @@
 
                 <div class="p-4 sm:p-6">{{ $slot }}</div>
             </main>
+
+            {{-- Mobile Bottom Navigation Bar (Versi HP/PWA) --}}
+            <nav class="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 safe-area-bottom shadow-lg">
+                <div class="flex items-center justify-around px-2 h-16" style="padding-bottom: env(safe-area-inset-bottom)">
+                    <a href="{{ route('kepala-sekolah.dashboard') }}" 
+                       class="flex flex-col items-center justify-center flex-1 py-1 text-[11px] font-medium transition-colors {{ request()->routeIs('kepala-sekolah.dashboard') ? 'text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-900' }}">
+                        <svg class="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+                        <span>Dashboard</span>
+                    </a>
+
+                    <a href="{{ route('kepala-sekolah.report.guru') }}" 
+                       class="flex flex-col items-center justify-center flex-1 py-1 text-[11px] font-medium transition-colors {{ request()->routeIs('kepala-sekolah.report.guru') ? 'text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-900' }}">
+                        <svg class="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                        <span>Lap. Guru</span>
+                    </a>
+
+                    <a href="{{ route('kepala-sekolah.report.siswa') }}" 
+                       class="flex flex-col items-center justify-center flex-1 py-1 text-[11px] font-medium transition-colors {{ request()->routeIs('kepala-sekolah.report.siswa') ? 'text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-900' }}">
+                        <svg class="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                        <span>Lap. Siswa</span>
+                    </a>
+
+                    <a href="{{ route('monitoring.jadwal-terlewat') }}" 
+                       class="flex flex-col items-center justify-center flex-1 py-1 text-[11px] font-medium transition-colors {{ request()->routeIs('monitoring.jadwal-terlewat*') ? 'text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-900' }}">
+                        <svg class="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <span>Terlewat</span>
+                    </a>
+
+                    <button type="button"
+                            @click="sidebarOpen = true"
+                            class="flex flex-col items-center justify-center flex-1 py-1 text-[11px] font-medium text-slate-500 hover:text-slate-900 transition-colors cursor-pointer">
+                        <svg class="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                        <span>Menu</span>
+                    </button>
+                </div>
+            </nav>
         </div>
     </div>
 </x-layouts.app>

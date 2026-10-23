@@ -2,7 +2,9 @@
 <html lang="id" class="h-full">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="HandheldFriendly" content="true">
+    <meta name="MobileOptimized" content="width">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $title ?? 'Agenda Mengajar' }} — {{ \App\Models\Setting::get('school_name', 'Sekolah') }}</title>
     
@@ -367,6 +369,44 @@
                 });
             });
         }
+
+        // Deteksi jika perangkat HP terjebak di "Mode Situs Desktop" browser
+        (function() {
+            try {
+                const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+                const screenWidth = Math.min(window.screen.width, window.screen.height);
+                const viewportWidth = window.innerWidth;
+                
+                // Jika fisik layar HP (< 768px) tapi viewport browser dipaksa desktop (>= 768px)
+                if (isTouch && screenWidth < 768 && viewportWidth >= 768) {
+                    const renderNotice = function() {
+                        if (sessionStorage.getItem('dismiss_desktop_notice') === '1') return;
+                        if (document.getElementById('desktop-mode-notice')) return;
+                        const banner = document.createElement('div');
+                        banner.id = 'desktop-mode-notice';
+                        banner.className = 'fixed top-3 left-3 right-3 z-[9999] p-3 rounded-2xl bg-amber-500 text-slate-950 shadow-2xl border border-amber-300 flex items-center justify-between gap-3 text-xs font-semibold';
+                        banner.innerHTML = `
+                            <div class="flex items-center gap-2.5 min-w-0">
+                                <span class="text-base shrink-0">📱</span>
+                                <span class="leading-tight">Mode "Situs Desktop" sedang aktif di browser Anda. Matikan tanda centang <b>Situs Desktop</b> di menu browser (titik 3) agar tampilan HP normal.</span>
+                            </div>
+                            <button type="button" onclick="document.getElementById('desktop-mode-notice').remove(); sessionStorage.setItem('dismiss_desktop_notice', '1');" class="px-2.5 py-1 bg-slate-950 hover:bg-slate-800 text-white rounded-lg text-[11px] shrink-0 font-bold cursor-pointer">
+                                Tutup
+                            </button>
+                        `;
+                        if (document.body) {
+                            document.body.prepend(banner);
+                        }
+                    };
+
+                    if (document.readyState === 'loading') {
+                        document.addEventListener('DOMContentLoaded', renderNotice);
+                    } else {
+                        renderNotice();
+                    }
+                }
+            } catch (e) {}
+        })();
     </script>
 
     <x-pwa-install-prompt />

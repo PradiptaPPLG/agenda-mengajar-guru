@@ -11,14 +11,33 @@ use App\Models\Pertemuan;
 use App\Models\User;
 use App\Services\JadwalBlokResolverService;
 use Carbon\Carbon;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\View\View;
 
 class PublicDashboardController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request): View|RedirectResponse
     {
+        // Jika pengguna sudah login, arahkan langsung ke dashboard sesuai perannya (bukan ke portal monitor publik)
+        if (auth()->check() && ! $request->boolean('public')) {
+            $user = auth()->user();
+
+            return redirect()->route(match ($user->role) {
+                'admin', 'super_admin' => 'admin.dashboard',
+                'guru' => 'guru.dashboard',
+                'siswa' => 'siswa.dashboard',
+                'kepala_sekolah', 'pengawas' => 'kepala-sekolah.dashboard',
+                'piket' => 'piket.dashboard',
+                default => 'login',
+            });
+        }
+
+        // Jika dibuka dari shortcut PWA oleh pengunjung yang belum login, langsung bawa ke halaman login
+        if (! auth()->check() && ($request->get('source') === 'pwa' || $request->boolean('pwa'))) {
+            return redirect()->route('login');
+        }
         $today = Carbon::today();
         $hari = $today->dayOfWeekIso;
         $nowTime = Carbon::now()->format('H:i');

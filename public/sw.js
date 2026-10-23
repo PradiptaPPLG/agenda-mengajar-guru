@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sopan-agenda-v3';
+const CACHE_NAME = 'sopan-agenda-v4';
 const STATIC_ASSETS = [
   '/manifest.json',
   '/images/logo_new.png',
