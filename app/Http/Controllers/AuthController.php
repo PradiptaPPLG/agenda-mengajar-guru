@@ -9,6 +9,8 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class AuthController extends Controller
@@ -31,6 +33,16 @@ class AuthController extends Controller
 
         $identifier = trim($credentials['identifier']);
         $password = $credentials['password'];
+
+        $throttleKey = Str::transliterate(Str::lower($identifier).'|'.$request->ip());
+
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            $seconds = RateLimiter::availableIn($throttleKey);
+
+            return back()->withErrors([
+                'identifier' => "Terlalu banyak percobaan login. Silakan coba lagi dalam {$seconds} detik.",
+            ])->onlyInput('identifier');
+        }
 
         $user = User::where(function ($query) use ($identifier) {
             $query->whereHas('guruProfile', function ($q) use ($identifier) {
@@ -60,7 +72,9 @@ class AuthController extends Controller
                 ])->onlyInput('identifier');
             }
 
-            $remember = $request->has('remember') ? $request->boolean('remember') : true;
+            RateLimiter::clear($throttleKey);
+
+            $remember = $request->boolean('remember');
             Auth::login($user, $remember);
             $request->session()->regenerate();
 
@@ -72,6 +86,8 @@ class AuthController extends Controller
 
             return $this->redirectByRole($user->role);
         }
+
+        RateLimiter::hit($throttleKey, 60);
 
         return back()->withErrors([
             'identifier' => 'Email/NIP/NIS atau password salah.',

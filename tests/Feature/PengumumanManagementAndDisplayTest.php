@@ -334,13 +334,14 @@ class PengumumanManagementAndDisplayTest extends TestCase
     }
 
     /**
-     * Test 7: Sistem login secara default mengaktifkan remember token agar pengguna tidak keluar sendiri.
+     * Test 7: Sistem login mengaktifkan remember token ketika opsi remember dicentang.
      */
-    public function test_login_defaults_to_remember_me_persistent(): void
+    public function test_login_supports_remember_me_persistent(): void
     {
         $response = $this->post(route('login.post'), [
             'identifier' => 'guru.budi@test.com',
             'password' => 'password',
+            'remember' => '1',
         ]);
 
         $response->assertRedirect();
